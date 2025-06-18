@@ -771,7 +771,8 @@ def StateAutomaton.comp_auto  {X : Type} (A : StateAutomaton I X) (B : StateAuto
     cases a with
     | inl a =>
       simp only [Sum.elim_inl]
-      exact decidableFalse
+      simp only [Bool.false_eq_true]
+      exact instDecidableFalse
     | inr b =>
       simp only [Sum.elim_inr]
       exact (auto B).acceptsImmediate_decidable' b
@@ -788,6 +789,7 @@ def StateAutomaton.comp_auto  {X : Type} (A : StateAutomaton I X) (B : StateAuto
   exclusive_rejects_accepts_immediate := by
     simp only [imp_false, Sum.forall, Sum.elim_inl, not_false_eq_true, implies_true, Sum.elim_inr,
       true_and]
+    simp only [Bool.false_eq_true, not_false_eq_true, implies_true, true_and]
     exact (auto B).exclusive_rejects_accepts_immediate
 
 theorem StateAutomaton.comp_auto_not_accept_A {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) :
@@ -795,6 +797,7 @@ theorem StateAutomaton.comp_auto_not_accept_A {X : Type} (A : StateAutomaton I X
   intro h
   unfold comp_auto at h
   simp only [Sum.elim_inl] at h
+  simp_all only [Bool.false_eq_true]
 
 
 theorem StateAutomaton.comp_auto_halts_A {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {a : A.H} :
@@ -802,6 +805,7 @@ theorem StateAutomaton.comp_auto_halts_A {X : Type} {A : StateAutomaton I X} {B 
   unfold AutomatonConfiguration.haltsImmediate
   unfold comp_auto
   simp only [Sum.elim_inl, or_false]
+  simp_all only [Bool.false_eq_true, or_false]
 
 theorem StateAutomaton.comp_auto_ee {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h) (n' : ℕ)
     (nv : n' ≤ ((auto A).acceptsIn a h)):
@@ -830,21 +834,21 @@ theorem StateAutomaton.comp_auto_ee {X : Type} (A : StateAutomaton I X) (B : Sta
     {
     rename_i hh
     have := (auto A).haltImmediate_of_rejectsImmediate (comp_auto_halts_A.mp hh)
-    simp only [this, ite_true]
-    simp_all only [not_true_eq_false]
+    simp_all only [n, w]
     }
     -- aesop
     rename_i hh
     rw [comp_auto_halts_A] at hh
     unfold comp_auto
     simp only [Sum.elim_inl]
-    rw [←w_def]
+
 
 
 
     split
     {
       rename_i hhh
+      simp only [reduceCtorEq, n, w]
       exact not_haltIm ((auto A).haltImmediate_of_acceptsImmediate hhh)
     }
     apply congrArg
@@ -877,6 +881,7 @@ theorem StateAutomaton.comp_auto_result_b {X : Type} (A : StateAutomaton I X) (B
   obtain ⟨y,y_re⟩ := lft
   rw [y_re] at hb
   simp only [Sum.elim_inl] at hb
+  simp_all only [Bool.false_eq_true]
 
 
 #check leads_partition_while
@@ -897,8 +902,8 @@ theorem StateAutomaton.comp_auto_split {X : Type} (A : StateAutomaton I X) (B : 
   -- (comp_auto A B).leads_nth (.inl a)
   -- have : (comp_auto A B).leads_nth
   have hp : ∀ (x : A.H ⊕ B.H), p x → p (f x) := by
-    simp only [Sum.forall, Sum.isRight_inl, IsEmpty.forall_iff, implies_true, Sum.isRight_inr,
-      forall_true_left, true_and]
+    simp only [Sum.forall, Sum.isRight_inl, Bool.false_eq_true, IsEmpty.forall_iff, implies_true,
+      Sum.isRight_inr, forall_const, true_and, p]
     intro b'
     exact comp_auto_b_leads_b A B b'
   have ha : ¬p (Sum.inl a) := by exact Sum.not_isRight.mpr rfl
@@ -951,7 +956,7 @@ theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateA
     match h : Option.bind (fa t) fb with
       | some w =>
         simp only
-        simp only [Option.bind_eq_some] at h
+        simp only [Option.bind_eq_some_iff] at h
         obtain ⟨x,atx, bxw⟩ := h
         have a_v := ma.right t a_accept
         simp [atx] at a_v
@@ -972,7 +977,7 @@ theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateA
         | inl v =>
           simp only [Sum.elim_inl]
           -- I think it's exfalso unless B halts immediately
-          simp only at hh
+          -- simp only at hh
 
           sorry
         | inr y =>
@@ -1070,7 +1075,7 @@ def Tape.update (t : Tape G) (i : ℕ) (h : i ≠ 0) (hn : i ≤ t.edge) (a : G)
     -- have ⟨n, n_spec, n_unique⟩ := t.trail_specific
     let n := t.edge
     have n_spec := t.edge_spec
-    simp
+
     by_cases hw : i < n
     {
     use n
@@ -1115,7 +1120,7 @@ def Tape.update (t : Tape G) (i : ℕ) (h : i ≠ 0) (hn : i ≤ t.edge) (a : G)
 theorem Tape.unupdated_edge {t : Tape G} {a : G} (i : ℕ) (h : i ≠ 0) (hn : i < t.edge) : (t.update i h (hn.le) a).edge = t.edge := by
   set f :=  (t.update i h (hn.le) a)
   have (j) : f j = rightChar ↔ t j = rightChar := by
-    simp only [update]
+    change (if j = i then tapeAlpha a else toFun t j) = _ ↔ _
     split
     · simp only [tapeAlpha_not_char, false_iff]
       intro q
@@ -1131,7 +1136,7 @@ theorem Tape.updated_edge {t : Tape G} {a : G} : (t.update t.edge (t.edge_pos.ne
   apply nat_le_ext
   intro i
   rw [f.edge_spec i]
-  simp only [update]
+  change (if i = edge t then tapeAlpha a else toFun t i) = _ ↔ _
   split
   · simp only [tapeAlpha_not_char, false_iff]
     linarith

@@ -123,28 +123,28 @@ theorem AutomatonConfiguration.acceptsImmediate_leads_acceptsImmediate {a b : H}
   refine leads_preserves acceptsImmediate_yield_acceptsImmediate hl h
 
 
--- if C rejects, so does its predecessor and successor
-theorem AutomatonConfiguration.rejects_stable (a : H): halt_rejects a ↔ halt_rejects (yield a) := by
+-- -- if C rejects, so does its predecessor and successor
+-- theorem AutomatonConfiguration.rejects_stable (a : H): halt_rejects a ↔ halt_rejects (yield a) := by
 
 
-  unfold halt_rejects leads'
-  by_cases h : rejectsImmediate a
-  constructor
-  intro _
-  use (yield a)
-  constructor
-  exact rejectsImmediate_yield_rejectsImmediate a h
-  exact leads_self yield (yield a)
-  sorry
-  unfold leads
-  simp_rw [←sequence_leading_succ']
-  -- simp only [sequence_leading_succ]
-  refine ⟨fun ⟨b,r_b,n,se⟩ ↦ ⟨b,r_b,n - 1,?_⟩,fun rig ↦ ?_⟩
+--   unfold halt_rejects leads'
+--   by_cases h : rejectsImmediate a
+--   constructor
+--   intro _
+--   use (yield a)
+--   constructor
+--   exact rejectsImmediate_yield_rejectsImmediate a h
+--   exact leads_self yield (yield a)
+--   sorry
+--   unfold leads
+--   simp_rw [←sequence_leading_succ']
+--   -- simp only [sequence_leading_succ]
+--   refine ⟨fun ⟨b,r_b,n,se⟩ ↦ ⟨b,r_b,n - 1,?_⟩,fun rig ↦ ?_⟩
 
 
 
-  sorry
-  sorry
+--   sorry
+--   sorry
 
 
 theorem AutomatonConfiguration.exclusive_rejects_accepts (a : H) :

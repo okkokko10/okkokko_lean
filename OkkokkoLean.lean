@@ -5,4 +5,5 @@ import OkkokkoLean.Lead
 import OkkokkoLean.AutomatonConfiguration
 import OkkokkoLean.StateAutomaton
 import OkkokkoLean.StateAutomatonComp
+import OkkokkoLean.StateDiagram
 import OkkokkoLean.Computation

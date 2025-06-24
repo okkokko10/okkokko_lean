@@ -58,11 +58,14 @@ theorem StateAutomaton.comp_auto_halts_A {X : Type} {A : StateAutomaton I X} {B 
   simp only [Sum.elim_inl, or_false]
   simp_all only [Bool.false_eq_true, or_false]
 
-theorem StateAutomaton.comp_auto_ee {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h) (n' : ℕ)
-    (nv : n' ≤ ((auto A).acceptsIn a h)):
-    (comp_auto A B).leads_nth (.inl a) n' = .inl ((auto A).leads_nth (a) n') := by
-  rw [(auto A).acceptsIn_eq_haltsIn] at nv
-  set n := ((auto A).haltsIn a ((auto A).halts_of_accepts h))
+-- given that `a` does not halt before `n'` steps, A and comp A B coincide in `n'` steps
+theorem StateAutomaton.comp_auto_coincide_A {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h) (n' : ℕ)
+    (nv : n' ≤ ((auto A).haltsIn a h)):
+    (comp_auto A B).leads_nth (.inl a) n'
+    = .inl ((auto A).leads_nth (a) n') := by
+  have h' := h -- ((auto A).halts_of_accepts h)
+  -- rw [(auto A).acceptsIn_eq_haltsIn] at nv
+  set n := ((auto A).haltsIn a h')
   unfold AutomatonConfiguration.leads_nth
   revert nv
   induction n' with
@@ -78,7 +81,7 @@ theorem StateAutomaton.comp_auto_ee {X : Type} (A : StateAutomaton I X) (B : Sta
     simp_rw [AutomatonConfiguration.yield]
     set w := (sequence_leading (auto A).yield a n') with w_def
 
-    have not_haltIm := (auto A).haltsIn_min a ((auto A).halts_of_accepts h) n' s'
+    have not_haltIm := (auto A).haltsIn_min a h' n' s'
     unfold AutomatonConfiguration.leads_nth at not_haltIm
     rw [←w_def] at not_haltIm
     split
@@ -107,21 +110,32 @@ theorem StateAutomaton.comp_auto_ee {X : Type} (A : StateAutomaton I X) (B : Sta
     rename_i h_1
     simp_all only [ite_false]
 
-
+-- given that A accepts `a`, A and comp A B coincide at the step that it accepts it at
 theorem StateAutomaton.comp_auto_e {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h):
     (comp_auto A B).leads_nth (.inl a) ((auto A).acceptsIn a h) = .inl ((auto A).result a h) := by
   rw [(auto A).result_def]
-  apply comp_auto_ee
+  rw [(auto A).acceptsIn_eq_haltsIn]
+  apply comp_auto_coincide_A (h:= ((auto A).halts_of_accepts h))
   rfl
 
-
-theorem StateAutomaton.comp_auto_b_leads_b {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (b : B.H) :
+-- a B state leads to a B state
+theorem StateAutomaton.comp_auto_b_leads_b' {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (b : B.H) :
     Sum.isRight ((comp_auto A B).yield (.inr b)) := by
   unfold AutomatonConfiguration.yield
   split
   · simp only [Sum.isRight_inr]
   rfl
 
+-- a B state leads to the next B state
+theorem StateAutomaton.comp_auto_b_leads_b {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (b : B.H) :
+    (comp_auto A B).yield (.inr b) = .inr ((auto B).yield b) := by
+  unfold AutomatonConfiguration.yield
+  split
+  · simp only [Sum.inr.injEq, left_eq_ite_iff]
+    tauto
+  rfl
+
+-- the result of comp A B is a B state
 theorem StateAutomaton.comp_auto_result_b {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (x : A.H ⊕ B.H) (h) :
     Sum.isRight ((comp_auto A B).result x h) := by
   set b := (comp_auto A B).result _ _
@@ -138,9 +152,13 @@ theorem StateAutomaton.comp_auto_result_b {X : Type} (A : StateAutomaton I X) (B
 #check leads_partition_while
 
 -- example
-theorem StateAutomaton.comp_auto_split {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h : (comp_auto A B).accepts (.inl a)) :
-    ∃z<((comp_auto A B).acceptsIn (Sum.inl a) h), leads_partition_while (comp_auto A B).yield (Sum.inl a) ((comp_auto A B).result (.inl a) h) (Sum.isRight ·) z (((comp_auto A B).acceptsIn (Sum.inl a) h) - z - 1)
-     := by
+theorem StateAutomaton.comp_auto_split {X : Type} (A : StateAutomaton I X)
+    (B : StateAutomaton X O) (a : A.H) (h : (comp_auto A B).accepts (.inl a)) :
+    ∃z<((comp_auto A B).acceptsIn (Sum.inl a) h),
+      leads_partition_while (comp_auto A B).yield
+      (Sum.inl a) ((comp_auto A B).result (.inl a) h) (Sum.isRight ·)
+      z (((comp_auto A B).acceptsIn (Sum.inl a) h) - z - 1)
+  := by
 
   set b := (comp_auto A B).result (.inl a) h with b_def
   rw [(comp_auto A B).result_def] at b_def
@@ -156,7 +174,8 @@ theorem StateAutomaton.comp_auto_split {X : Type} (A : StateAutomaton I X) (B : 
     simp only [Sum.forall, Sum.isRight_inl, Bool.false_eq_true, IsEmpty.forall_iff, implies_true,
       Sum.isRight_inr, forall_const, true_and, p]
     intro b'
-    exact comp_auto_b_leads_b A B b'
+    have := comp_auto_b_leads_b A B b'
+    simp_all only [Sum.isRight_inr, p, f]
   have ha : ¬p (Sum.inl a) := by exact Sum.not_isRight.mpr rfl
   have hb : p b := by
     exact comp_auto_result_b A B (Sum.inl a) h
@@ -166,17 +185,92 @@ theorem StateAutomaton.comp_auto_split {X : Type} (A : StateAutomaton I X) (B : 
   tauto
 
 
+open AutomatonConfiguration
+
+theorem StateAutomaton.comp_auto_coincide_B {X : Type} (A : StateAutomaton I X)
+    (B : StateAutomaton X O) (b : B.H) (n' : ℕ)
+    --(nv : n' ≤ ((auto A).haltsIn a h))
+    :
+    (comp_auto A B).leads_nth (.inr b) n' = .inr ((auto B).leads_nth (b) n') := by
+  induction n' with
+  | zero =>
+    rfl
+  | succ n prev =>
+    unfold leads_nth
+    simp only [sequence_leading_succ, leads_nth_def]
+    rw [prev]
+    set u := (auto B).leads_nth b n
+    exact comp_auto_b_leads_b A B u
+
+lemma StateAutomaton.comp_auto_A_acc_no_halt {X : Type} (A : StateAutomaton I X)
+    (B : StateAutomaton X O) (a : A.H) (h) :
+    ¬(comp_auto A B).haltsImmediate (Sum.inl ((auto A).result a h)) := by
+  rw [comp_auto_halts_A]
+  intro w
+  have := (auto A).result_accepts a h
+  exact  (auto A).exclusive_rejects_accepts_immediate _ w this
+
+theorem StateAutomaton.comp_auto_A_acc_yields_B {X : Type} (A : StateAutomaton I X)
+    (B : StateAutomaton X O) (a : A.H) (h) :
+    (comp_auto A B).yield (Sum.inl ((auto A).result a h))
+    = .inr (init B (get A ((auto A).result a h))) := by
+  rw [show (comp_auto A B).yield (Sum.inl ((auto A).result a h)) =
+    if (comp_auto A B).haltsImmediate (Sum.inl ((auto A).result a h)) then
+      Sum.inl ((auto A).result a h)
+    else (comp_auto A B).yield' (Sum.inl ((auto A).result a h)) from rfl]
+  simp only [comp_auto_A_acc_no_halt, ↓reduceIte]
+  rw [show (comp_auto A B).yield' (Sum.inl ((auto A).result a h)) =
+    if (auto A).acceptsImmediate ((auto A).result a h) then
+      Sum.inr (B.init (A.get ((auto A).result a h)))
+    else Sum.inl ((auto A).yield ((auto A).result a h)) from rfl]
+  simp only [ite_eq_left_iff, reduceCtorEq, imp_false, Decidable.not_not]
+  exact (auto A).result_accepts a h
 
 
-theorem StateAutomaton.comp_auto_ew {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h)
-    (n' : ℕ) (nv : n' > ((auto A).haltsIn a ((auto A).halts_of_accepts h))) :
-    (comp_auto A B).leads_nth (.inl a) ((auto A).haltsIn a ((auto A).halts_of_accepts h) + n')
+
+
+theorem StateAutomaton.comp_auto_coincide_after_A' {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h)
+    (n' : ℕ) :
+    (comp_auto A B).leads_nth (.inl a) (((auto A).acceptsIn a h) + 1 + n')
     = .inr ((auto B).leads_nth (init B <| get A <| (auto A).result a h) n') := by
   -- possibly off by one.
+  -- simp only [leads_nth_def]
+  unfold leads_nth
 
+  simp only [sequence_leading_tail, leads_nth_def]
+  rw [comp_auto_e]
+  simp only [← leads_nth_def, sequence_leading_succ, sequence_leading_zero]
+  simp [leads_nth_def]
 
+  simp only [comp_auto_A_acc_yields_B A B a h]
+  apply comp_auto_coincide_B
 
-  sorry
+-- #check StateAutomaton.comp_auto_coincide_A
+
+theorem StateAutomaton.comp_auto_coincide_after_A {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h)
+    (n : ℕ) (nv : n > (auto A).acceptsIn a h) :
+    (comp_auto A B).leads_nth (.inl a) n
+    = .inr ((auto B).leads_nth (init B <| get A <| (auto A).result a h) (n - ((auto A).acceptsIn a h) - 1)) := by
+  have := comp_auto_coincide_after_A' A B a h (n - ((auto A).acceptsIn a h) - 1)
+  rw [←this]
+  apply congrArg
+  omega
+
+theorem StateAutomaton.comp_auto_coincide {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h)
+    (n : ℕ)  :
+    (comp_auto A B).leads_nth (.inl a) n =
+    if (n ≤ (auto A).acceptsIn a h) then
+    .inl ((auto A).leads_nth (a) n)
+    else
+    .inr ((auto B).leads_nth (init B <| get A <| (auto A).result a h) (n - ((auto A).acceptsIn a h) - 1))
+    := by
+  split
+  · refine comp_auto_coincide_A A B a ?_ n ?_
+    exact (auto A).halts_of_accepts h
+    rw [←(auto A).acceptsIn_eq_haltsIn]
+    assumption
+  refine comp_auto_coincide_after_A A B a h n ?_
+  simp_all only [not_le, gt_iff_lt]
 
 
 -- todo: attempt some rule where an automaton simulating another contains steps corresponding to steps in the simulated automaton, and each simulated step finishes in finite time.

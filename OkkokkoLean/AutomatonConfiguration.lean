@@ -163,6 +163,9 @@ theorem AutomatonConfiguration.exclusive_rejects_accepts (a : H) :
 def AutomatonConfiguration.leads_nth (a : H) (n : ℕ) : H :=
     _root_.sequence_leading yield a n
 
+@[simp]
+theorem AutomatonConfiguration.leads_nth_def {a : H} {n : ℕ} : _root_.sequence_leading yield a n = leads_nth a n := rfl
+
 def AutomatonConfiguration.haltsIn (a : H) (h : halts a) : ℕ := Nat.find (halts_def'.mp h)
 theorem AutomatonConfiguration.haltsIn_min (a : H) (h : halts a) (m) : m < haltsIn a h → ¬ haltsImmediate (leads_nth a m) := by
   intro mh

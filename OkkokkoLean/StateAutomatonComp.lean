@@ -273,6 +273,30 @@ theorem StateAutomaton.comp_auto_coincide {X : Type} (A : StateAutomaton I X) (B
   simp_all only [not_le, gt_iff_lt]
 
 
+
+theorem StateAutomaton.comp_auto_coincide_result {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h) (hb)
+     :
+    (comp_auto A B).leads_nth (.inl a)
+    (((auto A).acceptsIn a h) + 1 + ((auto B).acceptsIn (init B <| get A <| (auto A).result a h) hb))
+    = .inr ((auto B).result (init B <| get A <| (auto A).result a h) hb) := by
+  rw [comp_auto_coincide_after_A']
+  simp only [Sum.inr.injEq]
+  exact Eq.symm ((auto B).result_def (B.init (A.get ((auto A).result a h))) hb)
+
+
+theorem StateAutomaton.comp_auto_coincide_result' {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (hh) (h) (hb)
+     :
+    (comp_auto A B).acceptsIn (.inl a) hh = (((auto A).acceptsIn a h) + ((auto B).acceptsIn (init B <| get A <| (auto A).result a h) hb) + 1) := by
+  unfold acceptsIn
+  refine nat_le_ext ?_
+  intro i
+  -- unfold haltsIn
+  rw [@Nat.find_le_iff]
+  sorry
+
+
+
+
 -- todo: attempt some rule where an automaton simulating another contains steps corresponding to steps in the simulated automaton, and each simulated step finishes in finite time.
 
 def StateAutomaton.comp {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) : StateAutomaton I O where
@@ -307,7 +331,7 @@ theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateA
         simp [atx] at a_v
 
 
-        unfold result
+        unfold result at a_v ⊢
         have a_halt := ((auto A).halts_of_accepts a_accept)
 
         have a_lead:= comp_auto_e A B (init A t) a_accept
@@ -340,6 +364,27 @@ theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateA
         tauto
 
 
+theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {fa : I → Option X} {fb : X → Option O}
+  (ma : models_function A fa) (mb : models_function B fb) :
+  models_function (comp A B) (fun t ↦ Option.bind (fa t) fb) := by
+
+  have bin (t) : Option.bind (fa t) fb = match (fa t) with | some w => fb w | none => none
+    := by aesop
+  -- simp_rw [bin]
+  rw [StateAutomaton.models_function_def] at ma mb ⊢
+  have models_accept : ((A.comp B).models_function_accept fun x ↦ ((fa x).bind fb).isSome = true) := sorry
+  simp only [models_accept, true_and]
+  intro t c
+  rw [show (A.comp B).result t c =
+    Sum.elim (fun x ↦ B.get (B.init (A.get x))) (fun x ↦ B.get x)
+      ((comp_auto A B).result (.inl <| A.init t) c) from rfl]
+  -- rw [show
+  --   Sum.elim (fun x ↦ B.get (B.init (A.get x))) (fun x ↦ B.get x)
+  --     ((comp_auto A B).result (.inl <| A.init t) c) =
+  --   B.get ( Sum.elim (fun x ↦ (B.init (A.get x))) (fun x ↦ x)
+  --     ((comp_auto A B).result (.inl <| A.init t) c) ) from rfl]
+
+  sorry
 -- todo:
 
 -- And:  A.I × B.I → A.O × B.O

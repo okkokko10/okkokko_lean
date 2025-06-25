@@ -43,6 +43,23 @@ def StateAutomaton.models_function_accept (f : I → Prop) : Prop := ∀t : I, a
 def StateAutomaton.models_function (f : I → Option O) : Prop :=
     (models_function_accept M (f · |>.isSome)) ∧  ∀t : I, ∀(c : accepts M t), match (f t) with | some w => result M t c = w | none => False
 
+theorem StateAutomaton.models_function_def (f : I → Option O) : models_function M f ↔
+    (models_function_accept M (f · |>.isSome)) ∧  ∀t : I, ∀(c : accepts M t), (f t) = some (result M t c)  := by
+  have (t) (c): (match (f t) with | some w => result M t c = w | none => False) ↔ (f t) = some (result M t c) := by
+    apply Iff.intro
+    · intro a
+      split at a
+      next x w heq =>
+        subst a
+        simp_all only
+      next x heq => simp_all only
+    · intro a
+      simp_all only
+
+  simp_rw [←this]
+  rfl
+
+
 -- #check Equivalence
 -- #check RelEmbedding
 -- #check Function.Embedding
@@ -85,6 +102,16 @@ def StateAutomaton.same_result_equiv : @Equivalence (StateAutomaton I O) same_re
     exact yz_eq t yc zc
 
 -- todo: a relation for models_function
+
+theorem StateAutomaton.models_function_apply (f : I → Option O) (m : models_function M f) (t : I) (c : accepts M t) :
+    -- match (f t) with | some w => result M t c = w | none => False := by
+    (f t) = some (result M t c) := by
+  rw [models_function_def] at m
+  have ⟨tw,tm⟩ := m
+  -- unfold models_function_accept at tw
+  -- -- simp only at tw
+  -- -- have qw:= tw t |>.mp c
+  exact tm t c
 
 
 

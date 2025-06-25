@@ -39,6 +39,12 @@ instance AutomatonConfiguration.acceptsImmediate_decidable' : @DecidablePred H a
 instance AutomatonConfiguration.rejectsImmediate_decidable' : @DecidablePred H rejectsImmediate := rejectsImmediate_decidable
 
 def AutomatonConfiguration.yield (a : H) : H := if haltsImmediate a then a else yield' a
+theorem AutomatonConfiguration.yield_of_haltsImmediate (a : H) (h : haltsImmediate a) : yield a = a := by
+  unfold yield
+  simp_all only [↓reduceIte]
+theorem AutomatonConfiguration.yield_of_not_haltsImmediate (a : H) (h : ¬ haltsImmediate a) : yield a = yield' a:= by
+  unfold yield
+  simp_all only [↓reduceIte]
 
 theorem AutomatonConfiguration.rejectsImmediate_yield_rejectsImmediate (C : H) : rejectsImmediate C → rejectsImmediate (yield C) := by
   intro r
@@ -223,5 +229,76 @@ theorem AutomatonConfiguration.result_def (a : H) (h : accepts a) : result a h =
 theorem AutomatonConfiguration.result_accepts (a : H) (h : accepts a)  : acceptsImmediate (result a h) := by
   rw [result_def]
   exact Nat.find_spec (accepts_def'.mp h)
+
+
+
+theorem AutomatonConfiguration.haltsImmediate_leads_nth_self
+    (a : H) (h : haltsImmediate a) (n: ℕ) : (leads_nth a n) = a := by
+  apply sequence_leading_identity (yield_of_haltsImmediate a h)
+
+
+-- if a leads to a acceptsImmediate state, that state is the result.
+theorem AutomatonConfiguration.result_of_acceptsImmediate (a b : H) (l : leads' a b) (h : acceptsImmediate b) : b = (result a ⟨b, h,l⟩) := by
+  have aa: accepts a := ⟨b, h, l⟩
+  change ∃n, leads_nth a n = b at l
+  obtain ⟨n,l⟩ := l
+  have : acceptsIn a aa ≤ n := by
+    unfold acceptsIn
+    rw [@Nat.find_le_iff]
+    simp only [leads_nth_def]
+    use n
+    simp only [le_refl, true_and]
+    rw [l]
+    exact h
+
+  have := leads_connected ⟨n,l⟩ ⟨acceptsIn a aa, (by simp only [leads_nth_def, ← result_def]; rfl)⟩
+  set c :=(result a aa)
+  cases this
+  rename_i ht
+  change ∃n, leads_nth b n = c at ht
+  simp only [haltsImmediate_leads_nth_self b (haltImmediate_of_acceptsImmediate h),
+    exists_const] at ht
+  exact ht
+  rename_i ht
+  change ∃n, leads_nth c n = b at ht
+  simp only [haltsImmediate_leads_nth_self c (haltImmediate_of_acceptsImmediate (result_accepts a aa)),
+    exists_const] at ht
+  exact ht.symm
+
+theorem AutomatonConfiguration.leads_nth_halts (a : H) (h : halts a) (n: ℕ) : halts (leads_nth a n) := by
+  simp only [halts_def']
+  rw [show leads_pred' (leads_nth a n) haltsImmediate =
+    ∃ n_1, haltsImmediate (sequence_leading yield (leads_nth a n) n_1) from rfl]
+  simp only [halts_def'] at h
+  rw [show leads_pred' a haltsImmediate = ∃ n, haltsImmediate (sequence_leading yield a n) from rfl] at h
+  obtain ⟨n',w⟩ := h
+  by_cases pw : n ≤ n'
+  · simp only [←leads_nth_def]
+    simp only [←sequence_leading_tail]
+    -- simp only [leads_nth_def]
+
+    use (n' - n)
+    have : (n + (n' - n)) = n' := by omega
+    rw [this]
+    exact w
+  use 0
+  simp only [sequence_leading_zero]
+  have ⟨m,mw⟩ : ∃m, n = n' + m := by
+    use (n - n')
+    omega
+  rw [mw]
+  simp only [←leads_nth_def]
+  simp only [sequence_leading_tail]
+  set pp := (sequence_leading yield a n')
+  simp only [leads_nth_def]
+  sorry
+
+
+
+
+theorem AutomatonConfiguration.haltsIn_assoc (a : H) (h : halts a) (n m : ℕ) : haltsIn a h = n + m ↔ haltsIn (leads_nth a n) (leads_nth_halts a h n) = m  := by
+
+  sorry
+
 
 end automatonConfiguration

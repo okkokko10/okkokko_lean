@@ -400,6 +400,11 @@ theorem leads_partition_while_mk (f : X → X) {a b : X} (p : X → Prop) [Decid
       exact hp (sequence_leading f a (z + 1 + i')) prev
 
 
+theorem sequence_leading_identity {f : X → X} {a : X} (h : f a = a) (n : ℕ) : sequence_leading f a n = a := by
+  induction n with
+  | zero => rfl
+  | succ n prev => rw [sequence_leading_succ,prev,h]
+
 
 
 -- actually, is ha needed?

@@ -346,7 +346,16 @@ def StateAutomaton.comp {X : Type} (A : StateAutomaton I X) (B : StateAutomaton 
 -- theorem StateAutomaton.comp.get_ready {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) :
 
 
-theorem StateAutomaton.comp.accepts_A {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {t : I} : accepts (comp A B) t →  accepts A t := by
+theorem StateAutomaton.comp.accepts_A {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {t : I}
+    (acc : accepts (comp A B) t ) :
+    accepts A t := by
+  sorry
+
+theorem StateAutomaton.comp.accepts_B {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {t : I}
+    (acc : accepts (comp A B) t ) :
+    accepts B (A.result t (accepts_A acc)) := by
+  --B.accepts (A.get (AutomatonConfiguration.result (A.init t) ⋯))
+
   sorry
 
 theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {fa : I → Option X} {fb : X → Option O}
@@ -431,30 +440,22 @@ theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : State
   have ⟨wwr,wwr_spec⟩: ∃wwr, ww = (.inr wwr) := Sum.isRight_iff.mp ww_right
   rw [wwr_spec]
   simp only [Sum.elim_inr]
-  -- have : _ = ww := comp_auto_coincide_result'' A B _
+
+  have coinc : ww = _ := comp_auto_coincide_result'' A B (A.init t) (accepts_A c) (accepts_B c) c
+
   have := ma.right t (accepts_A c)
   rw [this]
   simp only [Option.bind_some]
-  have := mb.right (A.result t (accepts_A c)) ?_
-  ·
-    rw [this]
-    simp only [Option.some.injEq]
-    rw [result]
-    apply congrArg
-    apply Sum.inr_injective
-    rw [←wwr_spec]
-    -- might be the wrong direction
-    sorry
+  have := mb.right (A.result t (accepts_A c)) (accepts_B c)
 
-
-
-  -- rw [show
-  --   Sum.elim (fun x ↦ B.get (B.init (A.get x))) (fun x ↦ B.get x)
-  --     ((comp_auto A B).result (.inl <| A.init t) c) =
-  --   B.get ( Sum.elim (fun x ↦ (B.init (A.get x))) (fun x ↦ x)
-  --     ((comp_auto A B).result (.inl <| A.init t) c) ) from rfl]
-
-  sorry
+  rw [this]
+  simp only [Option.some.injEq]
+  rw [result]
+  apply congrArg
+  apply Sum.inr_injective
+  rw [←wwr_spec]
+  rw [coinc]
+  rfl
 -- todo:
 
 -- And:  A.I × B.I → A.O × B.O

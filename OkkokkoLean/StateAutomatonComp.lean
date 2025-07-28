@@ -43,6 +43,17 @@ def StateAutomaton.comp_auto  {X : Type} (A : StateAutomaton I X) (B : StateAuto
     simp only [Bool.false_eq_true, not_false_eq_true, implies_true, true_and]
     exact (auto B).exclusive_rejects_accepts_immediate
 
+lemma StateAutomaton.comp_auto_acceptsImmediate_def {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a) :
+  (comp_auto A B).acceptsImmediate a ↔ ∃b, (auto B).acceptsImmediate b ∧ (.inr b) = a := by
+  rw [show (comp_auto A B).acceptsImmediate a =
+    Sum.elim (fun x ↦ false = true) (auto B).acceptsImmediate a from rfl]
+  simp only [Bool.false_eq_true]
+  cases a with
+  | inl val => simp_all only [Sum.elim_inl, reduceCtorEq, and_false, exists_false]
+  | inr val_1 => simp_all only [Sum.elim_inr, Sum.inr.injEq, exists_eq_right]
+
+
+
 theorem StateAutomaton.comp_auto_not_accept_A {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) :
   ¬(comp_auto A B).acceptsImmediate (.inl a) := by
   intro h
@@ -283,6 +294,33 @@ theorem StateAutomaton.comp_auto_coincide_result {X : Type} (A : StateAutomaton 
   simp only [Sum.inr.injEq]
   exact Eq.symm ((auto B).result_def (B.init (A.get ((auto A).result a h))) hb)
 
+-- todo: expand on ^^^, show that this is the result.
+
+#check AutomatonConfiguration.result_of_acceptsImmediate
+
+
+-- the result equals this.
+theorem StateAutomaton.comp_auto_coincide_result'' {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (h) (hb) (hab)
+     :
+    (comp_auto A B).result (.inl a) (hab)
+    = .inr ((auto B).result (init B <| get A <| (auto A).result a h) hb) := by
+  set res := @Sum.inr A.H B.H ((auto B).result (B.init (A.get ((auto A).result a h))) hb)
+  have res_w : _ = res := comp_auto_coincide_result ..
+  set nn := ((auto A).acceptsIn a h + 1 + (auto B).acceptsIn (B.init (A.get ((auto A).result a h))) hb)
+  have res_leads : (comp_auto A B).leads' (.inl a) res := by
+    -- unfold leads'
+    -- unfold leads
+    -- unfold leads_nth at res_w
+    exact ⟨_ , res_w⟩
+  have res_accepts : (comp_auto A B).acceptsImmediate res := by
+    refine (comp_auto_acceptsImmediate_def A B res).mpr ?_
+
+    let ww := @AutomatonConfiguration.result B.H B.auto (B.init (A.get ((auto A).result a h))) hb
+    refine ⟨ww,?_,by rfl⟩
+    apply (auto B).result_accepts ..
+  symm
+  refine (comp_auto A B).result_of_acceptsImmediate _ _ res_leads res_accepts
+
 
 theorem StateAutomaton.comp_auto_coincide_result' {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) (hh) (h) (hb)
      :
@@ -364,6 +402,15 @@ theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateA
         tauto
 
 
+
+theorem sum_elim_func_distrib{X Y Z W : Type} (f : X → W) (g : Y → X) (w : Z → X) (x) :
+    Sum.elim (fun a ↦ f (g a)) (fun a ↦ f (w a)) x =
+    f (Sum.elim (fun a ↦ (g a)) (fun a ↦ (w a)) x) := by
+  cases x with
+  | inl val => simp_all only [Sum.elim_inl]
+  | inr val_1 => simp_all only [Sum.elim_inr]
+
+
 theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {fa : I → Option X} {fb : X → Option O}
   (ma : models_function A fa) (mb : models_function B fb) :
   models_function (comp A B) (fun t ↦ Option.bind (fa t) fb) := by
@@ -378,6 +425,15 @@ theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : State
   rw [show (A.comp B).result t c =
     Sum.elim (fun x ↦ B.get (B.init (A.get x))) (fun x ↦ B.get x)
       ((comp_auto A B).result (.inl <| A.init t) c) from rfl]
+
+  set ww := @AutomatonConfiguration.result (A.H ⊕ B.H) (A.comp_auto B) (Sum.inl (A.init t)) c
+  have ww_right : Sum.isRight ww := by exact comp_auto_result_b A B (Sum.inl (A.init t)) c
+  have ⟨wwr,wwr_spec⟩: ∃wwr, ww = (.inr wwr) := Sum.isRight_iff.mp ww_right
+  rw [wwr_spec]
+  simp only [Sum.elim_inr]
+  -- have : _ = ww := comp_auto_coincide_result'' A B _
+
+
   -- rw [show
   --   Sum.elim (fun x ↦ B.get (B.init (A.get x))) (fun x ↦ B.get x)
   --     ((comp_auto A B).result (.inl <| A.init t) c) =

@@ -432,6 +432,20 @@ theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : State
   rw [wwr_spec]
   simp only [Sum.elim_inr]
   -- have : _ = ww := comp_auto_coincide_result'' A B _
+  have := ma.right t (accepts_A c)
+  rw [this]
+  simp only [Option.bind_some]
+  have := mb.right (A.result t (accepts_A c)) ?_
+  ·
+    rw [this]
+    simp only [Option.some.injEq]
+    rw [result]
+    apply congrArg
+    apply Sum.inr_injective
+    rw [←wwr_spec]
+    -- might be the wrong direction
+    sorry
+
 
 
   -- rw [show

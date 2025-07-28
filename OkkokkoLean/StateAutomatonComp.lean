@@ -358,6 +358,16 @@ theorem StateAutomaton.comp.accepts_B {X : Type} {A : StateAutomaton I X} {B : S
 
   sorry
 
+theorem StateAutomaton.comp.accepts_comp {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {t : I}
+    (A_acc : accepts A t) (B_acc : accepts B (A.result t A_acc)) :
+    accepts (comp A B) t := by
+
+  --B.accepts (A.get (AutomatonConfiguration.result (A.init t) ⋯))
+
+  sorry
+
+
+
 theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {fa : I → Option X} {fb : X → Option O}
   (ma : models_function A fa) (mb : models_function B fb) :
   models_function (comp A B) (fun t ↦ Option.bind (fa t) fb) := by
@@ -420,6 +430,8 @@ theorem sum_elim_func_distrib{X Y Z W : Type} (f : X → W) (g : Y → X) (w : Z
   | inr val_1 => simp_all only [Sum.elim_inr]
 
 
+
+
 theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {fa : I → Option X} {fb : X → Option O}
   (ma : models_function A fa) (mb : models_function B fb) :
   models_function (comp A B) (fun t ↦ Option.bind (fa t) fb) := by
@@ -428,8 +440,54 @@ theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : State
     := by aesop
   -- simp_rw [bin]
   rw [StateAutomaton.models_function_def] at ma mb ⊢
-  have models_accept : ((A.comp B).models_function_accept fun x ↦ ((fa x).bind fb).isSome = true) := sorry
-  simp only [models_accept, true_and]
+  have models_accept : ((A.comp B).models_function_accept fun x ↦ ((fa x).bind fb).isSome = true) := by
+    unfold models_function_accept
+    simp only
+    intro t
+    refine ⟨?_,?_⟩
+    ·
+      intro c
+
+      have fa_t := ma.right t (accepts_A c)
+      rw [fa_t]
+      simp only [Option.bind_some]
+      have fb_r := mb.right (A.result t (accepts_A c)) (accepts_B c)
+      rw [fb_r]
+      simp only [Option.isSome_some]
+
+    intro q
+    -- unfold accepts
+    rw [bin] at q
+    split at q
+    rotate_left
+    · simp_all only [Option.isSome_none, Bool.false_eq_true]
+    rename_i x w heq
+    have ma_t := ma.left
+    unfold models_function_accept at ma_t
+    specialize ma_t t
+    simp at ma_t
+    have A_acc : A.accepts t := by
+      rw [ma_t]
+      simp_all only [Option.isSome_some, iff_true]
+
+    have fa_t := ma.right t A_acc
+    have mb_r := mb.left
+    unfold models_function_accept at mb_r
+    simp at mb_r
+    specialize mb_r w
+    have w_eq : w = A.result t A_acc := by
+      simp_all only [Option.isSome_some, Option.some.injEq, iff_true]
+    have B_acc : B.accepts w := by
+      simp_all only [Option.isSome_some, Option.some.injEq, iff_true]
+
+    have fb_r := mb.right (A.result t A_acc) (w_eq ▸ B_acc)
+
+    refine accepts_comp A_acc ?_
+    subst w_eq
+    simp_all only [Option.isSome_some]
+
+
+  refine  ⟨models_accept,?_⟩
   intro t c
   rw [show (A.comp B).result t c =
     Sum.elim (fun x ↦ B.get (B.init (A.get x))) (fun x ↦ B.get x)
@@ -443,12 +501,12 @@ theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : State
 
   have coinc : ww = _ := comp_auto_coincide_result'' A B (A.init t) (accepts_A c) (accepts_B c) c
 
-  have := ma.right t (accepts_A c)
-  rw [this]
+  have fa_t := ma.right t (accepts_A c)
+  rw [fa_t]
   simp only [Option.bind_some]
-  have := mb.right (A.result t (accepts_A c)) (accepts_B c)
+  have fb_r := mb.right (A.result t (accepts_A c)) (accepts_B c)
 
-  rw [this]
+  rw [fb_r]
   simp only [Option.some.injEq]
   rw [result]
   apply congrArg

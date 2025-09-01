@@ -25,9 +25,9 @@ example {H : Type} : AutomatonConfiguration H where
 variable {H} (ac : AutomatonConfiguration H)
 
 @[reducible]
-def AutomatonConfiguration.acceptsImmediate (a : H) : Prop := ac.acceptsImmediate' a
+def AutomatonConfiguration.acceptsImmediate : H → Prop := ac.acceptsImmediate'
 @[reducible]
-def AutomatonConfiguration.rejectsImmediate (a : H) : Prop := ac.rejectsImmediate' a
+def AutomatonConfiguration.rejectsImmediate : H → Prop := ac.rejectsImmediate'
 
 def AutomatonConfiguration.haltsImmediate (a : H) : Prop :=
   ac.rejectsImmediate a ∨ ac.acceptsImmediate a
@@ -44,6 +44,10 @@ instance AutomatonConfiguration.acceptsImmediate_decidable' : @DecidablePred H a
 instance AutomatonConfiguration.rejectsImmediate_decidable' : @DecidablePred H ac.rejectsImmediate := rejectsImmediate_decidable
 
 def AutomatonConfiguration.yield (a : H) : H := if ac.haltsImmediate a then a else yield' a
+
+theorem AutomatonConfiguration.yield_constant (a : H) (h : ac.haltsImmediate a) : ac.yield a = a := by
+  unfold yield
+  simp [h]
 
 theorem AutomatonConfiguration.rejectsImmediate_yield_rejectsImmediate (C : H) : ac.rejectsImmediate C → ac.rejectsImmediate (ac.yield C) := by
   intro r

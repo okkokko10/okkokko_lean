@@ -304,8 +304,7 @@ theorem StateAutomaton.comp_auto_coincide_after_A' {X : Type} (A : StateAutomato
   simp only [sequence_leading_tail, leads_nth_def]
   rw [comp_auto_e]
   simp only [← leads_nth_def, sequence_leading_succ, sequence_leading_zero]
-  simp [leads_nth_def]
-
+  simp only [leads_nth_def]
   simp only [comp_auto_A_acc_yields_B A B a h]
   apply comp_auto_coincide_B
 

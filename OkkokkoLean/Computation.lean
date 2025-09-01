@@ -397,10 +397,10 @@ theorem TuringConfiguration.exclusive_rejects_accepts_immediate {a : TuringConfi
   exact M.acc_neq_rej (aa ▸ ar)
 
 
-instance : AutomatonConfiguration (TuringConfiguration M) where
+instance tc : AutomatonConfiguration (TuringConfiguration M) where
   yield' (C) := TuringConfiguration.yield C
-  acceptsImmediate (C) := TuringConfiguration.acceptsImmediate C
-  rejectsImmediate (C) := TuringConfiguration.rejectsImmediate C
+  acceptsImmediate' (C) := TuringConfiguration.acceptsImmediate C
+  rejectsImmediate' (C) := TuringConfiguration.rejectsImmediate C
   acceptsImmediate_decidable := sorry -- TODO: bring back DecidableEq Q
   rejectsImmediate_decidable := sorry
   -- rejectsImmediate_yield_rejectsImmediate (C) (h) := TuringConfiguration.rejectsImmediate_yield_rejectsImmediate C h
@@ -418,23 +418,23 @@ def TuringMachine.use (tape : Tape G) : TuringConfiguration M where
   tape := tape
   index := 0
   index_bounded := Nat.zero_le _
-def TuringMachine.accepts (tape : Tape G) : Prop := AutomatonConfiguration.accepts (M.use tape)
-def TuringMachine.halt_rejects (tape : Tape G) : Prop := AutomatonConfiguration.halt_rejects (M.use tape)
+def TuringMachine.accepts (tape : Tape G) : Prop := tc.accepts (M.use tape)
+def TuringMachine.halt_rejects (tape : Tape G) : Prop := tc.halt_rejects (M.use tape)
 
-def TuringMachine.total : Prop := ∀ tape : Tape G, AutomatonConfiguration.halts (M.use tape)
+def TuringMachine.total : Prop := ∀ tape : Tape G, tc.halts (M.use tape)
 
 
 -- on all inputs, both turing machines have the same output.
 def TuringMachine.same {Q1 Q2 : Type} {G : Type} --[DecidableEq Q1] [DecidableEq Q2] [DecidableEq G]
-    (A : TuringMachine Q1 G) (B : TuringMachine Q2 G) := ∀ tape : Tape G, AutomatonConfiguration.accepts (A.use tape) ↔ AutomatonConfiguration.accepts (B.use tape)
+    (A : TuringMachine Q1 G) (B : TuringMachine Q2 G) := ∀ tape : Tape G, tc.accepts (A.use tape) ↔ tc.accepts (B.use tape)
 
 
-theorem TuringConfiguration.output_theorem (C : TuringConfiguration M) (h : AutomatonConfiguration.halts C) : ∃ b,
-  (AutomatonConfiguration.rejectsImmediate b ∨ AutomatonConfiguration.acceptsImmediate b) ∧ AutomatonConfiguration.leads' C b := ((AutomatonConfiguration.halts_def C).mp h)
+theorem TuringConfiguration.output_theorem (C : TuringConfiguration M) (h : tc.halts C) : ∃ b,
+  (tc.rejectsImmediate b ∨ tc.acceptsImmediate b) ∧ tc.leads' C b := ((tc.halts_def C).mp h)
 
-noncomputable def TuringConfiguration.output (C : TuringConfiguration M) (h : AutomatonConfiguration.halts C) := (C.output_theorem h).choose
-theorem TuringConfiguration.output_halts (C : TuringConfiguration M) (h : AutomatonConfiguration.halts C) :AutomatonConfiguration.haltsImmediate (C.output h) := (C.output_theorem h).choose_spec.left
-theorem TuringConfiguration.output_leads (C : TuringConfiguration M) (h : AutomatonConfiguration.halts C) : AutomatonConfiguration.leads' C (C.output h) := (C.output_theorem h).choose_spec.right
+noncomputable def TuringConfiguration.output (C : TuringConfiguration M) (h : tc.halts C) := (C.output_theorem h).choose
+theorem TuringConfiguration.output_halts (C : TuringConfiguration M) (h : tc.halts C) :tc.haltsImmediate (C.output h) := (C.output_theorem h).choose_spec.left
+theorem TuringConfiguration.output_leads (C : TuringConfiguration M) (h : tc.halts C) : tc.leads' C (C.output h) := (C.output_theorem h).choose_spec.right
 
 noncomputable def TuringMachine.output (tape : Tape G) := (M.use tape).output
 -- #check Option

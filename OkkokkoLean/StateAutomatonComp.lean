@@ -246,6 +246,64 @@ theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateA
         tauto
 
 
+-- B yield is equivalent.
+theorem StateAutomaton.comp_B_equiv {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (b : B.H) :
+    (comp A B).auto.yield (.inr b) = .inr (B.auto.yield b) := by
+  unfold AutomatonConfiguration.yield
+  split
+  {
+    rename_i h
+    split
+    {
+      rfl
+    }
+    rename_i g
+    unfold AutomatonConfiguration.haltsImmediate at g h
+    rw [show (comp A B).auto.rejectsImmediate (Sum.inr b) =
+    B.auto.rejectsImmediate b from rfl] at h
+    rw [show (comp A B).auto.acceptsImmediate (Sum.inr b) =
+    B.auto.acceptsImmediate b from rfl] at h
+    tauto
+  }
+  rename_i h
+  split
+  {
+    rename_i g
+    unfold AutomatonConfiguration.haltsImmediate at g h
+    rw [show (comp A B).auto.rejectsImmediate (Sum.inr b) =
+    B.auto.rejectsImmediate b from rfl] at h
+    rw [show (comp A B).auto.acceptsImmediate (Sum.inr b) =
+    B.auto.acceptsImmediate b from rfl] at h
+    tauto
+  }
+  rename_i g
+  rw [show (comp A B).auto.yield' (Sum.inr b) = Sum.inr (B.auto.yield b) from rfl]
+  apply congrArg
+  unfold AutomatonConfiguration.yield
+  simp only [ite_eq_right_iff]
+  tauto
+
+-- set_option pp.explicit true
+
+theorem StateAutomaton.comp_A_equiv {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (a : A.H) :
+    (¬ A.auto.acceptsImmediate a) ↔ (comp A B).auto.yield (.inl a) = .inl (A.auto.yield a) := by
+  constructor
+  intro h
+
+
+
+  sorry
+  sorry
+
+
+-- def StateAutomaton.comp_keyframe_end {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (t : I) (o : O) (n : ℕ) :=
+--     (comp A B).init t
+
+-- the keyframe states
+-- theorem StateAutomaton.comp_keyframe_start {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} :
+--     (comp_auto A B).leads'
+
+
 -- todo:
 
 -- And:  A.I × B.I → A.O × B.O

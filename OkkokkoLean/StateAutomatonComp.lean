@@ -226,7 +226,7 @@ theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateA
         set e := @AutomatonConfiguration.result _ (auto (comp A B)) (Sum.inl (init A t)) c
         cases hh : e with
         | inl v =>
-          simp only [Sum.elim_inl]
+          --simp only [Sum.elim_inl]
           -- I think it's exfalso unless B halts immediately
           -- simp only at hh
 

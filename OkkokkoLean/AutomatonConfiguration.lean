@@ -7,22 +7,27 @@ section automatonConfiguration
 
 class AutomatonConfiguration (H : Type) where
   yield' (C : H) : H
-  acceptsImmediate (C : H) : Prop
-  rejectsImmediate (C : H) : Prop
-  acceptsImmediate_decidable : DecidablePred acceptsImmediate
-  rejectsImmediate_decidable : DecidablePred rejectsImmediate
-  exclusive_rejects_accepts_immediate (C : H) : rejectsImmediate C → acceptsImmediate C → False
+  acceptsImmediate' (C : H) : Prop
+  rejectsImmediate' (C : H) : Prop
+  acceptsImmediate_decidable : DecidablePred acceptsImmediate'
+  rejectsImmediate_decidable : DecidablePred rejectsImmediate'
+  exclusive_rejects_accepts_immediate (C : H) : rejectsImmediate' C → acceptsImmediate' C → False
 
 -- template
 example {H : Type} : AutomatonConfiguration H where
   yield' a := sorry
-  acceptsImmediate a := sorry
-  rejectsImmediate a := sorry
+  acceptsImmediate' a := sorry
+  rejectsImmediate' a := sorry
   acceptsImmediate_decidable := sorry
   rejectsImmediate_decidable := sorry
   exclusive_rejects_accepts_immediate a := sorry
 
 variable {H} (ac : AutomatonConfiguration H)
+
+@[reducible]
+def AutomatonConfiguration.acceptsImmediate (a : H) : Prop := ac.acceptsImmediate' a
+@[reducible]
+def AutomatonConfiguration.rejectsImmediate (a : H) : Prop := ac.rejectsImmediate' a
 
 def AutomatonConfiguration.haltsImmediate (a : H) : Prop :=
   ac.rejectsImmediate a ∨ ac.acceptsImmediate a
@@ -34,9 +39,9 @@ instance AutomatonConfiguration.haltsImmediate_decidable : @DecidablePred H (ac.
   intro a
   exact @instDecidableOr _ _ (rejectsImmediate_decidable a) (acceptsImmediate_decidable a)
 
-instance AutomatonConfiguration.acceptsImmediate_decidable' : @DecidablePred H acceptsImmediate := acceptsImmediate_decidable
+instance AutomatonConfiguration.acceptsImmediate_decidable' : @DecidablePred H ac.acceptsImmediate := acceptsImmediate_decidable
 
-instance AutomatonConfiguration.rejectsImmediate_decidable' : @DecidablePred H rejectsImmediate := rejectsImmediate_decidable
+instance AutomatonConfiguration.rejectsImmediate_decidable' : @DecidablePred H ac.rejectsImmediate := rejectsImmediate_decidable
 
 def AutomatonConfiguration.yield (a : H) : H := if ac.haltsImmediate a then a else yield' a
 
@@ -105,8 +110,8 @@ theorem AutomatonConfiguration.halts_def' {a : H} :
   simp only [halts_def,leads_pred']
   exact Iff.symm leads_pred_def'
 
-theorem AutomatonConfiguration.haltImmediate_of_acceptsImmediate {a : H} (h : acceptsImmediate a) : ac.haltsImmediate a := by tauto
-theorem AutomatonConfiguration.haltImmediate_of_rejectsImmediate {a : H} (h : rejectsImmediate a) : ac.haltsImmediate a := by tauto
+theorem AutomatonConfiguration.haltImmediate_of_acceptsImmediate {a : H} (h : ac.acceptsImmediate a) : ac.haltsImmediate a := by tauto
+theorem AutomatonConfiguration.haltImmediate_of_rejectsImmediate {a : H} (h : ac.rejectsImmediate a) : ac.haltsImmediate a := by tauto
 theorem AutomatonConfiguration.halts_of_accepts {a : H} (h : ac.accepts a) : ac.halts a := by tauto
 theorem AutomatonConfiguration.halts_of_rejects {a : H} (h : ac.halt_rejects a) : ac.halts a := by tauto
 
@@ -188,7 +193,7 @@ theorem AutomatonConfiguration.accepts_then_haltsImmediate_accepts (a : H) (h : 
   refine ⟨?_,ac.haltImmediate_of_acceptsImmediate⟩
   intro hb
   by_contra hb'
-  have hb'': rejectsImmediate b := by
+  have hb'': ac.rejectsImmediate b := by
     cases hb
     assumption
     exfalso

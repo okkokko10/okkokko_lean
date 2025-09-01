@@ -621,8 +621,6 @@ theorem StateAutomaton.comp_B_equiv {X : Type} {A : StateAutomaton I X} {B : Sta
 
 theorem StateAutomaton.comp_A_equiv {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (a : A.H) :
     (¬ A.auto.acceptsImmediate a) ↔ (comp A B).auto.yield (.inl a) = .inl (A.auto.yield a) := by
-  --constructor
-  -- intro w
   simp only [auto_comp_auto]
   rw [comp_auto_yield]
   simp only [Sum.elim_inl]
@@ -661,6 +659,32 @@ theorem StateAutomaton.comp_A_transition {X : Type} {A : StateAutomaton I X} {B 
   rename_i h
   simp only [ite_eq_left_iff, reduceCtorEq, imp_false, Decidable.not_not] at q
   exact q
+
+
+
+/--
+ideas: derivative automaton that returns the first passing state in the parent automaton
+
+
+
+-/
+
+
+-- not useful?
+theorem StateAutomaton.comp_B_equiv_hom_yields {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (b : B.H) :
+    LeadHom.hom_yields B.auto (comp A B).auto (.inr) b := by
+  unfold LeadHom.hom_yields
+  simp only [comp_B_equiv]
+
+theorem StateAutomaton.comp_B_equiv_hom {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (x : A.H ⊕ B.H) :
+    LeadHom.hom (comp A B).auto B.auto (fun x b ↦ x = .inr b) (fun x : A.H ⊕ B.H ↦ x.isLeft) (fun x b ↦ x = .inr b) := by
+  rw [LeadHom.hom_def']
+  intro a b hab a' la p
+  sorry
+
+--   unfold LeadHom.hom_yields
+--   simp only [comp_B_equiv]
+
 
 
 -- def StateAutomaton.comp_keyframe_end {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (t : I) (o : O) (n : ℕ) :=

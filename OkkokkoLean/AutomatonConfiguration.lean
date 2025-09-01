@@ -311,5 +311,42 @@ theorem AutomatonConfiguration.haltsIn_assoc (a : H) (h : ac.halts a) (n m : ℕ
 
   sorry
 
+def LeadHom.hom_yields {A B : Type} (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B) (f : A → B) (a : A) : Prop :=
+    f (ac.yield a) = bc.yield (f a)
+def LeadHom.hom_yields_cond {A B : Type} (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B) (f : A → B) (p : A → Prop) : Prop :=
+    ∀ a, p a → f (ac.yield a) = bc.yield (f a)
+
+--
+def LeadHom.hom_leads {A B : Type} (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B) (f : A → B) (a : A) : Prop :=
+    bc.leads' (f a) (f (ac.yield a))
+
+def LeadHom.hom_leads_cond {A B : Type} (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B) (f : A → B) (p : A → Prop) : Prop :=
+    ∀ a, p a → bc.leads' (f a) (f (ac.yield a))
+
+-- if a and b have a relation r a b, then successors of a (a') that satisfy p are related by g to a successor of b
+def LeadHom.hom {A B : Type} (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B) (r : A → B → Prop) (p : A → Prop) (g : A → B → Prop) :=
+    ∀a b, r a b → ∀ a', ac.leads' a a' → p a' → bc.leads_pred' b (g a')
+
+theorem LeadHom.hom_def' {A B : Type} (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B) (r : A → B → Prop) (p : A → Prop) (g : A → B → Prop) :
+    LeadHom.hom ac bc r p g ↔ ∀a b, r a b → ∀ a', ac.leads' a a' → p a' → ∃b', (g a' b') ∧ bc.leads' b b' := by
+  unfold hom
+  rw [show bc.leads_pred' = leads_pred bc.yield from rfl]
+  simp_rw [leads_pred_def']
+  rfl
+
+-- same as hom, but p and g can use a and b
+def LeadHom.hom_vary {A B : Type} (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B) (r : A → B → Prop) (p : A → B → A → Prop) (g : A → B → A → B → Prop) :=
+    ∀a b, r a b → ∀ a', ac.leads' a a' → p a b a' → bc.leads_pred' b (g a b a')
+
+
+def Instant.simple (f : H → Option H) : AutomatonConfiguration H where
+  yield' a := sorry
+  acceptsImmediate' a := sorry
+  rejectsImmediate' a := sorry
+  acceptsImmediate_decidable := sorry
+  rejectsImmediate_decidable := sorry
+  exclusive_rejects_accepts_immediate a := sorry
+
+
 
 end automatonConfiguration

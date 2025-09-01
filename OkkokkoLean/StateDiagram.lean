@@ -30,7 +30,7 @@ I guess ⊕ and a wrapper that automatically rejects wrong types can be used
 
 hold on, the mutable automata inside aren't StateAutomaton, but AutomatonConfiguration.
 
-
+-- todo: theorem that says that when advancing a state, it is one step closer to a desired state.
 
 -/
 

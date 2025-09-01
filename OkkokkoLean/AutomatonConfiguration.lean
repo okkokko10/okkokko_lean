@@ -7,75 +7,86 @@ section automatonConfiguration
 
 class AutomatonConfiguration (H : Type) where
   yield' (C : H) : H
-  acceptsImmediate (C : H) : Prop
-  rejectsImmediate (C : H) : Prop
-  acceptsImmediate_decidable : DecidablePred acceptsImmediate
-  rejectsImmediate_decidable : DecidablePred rejectsImmediate
-  exclusive_rejects_accepts_immediate (C : H) : rejectsImmediate C → acceptsImmediate C → False
+  acceptsImmediate' (C : H) : Prop
+  rejectsImmediate' (C : H) : Prop
+  acceptsImmediate_decidable : DecidablePred acceptsImmediate'
+  rejectsImmediate_decidable : DecidablePred rejectsImmediate'
+  exclusive_rejects_accepts_immediate (C : H) : rejectsImmediate' C → acceptsImmediate' C → False
 
 -- template
 example {H : Type} : AutomatonConfiguration H where
   yield' a := sorry
-  acceptsImmediate a := sorry
-  rejectsImmediate a := sorry
+  acceptsImmediate' a := sorry
+  rejectsImmediate' a := sorry
   acceptsImmediate_decidable := sorry
   rejectsImmediate_decidable := sorry
   exclusive_rejects_accepts_immediate a := sorry
 
-variable {H} [AutomatonConfiguration H]
+variable {H} (ac : AutomatonConfiguration H)
+
+@[reducible]
+def AutomatonConfiguration.acceptsImmediate : H → Prop := ac.acceptsImmediate'
+@[reducible]
+def AutomatonConfiguration.rejectsImmediate : H → Prop := ac.rejectsImmediate'
 
 def AutomatonConfiguration.haltsImmediate (a : H) : Prop :=
-  rejectsImmediate a ∨ acceptsImmediate a
+  ac.rejectsImmediate a ∨ ac.acceptsImmediate a
 
 -- #check instDecidableOr
 -- @[macro_inline]
-instance AutomatonConfiguration.haltsImmediate_decidable : @DecidablePred H (haltsImmediate) := by
+instance AutomatonConfiguration.haltsImmediate_decidable : @DecidablePred H (ac.haltsImmediate) := by
   unfold haltsImmediate
   intro a
   exact @instDecidableOr _ _ (rejectsImmediate_decidable a) (acceptsImmediate_decidable a)
 
-instance AutomatonConfiguration.acceptsImmediate_decidable' : @DecidablePred H acceptsImmediate := acceptsImmediate_decidable
+instance AutomatonConfiguration.acceptsImmediate_decidable' : @DecidablePred H ac.acceptsImmediate := acceptsImmediate_decidable
 
-instance AutomatonConfiguration.rejectsImmediate_decidable' : @DecidablePred H rejectsImmediate := rejectsImmediate_decidable
+instance AutomatonConfiguration.rejectsImmediate_decidable' : @DecidablePred H ac.rejectsImmediate := rejectsImmediate_decidable
 
-def AutomatonConfiguration.yield (a : H) : H := if haltsImmediate a then a else yield' a
-theorem AutomatonConfiguration.yield_of_haltsImmediate (a : H) (h : haltsImmediate a) : yield a = a := by
-  unfold yield
-  simp_all only [↓reduceIte]
-theorem AutomatonConfiguration.yield_of_not_haltsImmediate (a : H) (h : ¬ haltsImmediate a) : yield a = yield' a:= by
+def AutomatonConfiguration.yield (a : H) : H := if ac.haltsImmediate a then a else ac.yield' a
+theorem AutomatonConfiguration.yield_of_haltsImmediate (a : H) (h : ac.haltsImmediate a) : ac.yield a = a := by
   unfold yield
   simp_all only [↓reduceIte]
 
-theorem AutomatonConfiguration.rejectsImmediate_yield_rejectsImmediate (C : H) : rejectsImmediate C → rejectsImmediate (yield C) := by
+theorem AutomatonConfiguration.yield_of_not_haltsImmediate (a : H) (h : ¬ ac.haltsImmediate a) : ac.yield a = ac.yield' a:= by
+  unfold yield
+  simp_all only [↓reduceIte]
+
+-- same as yield_of_haltsImmediate
+theorem AutomatonConfiguration.yield_constant (a : H) (h : ac.haltsImmediate a) : ac.yield a = a := by
+  unfold yield
+  simp [h]
+
+theorem AutomatonConfiguration.rejectsImmediate_yield_rejectsImmediate (C : H) : ac.rejectsImmediate C → ac.rejectsImmediate (ac.yield C) := by
   intro r
   simp only [yield, haltsImmediate, r, true_or, ite_true]
 
-theorem AutomatonConfiguration.acceptsImmediate_yield_acceptsImmediate (C : H) : acceptsImmediate C → acceptsImmediate (yield C) := by
+theorem AutomatonConfiguration.acceptsImmediate_yield_acceptsImmediate (C : H) : ac.acceptsImmediate C → ac.acceptsImmediate (ac.yield C) := by
   intro r
   simp only [yield, haltsImmediate, r, or_true, ite_true]
 
 
 def AutomatonConfiguration.leads' (a : H) (b : H) : Prop :=
-    _root_.leads yield a b
+    _root_.leads ac.yield a b
 
 
 
 
 def AutomatonConfiguration.halt_rejects (a : H) : Prop :=
-  ∃b, rejectsImmediate b ∧ leads' a b
+  ∃b, ac.rejectsImmediate b ∧ ac.leads' a b
 
 theorem AutomatonConfiguration.halt_rejects_def (a : H) :
-    AutomatonConfiguration.halt_rejects a ↔ ∃b, rejectsImmediate b ∧ leads' a b := by rfl
+    ac.halt_rejects a ↔ ∃b, ac.rejectsImmediate b ∧ ac.leads' a b := by rfl
 
 
 
 def AutomatonConfiguration.accepts (a : H) : Prop :=
-  ∃b, acceptsImmediate b ∧ leads' a b
+  ∃b, ac.acceptsImmediate b ∧ ac.leads' a b
 
 def AutomatonConfiguration.halts (a : H) : Prop :=
-  accepts a ∨ halt_rejects a
+  ac.accepts a ∨ ac.halt_rejects a
 
-theorem AutomatonConfiguration.halts_def (a : H) : halts a ↔ ∃b, (haltsImmediate b) ∧ leads' a b := by
+theorem AutomatonConfiguration.halts_def (a : H) : ac.halts a ↔ ∃b, (ac.haltsImmediate b) ∧ ac.leads' a b := by
   unfold haltsImmediate halts accepts halt_rejects
   -- constructor
   -- · intro l
@@ -96,37 +107,37 @@ theorem AutomatonConfiguration.halts_def (a : H) : halts a ↔ ∃b, (haltsImmed
 
 
 def AutomatonConfiguration.leads_pred' (a : H) (p : H → Prop) : Prop :=
-    _root_.leads_pred yield a p
+    _root_.leads_pred ac.yield a p
 theorem AutomatonConfiguration.halt_rejects_def' {a : H} :
-    halt_rejects a ↔ leads_pred' a rejectsImmediate := by
+    ac.halt_rejects a ↔ ac.leads_pred' a ac.rejectsImmediate := by
   simp only [halt_rejects_def,leads_pred']
   exact Iff.symm leads_pred_def'
 theorem AutomatonConfiguration.accepts_def' {a : H} :
-    accepts a ↔ leads_pred' a acceptsImmediate := by
+    ac.accepts a ↔ ac.leads_pred' a ac.acceptsImmediate := by
   simp only [accepts,leads_pred']
   exact Iff.symm leads_pred_def'
 @[simp]
 theorem AutomatonConfiguration.halts_def' {a : H} :
-    halts a ↔ leads_pred' a haltsImmediate := by
+    ac.halts a ↔ ac.leads_pred' a ac.haltsImmediate := by
   simp only [halts_def,leads_pred']
   exact Iff.symm leads_pred_def'
 
-theorem AutomatonConfiguration.haltImmediate_of_acceptsImmediate {a : H} (h : acceptsImmediate a) : haltsImmediate a := by tauto
-theorem AutomatonConfiguration.haltImmediate_of_rejectsImmediate {a : H} (h : rejectsImmediate a) : haltsImmediate a := by tauto
-theorem AutomatonConfiguration.halts_of_accepts {a : H} (h : accepts a) : halts a := by tauto
-theorem AutomatonConfiguration.halts_of_rejects {a : H} (h : halt_rejects a) : halts a := by tauto
+theorem AutomatonConfiguration.haltImmediate_of_acceptsImmediate {a : H} (h : ac.acceptsImmediate a) : ac.haltsImmediate a := by tauto
+theorem AutomatonConfiguration.haltImmediate_of_rejectsImmediate {a : H} (h : ac.rejectsImmediate a) : ac.haltsImmediate a := by tauto
+theorem AutomatonConfiguration.halts_of_accepts {a : H} (h : ac.accepts a) : ac.halts a := by tauto
+theorem AutomatonConfiguration.halts_of_rejects {a : H} (h : ac.halt_rejects a) : ac.halts a := by tauto
 
 
 
 
 theorem AutomatonConfiguration.rejectsImmediate_leads_rejectsImmediate {a b : H}
-    (hl : leads' a b) (h : rejectsImmediate a) : rejectsImmediate b := by
-  exact leads_preserves rejectsImmediate_yield_rejectsImmediate hl h
+    (hl : ac.leads' a b) (h : ac.rejectsImmediate a) : ac.rejectsImmediate b := by
+  exact leads_preserves ac.rejectsImmediate_yield_rejectsImmediate hl h
 
 
 theorem AutomatonConfiguration.acceptsImmediate_leads_acceptsImmediate {a b : H}
-    (hl : leads' a b) (h : acceptsImmediate a) : acceptsImmediate b := by
-  refine leads_preserves acceptsImmediate_yield_acceptsImmediate hl h
+    (hl : ac.leads' a b) (h : ac.acceptsImmediate a) : ac.acceptsImmediate b := by
+  refine leads_preserves ac.acceptsImmediate_yield_acceptsImmediate hl h
 
 
 -- -- if C rejects, so does its predecessor and successor
@@ -154,95 +165,95 @@ theorem AutomatonConfiguration.acceptsImmediate_leads_acceptsImmediate {a b : H}
 
 
 theorem AutomatonConfiguration.exclusive_rejects_accepts (a : H) :
-    halt_rejects a → accepts a → False := by
+    ac.halt_rejects a → ac.accepts a → False := by
   unfold halt_rejects accepts leads'
   intro ⟨rej,r_q,leads_r⟩
   intro ⟨acc,a_q,leads_a⟩
   have t0 := leads_connected leads_a leads_r
   cases' t0 with t1 t2
-  have := acceptsImmediate_leads_acceptsImmediate t1 a_q
-  exact exclusive_rejects_accepts_immediate rej r_q this
-  have := rejectsImmediate_leads_rejectsImmediate t2 r_q
-  exact exclusive_rejects_accepts_immediate acc this a_q
+  have := ac.acceptsImmediate_leads_acceptsImmediate t1 a_q
+  exact ac.exclusive_rejects_accepts_immediate rej r_q this
+  have := ac.rejectsImmediate_leads_rejectsImmediate t2 r_q
+  exact ac.exclusive_rejects_accepts_immediate acc this a_q
 
 
 def AutomatonConfiguration.leads_nth (a : H) (n : ℕ) : H :=
-    _root_.sequence_leading yield a n
+    _root_.sequence_leading ac.yield a n
 
 @[simp]
-theorem AutomatonConfiguration.leads_nth_def {a : H} {n : ℕ} : _root_.sequence_leading yield a n = leads_nth a n := rfl
+theorem AutomatonConfiguration.leads_nth_def {a : H} {n : ℕ} : _root_.sequence_leading ac.yield a n = ac.leads_nth a n := rfl
 
-def AutomatonConfiguration.haltsIn (a : H) (h : halts a) : ℕ := Nat.find (halts_def'.mp h)
-theorem AutomatonConfiguration.haltsIn_min (a : H) (h : halts a) (m) : m < haltsIn a h → ¬ haltsImmediate (leads_nth a m) := by
+def AutomatonConfiguration.haltsIn (a : H) (h : ac.halts a) : ℕ := Nat.find (ac.halts_def'.mp h)
+theorem AutomatonConfiguration.haltsIn_min (a : H) (h : ac.halts a) (m) : m < ac.haltsIn a h → ¬ ac.haltsImmediate (ac.leads_nth a m) := by
   intro mh
-  exact Nat.find_min (halts_def'.mp h) mh
+  exact Nat.find_min (ac.halts_def'.mp h) mh
 
 
 
-def AutomatonConfiguration.result (a : H) (h : accepts a) : H := leads_nth a (haltsIn a (halts_of_accepts h))
+def AutomatonConfiguration.result (a : H) (h : ac.accepts a) : H := ac.leads_nth a (ac.haltsIn a (ac.halts_of_accepts h))
 
 
-theorem AutomatonConfiguration.accepts_never_rejectsImmediate (a : H) (h : accepts a) (b : H) : leads' a b → rejectsImmediate b → False := by
+theorem AutomatonConfiguration.accepts_never_rejectsImmediate (a : H) (h : ac.accepts a) (b : H) : ac.leads' a b → ac.rejectsImmediate b → False := by
   intro a_b hb
-  have := (halt_rejects_def a).mpr ⟨b,hb,a_b⟩
-  exact exclusive_rejects_accepts a this h
+  have := (ac.halt_rejects_def a).mpr ⟨b,hb,a_b⟩
+  exact ac.exclusive_rejects_accepts a this h
 
-theorem AutomatonConfiguration.rejects_never_acceptsImmediate (a : H) (h : halt_rejects a) (b : H) : leads' a b → acceptsImmediate b → False := by
+theorem AutomatonConfiguration.rejects_never_acceptsImmediate (a : H) (h : ac.halt_rejects a) (b : H) : ac.leads' a b → ac.acceptsImmediate b → False := by
   intro a_b hb
-  have  : accepts a := ⟨b,hb,a_b⟩
-  exact exclusive_rejects_accepts a h this
+  have  : ac.accepts a := ⟨b,hb,a_b⟩
+  exact ac.exclusive_rejects_accepts a h this
 
 -- todo: same for rejects
-theorem AutomatonConfiguration.accepts_then_haltsImmediate_accepts (a : H) (h : accepts a) (b : H) (l : leads' a b) : haltsImmediate b ↔ acceptsImmediate b := by
-  refine ⟨?_,haltImmediate_of_acceptsImmediate⟩
+theorem AutomatonConfiguration.accepts_then_haltsImmediate_accepts (a : H) (h : ac.accepts a) (b : H) (l : ac.leads' a b) : ac.haltsImmediate b ↔ ac.acceptsImmediate b := by
+  refine ⟨?_,ac.haltImmediate_of_acceptsImmediate⟩
   intro hb
   by_contra hb'
-  have hb'': rejectsImmediate b := by
+  have hb'': ac.rejectsImmediate b := by
     cases hb
     assumption
     exfalso
     tauto
   -- have  : halt_rejects a := ⟨b,hb'',a_b⟩
-  exact accepts_never_rejectsImmediate a h b l hb''
+  exact ac.accepts_never_rejectsImmediate a h b l hb''
 
 
-def AutomatonConfiguration.acceptsIn (a : H) (h : accepts a) : ℕ := Nat.find (accepts_def'.mp h)
-theorem AutomatonConfiguration.acceptsIn_def (a : H) (h : accepts a) : acceptsIn a h = Nat.find (accepts_def'.mp h) := by rfl
+def AutomatonConfiguration.acceptsIn (a : H) (h : ac.accepts a) : ℕ := Nat.find (ac.accepts_def'.mp h)
+theorem AutomatonConfiguration.acceptsIn_def (a : H) (h : ac.accepts a) : ac.acceptsIn a h = Nat.find (ac.accepts_def'.mp h) := by rfl
 -- @[simp]
-theorem AutomatonConfiguration.acceptsIn_eq_haltsIn (a : H) (h : accepts a) : acceptsIn a h = haltsIn a (halts_of_accepts h) := by
+theorem AutomatonConfiguration.acceptsIn_eq_haltsIn (a : H) (h : ac.accepts a) : ac.acceptsIn a h = ac.haltsIn a (ac.halts_of_accepts h) := by
   unfold acceptsIn
   refine nat_le_ext ?_
   intro i
   unfold haltsIn
   rw [@Nat.find_le_iff]
   rw [@Nat.find_le_iff]
-  suffices ∀m, haltsImmediate (sequence_leading yield a m) ↔ acceptsImmediate (sequence_leading yield a m) by simp_rw [this]
+  suffices ∀m, ac.haltsImmediate (sequence_leading ac.yield a m) ↔ ac.acceptsImmediate (sequence_leading ac.yield a m) by simp_rw [this]
   intro m
-  rw [accepts_then_haltsImmediate_accepts a h _ _]
+  rw [ac.accepts_then_haltsImmediate_accepts a h _ _]
   use m -- todo: make a proper theorem
 
 
-theorem AutomatonConfiguration.result_def (a : H) (h : accepts a) : result a h = leads_nth a (acceptsIn a h) := by
+theorem AutomatonConfiguration.result_def (a : H) (h : ac.accepts a) : ac.result a h = ac.leads_nth a (ac.acceptsIn a h) := by
   simp only [acceptsIn_eq_haltsIn]
   rfl
 
-theorem AutomatonConfiguration.result_accepts (a : H) (h : accepts a)  : acceptsImmediate (result a h) := by
+theorem AutomatonConfiguration.result_accepts (a : H) (h : ac.accepts a)  : ac.acceptsImmediate (ac.result a h) := by
   rw [result_def]
-  exact Nat.find_spec (accepts_def'.mp h)
+  exact Nat.find_spec (ac.accepts_def'.mp h)
 
 
 
 theorem AutomatonConfiguration.haltsImmediate_leads_nth_self
-    (a : H) (h : haltsImmediate a) (n: ℕ) : (leads_nth a n) = a := by
-  apply sequence_leading_identity (yield_of_haltsImmediate a h)
+    (a : H) (h : ac.haltsImmediate a) (n: ℕ) : (ac.leads_nth a n) = a := by
+  apply sequence_leading_identity (ac.yield_of_haltsImmediate a h)
 
 
 -- if a leads to a acceptsImmediate state, that state is the result.
-theorem AutomatonConfiguration.result_of_acceptsImmediate (a b : H) (l : leads' a b) (h : acceptsImmediate b) : b = (result a ⟨b, h,l⟩) := by
-  have aa: accepts a := ⟨b, h, l⟩
-  change ∃n, leads_nth a n = b at l
+theorem AutomatonConfiguration.result_of_acceptsImmediate (a b : H) (l : ac.leads' a b) (h : ac.acceptsImmediate b) : b = (ac.result a ⟨b, h,l⟩) := by
+  have aa: ac.accepts a := ⟨b, h, l⟩
+  change ∃n, ac.leads_nth a n = b at l
   obtain ⟨n,l⟩ := l
-  have : acceptsIn a aa ≤ n := by
+  have : ac.acceptsIn a aa ≤ n := by
     unfold acceptsIn
     rw [@Nat.find_le_iff]
     simp only [leads_nth_def]
@@ -251,26 +262,26 @@ theorem AutomatonConfiguration.result_of_acceptsImmediate (a b : H) (l : leads' 
     rw [l]
     exact h
 
-  have := leads_connected ⟨n,l⟩ ⟨acceptsIn a aa, (by simp only [leads_nth_def, ← result_def]; rfl)⟩
-  set c :=(result a aa)
+  have := leads_connected ⟨n,l⟩ ⟨ac.acceptsIn a aa, (by simp only [leads_nth_def, ← result_def]; rfl)⟩
+  set c :=(ac.result a aa)
   cases this
   rename_i ht
-  change ∃n, leads_nth b n = c at ht
-  simp only [haltsImmediate_leads_nth_self b (haltImmediate_of_acceptsImmediate h),
+  change ∃n, ac.leads_nth b n = c at ht
+  simp only [ac.haltsImmediate_leads_nth_self b (ac.haltImmediate_of_acceptsImmediate h),
     exists_const] at ht
   exact ht
   rename_i ht
-  change ∃n, leads_nth c n = b at ht
-  simp only [haltsImmediate_leads_nth_self c (haltImmediate_of_acceptsImmediate (result_accepts a aa)),
+  change ∃n, ac.leads_nth c n = b at ht
+  simp only [ac.haltsImmediate_leads_nth_self c (ac.haltImmediate_of_acceptsImmediate (ac.result_accepts a aa)),
     exists_const] at ht
   exact ht.symm
 
-theorem AutomatonConfiguration.leads_nth_halts (a : H) (h : halts a) (n: ℕ) : halts (leads_nth a n) := by
+theorem AutomatonConfiguration.leads_nth_halts (a : H) (h : ac.halts a) (n: ℕ) : ac.halts (ac.leads_nth a n) := by
   simp only [halts_def']
-  rw [show leads_pred' (leads_nth a n) haltsImmediate =
-    ∃ n_1, haltsImmediate (sequence_leading yield (leads_nth a n) n_1) from rfl]
+  rw [show ac.leads_pred' (ac.leads_nth a n) ac.haltsImmediate =
+    ∃ n_1, ac.haltsImmediate (sequence_leading ac.yield (ac.leads_nth a n) n_1) from rfl]
   simp only [halts_def'] at h
-  rw [show leads_pred' a haltsImmediate = ∃ n, haltsImmediate (sequence_leading yield a n) from rfl] at h
+  rw [show ac.leads_pred' a ac.haltsImmediate = ∃ n, ac.haltsImmediate (sequence_leading ac.yield a n) from rfl] at h
   obtain ⟨n',w⟩ := h
   by_cases pw : n ≤ n'
   · simp only [←leads_nth_def]
@@ -289,14 +300,14 @@ theorem AutomatonConfiguration.leads_nth_halts (a : H) (h : halts a) (n: ℕ) : 
   rw [mw]
   simp only [←leads_nth_def]
   simp only [sequence_leading_tail]
-  set pp := (sequence_leading yield a n')
+  set pp := (sequence_leading ac.yield a n')
   simp only [leads_nth_def]
   sorry
 
 
 
 
-theorem AutomatonConfiguration.haltsIn_assoc (a : H) (h : halts a) (n m : ℕ) : haltsIn a h = n + m ↔ haltsIn (leads_nth a n) (leads_nth_halts a h n) = m  := by
+theorem AutomatonConfiguration.haltsIn_assoc (a : H) (h : ac.halts a) (n m : ℕ) : ac.haltsIn a h = n + m ↔ ac.haltsIn (ac.leads_nth a n) (ac.leads_nth_halts a h n) = m  := by
 
   sorry
 

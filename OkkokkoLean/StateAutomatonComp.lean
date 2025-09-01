@@ -15,8 +15,8 @@ def StateAutomaton.comp_auto  {X : Type} (A : StateAutomaton I X) (B : StateAuto
   yield' a := Sum.elim (
     fun a ↦if (auto A).acceptsImmediate a then .inr (init B (get A a)) else .inl ((auto A).yield a)
     ) (fun b ↦ .inr ((auto B).yield b)) a
-  acceptsImmediate := Sum.elim (fun _ ↦ false) ((auto B).acceptsImmediate)
-  rejectsImmediate := Sum.elim ((auto A).rejectsImmediate) ((auto B).rejectsImmediate)
+  acceptsImmediate' := Sum.elim (fun _ ↦ false) ((auto B).acceptsImmediate)
+  rejectsImmediate' := Sum.elim ((auto A).rejectsImmediate) ((auto B).rejectsImmediate)
   acceptsImmediate_decidable := by
     intro a
     cases a with
@@ -52,11 +52,61 @@ lemma StateAutomaton.comp_auto_acceptsImmediate_def {X : Type} (A : StateAutomat
   | inl val => simp_all only [Sum.elim_inl, reduceCtorEq, and_false, exists_false]
   | inr val_1 => simp_all only [Sum.elim_inr, Sum.inr.injEq, exists_eq_right]
 
+@[simp]
+theorem StateAutomaton.comp_auto_acceptsImmediate {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) :
+    (comp_auto A B).acceptsImmediate = (Sum.elim (fun (_ : A.H) ↦ false) (B.auto.acceptsImmediate) : A.H ⊕ B.H → Prop)  := by rfl
+
+@[simp]
+theorem StateAutomaton.comp_auto_rejectsImmediate {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) :
+    (comp_auto A B).rejectsImmediate = (Sum.elim ((auto A).rejectsImmediate) ((auto B).rejectsImmediate) : A.H ⊕ B.H → Prop) := by rfl
+
+@[simp]
+theorem StateAutomaton.comp_auto_yield' {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) :
+    (comp_auto A B).yield' = Sum.elim (
+      fun a ↦if (auto A).acceptsImmediate a then .inr (init B (get A a)) else .inl ((auto A).yield a)
+      ) (fun b ↦ .inr ((auto B).yield b))  := by
+  rfl
+@[simp]
+theorem StateAutomaton.comp_auto_yield {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) :
+    (comp_auto A B).yield = fun a ↦ if (comp_auto A B).haltsImmediate a then a else Sum.elim (
+      fun a ↦if (auto A).acceptsImmediate a then .inr (init B (get A a)) else .inl ((auto A).yield a)
+      ) (fun b ↦ .inr ((auto B).yield b)) a  := by
+  rfl
+
+theorem StateAutomaton.comp_auto_haltsImmediate' {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) a :
+    (comp_auto A B).haltsImmediate a ↔
+      ((Sum.elim ((auto A).rejectsImmediate) ((auto B).rejectsImmediate) : A.H ⊕ B.H → Prop) a ∨
+      (Sum.elim (fun (_ : A.H) ↦ false) (B.auto.acceptsImmediate) : A.H ⊕ B.H → Prop) a) := by
+  simp only [Bool.false_eq_true]
+  unfold AutomatonConfiguration.haltsImmediate
+  simp
+
+@[simp]
+theorem StateAutomaton.comp_auto_haltsImmediate {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) a :
+    (comp_auto A B).haltsImmediate a ↔
+      ((Sum.elim (A.auto.rejectsImmediate) (B.auto.haltsImmediate) : A.H ⊕ B.H → Prop) ) a := by
+  unfold AutomatonConfiguration.haltsImmediate
+  simp only [comp_auto_rejectsImmediate, comp_auto_acceptsImmediate, Bool.false_eq_true]
+  match a with
+  | .inl x => simp only [Sum.elim_inl, or_false]
+  | .inr y => simp only [Sum.elim_inr]
+
+@[simp]
+theorem StateAutomaton.comp_auto_haltsImmediate_A {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) a :
+    (comp_auto A B).haltsImmediate (.inl a) ↔
+      (A.auto.rejectsImmediate) a := by
+  simp only [comp_auto_haltsImmediate, Sum.elim_inl, Bool.false_eq_true, or_false]
+
+@[simp]
+theorem StateAutomaton.comp_auto_haltsImmediate_B {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) b :
+    (comp_auto A B).haltsImmediate (.inr b) ↔ B.auto.haltsImmediate b := by
+  simp only [comp_auto_haltsImmediate, Sum.elim_inr]
 
 
 theorem StateAutomaton.comp_auto_not_accept_A {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) (a : A.H) :
   ¬(comp_auto A B).acceptsImmediate (.inl a) := by
   intro h
+  unfold AutomatonConfiguration.acceptsImmediate at h
   unfold comp_auto at h
   simp only [Sum.elim_inl] at h
   simp_all only [Bool.false_eq_true]
@@ -65,6 +115,8 @@ theorem StateAutomaton.comp_auto_not_accept_A {X : Type} (A : StateAutomaton I X
 theorem StateAutomaton.comp_auto_halts_A {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {a : A.H} :
   (comp_auto A B).haltsImmediate (.inl a) ↔ (auto A).rejectsImmediate a := by
   unfold AutomatonConfiguration.haltsImmediate
+  unfold AutomatonConfiguration.acceptsImmediate
+  unfold AutomatonConfiguration.rejectsImmediate
   unfold comp_auto
   simp only [Sum.elim_inl, or_false]
   simp_all only [Bool.false_eq_true, or_false]
@@ -156,6 +208,7 @@ theorem StateAutomaton.comp_auto_result_b {X : Type} (A : StateAutomaton I X) (B
   simp only [ne_eq, Bool.not_eq_true, Sum.isRight_eq_false,Sum.isLeft_iff] at lft
   obtain ⟨y,y_re⟩ := lft
   rw [y_re] at hb
+  unfold AutomatonConfiguration.acceptsImmediate at hb
   simp only [Sum.elim_inl] at hb
   simp_all only [Bool.false_eq_true]
 
@@ -345,6 +398,10 @@ def StateAutomaton.comp {X : Type} (A : StateAutomaton I X) (B : StateAutomaton 
 
 -- theorem StateAutomaton.comp.get_ready {X : Type} (A : StateAutomaton I X) (B : StateAutomaton X O) :
 
+@[simp]
+theorem StateAutomaton.auto_comp_auto {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} :
+  (comp A B).auto = comp_auto A B := by rfl
+
 
 theorem StateAutomaton.comp.accepts_A {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {t : I}
     (acc : accepts (comp A B) t ) :
@@ -417,7 +474,7 @@ theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateA
         set e := @AutomatonConfiguration.result _ (auto (comp A B)) (Sum.inl (init A t)) c
         cases hh : e with
         | inl v =>
-          simp only [Sum.elim_inl]
+          --simp only [Sum.elim_inl]
           -- I think it's exfalso unless B halts immediately
           -- simp only at hh
 
@@ -530,6 +587,97 @@ theorem StateAutomaton.comp.spec' {X : Type} {A : StateAutomaton I X} {B : State
   rw [←wwr_spec]
   rw [coinc]
   rfl
+-- B yield is equivalent.
+theorem StateAutomaton.comp_B_equiv {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (b : B.H) :
+    (comp A B).auto.yield (.inr b) = .inr (B.auto.yield b) := by
+  unfold AutomatonConfiguration.yield
+  split
+  {
+    rename_i h
+    split
+    {
+      rfl
+    }
+    rename_i g
+    unfold AutomatonConfiguration.haltsImmediate at g h
+    rw [show (comp A B).auto.rejectsImmediate (Sum.inr b) =
+    B.auto.rejectsImmediate b from rfl] at h
+    rw [show (comp A B).auto.acceptsImmediate (Sum.inr b) =
+    B.auto.acceptsImmediate b from rfl] at h
+    tauto
+  }
+  rename_i h
+  split
+  {
+    rename_i g
+    unfold AutomatonConfiguration.haltsImmediate at g h
+    rw [show (comp A B).auto.rejectsImmediate (Sum.inr b) =
+    B.auto.rejectsImmediate b from rfl] at h
+    rw [show (comp A B).auto.acceptsImmediate (Sum.inr b) =
+    B.auto.acceptsImmediate b from rfl] at h
+    tauto
+  }
+  rename_i g
+  rw [show (comp A B).auto.yield' (Sum.inr b) = Sum.inr (B.auto.yield b) from rfl]
+  apply congrArg
+  unfold AutomatonConfiguration.yield
+  simp only [ite_eq_right_iff]
+  tauto
+
+-- set_option pp.explicit true
+
+theorem StateAutomaton.comp_A_equiv {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (a : A.H) :
+    (¬ A.auto.acceptsImmediate a) ↔ (comp A B).auto.yield (.inl a) = .inl (A.auto.yield a) := by
+  --constructor
+  -- intro w
+  simp only [auto_comp_auto]
+  rw [comp_auto_yield]
+  simp only [Sum.elim_inl]
+  split
+  {
+    rename_i h
+    simp only [comp_auto_haltsImmediate, Sum.elim_inl] at h
+    have : A.auto.haltsImmediate a := by exact
+      AutomatonConfiguration.haltImmediate_of_rejectsImmediate A.auto h
+    simp only [A.auto.yield_constant _ this]
+    simp only [iff_true]
+    intro acc
+    apply A.auto.exclusive_rejects_accepts_immediate a
+    simp_all only
+    simp_all only
+  }
+  simp only [ite_eq_right_iff, reduceCtorEq, imp_false]
+
+
+theorem StateAutomaton.comp_A_transition {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (a : A.H) :
+    (A.auto.acceptsImmediate a) ↔ (comp A B).auto.yield (.inl a) = .inr (B.init (A.get a)) := by
+  simp only [auto_comp_auto]
+  simp only [comp_auto_yield _ _]
+  simp only [comp_auto_haltsImmediate, Sum.elim_inl]
+  constructor
+  intro w
+  have : ¬ A.auto.rejectsImmediate a := by
+    have := A.auto.exclusive_rejects_accepts_immediate a
+    tauto
+  simp only [this, ↓reduceIte, ite_eq_left_iff, reduceCtorEq, imp_false, Decidable.not_not]
+  exact w
+  intro q
+  simp only at q
+  split at q
+  tauto
+  rename_i h
+  simp only [ite_eq_left_iff, reduceCtorEq, imp_false, Decidable.not_not] at q
+  exact q
+
+
+-- def StateAutomaton.comp_keyframe_end {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} (t : I) (o : O) (n : ℕ) :=
+--     (comp A B).init t
+
+-- the keyframe states
+-- theorem StateAutomaton.comp_keyframe_start {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} :
+--     (comp_auto A B).leads'
+
+
 -- todo:
 
 -- And:  A.I × B.I → A.O × B.O

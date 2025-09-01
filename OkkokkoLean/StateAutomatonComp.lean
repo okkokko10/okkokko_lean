@@ -349,6 +349,22 @@ def StateAutomaton.comp {X : Type} (A : StateAutomaton I X) (B : StateAutomaton 
 theorem StateAutomaton.comp.accepts_A {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {t : I}
     (acc : accepts (comp A B) t ) :
     accepts A t := by
+
+  -- the state must go through this
+
+  unfold accepts at acc ⊢
+  -- unfold comp at acc
+  simp only [comp] at acc
+  have ⟨w,w_lead,w_A,w_next_B⟩ : ∃w, (A.comp_auto B).leads' (Sum.inl (A.init t)) w ∧ w.isLeft ∧ ((A.comp_auto B).yield w).isRight := by
+
+    sorry
+
+
+  unfold AutomatonConfiguration.accepts
+
+  obtain ⟨b,w⟩ := acc
+
+
   sorry
 
 theorem StateAutomaton.comp.accepts_B {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {t : I}

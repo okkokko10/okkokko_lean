@@ -113,6 +113,22 @@ theorem StateAutomaton.models_function_apply (f : I → Option O) (m : models_fu
   -- -- have qw:= tw t |>.mp c
   exact tm t c
 
+-- this state accepts, and the final state satisfies p
+def AutomatonConfiguration.accepts_cond {H : Type} (ac : AutomatonConfiguration H) (a : H) (p : H → Prop) : Prop :=
+    ac.leads_pred' a (fun x ↦ ac.acceptsImmediate x ∧ p x)
+
+-- incomplete, false
+-- does this go one-way? can B halt when A doesn't?
+-- if a state in B halts, then each corresponding state's yield also corresponds.
+-- given A never halts on any state, yet corresponds to every state in B, then yes.
+-- there should be a constraint
+theorem simulated_same_result (A B : StateAutomaton I O) (r : A.H → B.H → Prop)
+    (hi : ∀i, r (A.init i) (B.init i))
+    -- (ho: ∀a b, A.auto.acceptsImmediate a → r a b → (A.get a = B.get b ∧ B.auto.acceptsImmediate b))
+    (ho: ∀a b, r a b → A.auto.acceptsImmediate a → (B.auto.accepts_cond b (A.get a = B.get ·)))
+    (ha: ∀a b, r a b → A.auto.rejectsImmediate a → B.auto.halt_rejects b)
+    (hs: LeadHom.simulated A.auto B.auto r) : StateAutomaton.same_result A B := sorry
+
 
 
 

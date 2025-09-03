@@ -347,6 +347,13 @@ def Instant.simple (f : H → Option H) : AutomatonConfiguration H where
   rejectsImmediate_decidable := sorry
   exclusive_rejects_accepts_immediate a := sorry
 
+-- bc simulates ac, such that each valid state of ac corresponds to a state in bc that leads to the yield in finite steps.
+-- r a b : a corresponds to b
+def LeadHom.simulated {A B : Type}
+    (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B)
+    (r : A → B → Prop) : Prop :=
+    ∀a b, r a b → bc.leads_pred' b (r (ac.yield a))
+
 
 
 end automatonConfiguration

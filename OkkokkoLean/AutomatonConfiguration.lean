@@ -105,7 +105,8 @@ theorem AutomatonConfiguration.halts_def (a : H) : ac.halts a ↔ ∃b, (ac.halt
   --   use b
   aesop
 
-
+-- note that this can be 0 steps
+@[reducible]
 def AutomatonConfiguration.leads_pred' (a : H) (p : H → Prop) : Prop :=
     _root_.leads_pred ac.yield a p
 theorem AutomatonConfiguration.halt_rejects_def' {a : H} :
@@ -182,6 +183,12 @@ def AutomatonConfiguration.leads_nth (a : H) (n : ℕ) : H :=
 
 @[simp]
 theorem AutomatonConfiguration.leads_nth_def {a : H} {n : ℕ} : _root_.sequence_leading ac.yield a n = ac.leads_nth a n := rfl
+
+@[simp]
+theorem AutomatonConfiguration.leads_nth_leads {a : H} {n : ℕ} : ac.leads' a (ac.leads_nth a n) := by
+  unfold leads' leads
+  simp only [leads_nth_def, exists_apply_eq_apply]
+
 
 def AutomatonConfiguration.haltsIn (a : H) (h : ac.halts a) : ℕ := Nat.find (ac.halts_def'.mp h)
 theorem AutomatonConfiguration.haltsIn_min (a : H) (h : ac.halts a) (m) : m < ac.haltsIn a h → ¬ ac.haltsImmediate (ac.leads_nth a m) := by
@@ -354,6 +361,55 @@ def LeadHom.simulated {A B : Type}
     (r : A → B → Prop) : Prop :=
     ∀a b, r a b → bc.leads_pred' b (r (ac.yield a))
 
+-- this state accepts, and the final state satisfies p
+def AutomatonConfiguration.accepts_cond {H : Type} (ac : AutomatonConfiguration H) (a : H) (p : H → Prop) : Prop :=
+    ac.leads_pred' a (fun x ↦ ac.acceptsImmediate x ∧ p x)
 
+theorem AutomatonConfiguration.accepts_cond_accepts {H : Type} {ac : AutomatonConfiguration H} {a : H} {p : H → Prop} :
+    ac.accepts_cond a p → ac.accepts a := by
+  unfold accepts_cond accepts leads_pred' leads_pred
+  tauto
+
+theorem LeadHom.simulated_leads {A B : Type}
+    {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
+    {r : A → B → Prop}
+    --(a b) (hx: r a b) : ∀a', ac.leads' a a' → ∃b', bc.leads' b b' ∧ r a' b'
+    : simulated ac bc r ↔ ∀a b a', r a b → ac.leads' a a' → bc.leads_pred' b (r a')
+      := by
+    -- might be ↔
+    constructor
+    ·
+      intro hs
+      intro a b a' rab la'
+      unfold AutomatonConfiguration.leads' at la'
+      have := leads_preserves (p := fun x ↦ bc.leads_pred' b (r x)) ?_ la'
+      · simp only at this
+        apply this
+        unfold AutomatonConfiguration.leads_pred' leads_pred
+        use 0
+        simp only [sequence_leading_zero]
+        exact rab
+      simp only
+      intro x lbx
+      unfold AutomatonConfiguration.leads_pred'
+      have ⟨q, rxq, lbq⟩: ∃y, r x y ∧ bc.leads' b y := by
+        have ⟨n,rxn⟩ := lbx
+        refine ⟨_, rxn, ?_⟩
+        simp_all only [AutomatonConfiguration.leads_nth_def, AutomatonConfiguration.leads_nth_leads]
+      apply leads_pred_trans _ _ q _ lbq
+      exact hs _ _ rxq
+    intro w
+    have (a b) := w a b (ac.yield a)
+    unfold AutomatonConfiguration.leads' at this
+    simp only [leads_next, forall_const] at this
+    exact this
+
+-- if b
+-- theorem LeadHom.simulated_leads_reverse {A B : Type}
+--     {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
+--     {r : A → B → Prop}
+--     --(a b) (hx: r a b) : ∀a', ac.leads' a a' → ∃b', bc.leads' b b' ∧ r a' b'
+--     : simulated ac bc r → ∀a b a', r a b → ac.leads' a a' → bc.leads_pred' b (r a')
+--       := by
 
 end automatonConfiguration

@@ -226,7 +226,11 @@ def leadsPreorder (f : X → X) : Preorder X where
   le_refl := leads_self f
   le_trans := leads_trans f
 
-
+@[simp]
+theorem leads_next (f : X → X) (a: X) : leads f a (f a) := by
+  rw [leads_def]
+  use 1
+  exact rfl
 
 
 theorem leads_preserves  {f : X → X} {a b : X} {p : X → Prop} (hp : ∀x, p x → p (f x)) (l : leads f a b) : p a → p b := by
@@ -295,6 +299,17 @@ theorem leads_pred_def' {f : X → X} {a : X} {p : X → Prop} :
     leads_pred f a p ↔ (∃b, p b ∧ leads f a b) := by
   simp only [leads_pred_def,leads_def]
   aesop
+
+@[trans]
+theorem leads_pred_trans {X} f (a b : X) p : leads f a b → leads_pred f b p → leads_pred f a p := by
+  simp_rw [leads_def]
+  intro ⟨an,fab⟩ ⟨bn,fbc⟩
+  use (an + bn)
+  rw [sequence_leading_tail]
+  rw [fab]
+  exact fbc
+
+
 
 theorem leads_pred_or {f : X → X} {a : X} {p1 p2 : X → Prop} : (leads_pred f a p1 ∨ leads_pred f a p2) ↔ leads_pred f a (p1 ⊔ p2) := by
   reduce

@@ -20,6 +20,7 @@ def StateAutomaton.halt_rejects : Prop := (auto M).halt_rejects ((init M) tape)
 
 def StateAutomaton.halts : Prop := (auto M).halts ((init M) tape)
 
+-- todo: use halts in the definition
 def StateAutomaton.total : Prop := ∀ t : I, (auto M).halts ((init M) t)
 
 def StateAutomaton.result (h : accepts M tape) : O := get M ((auto M).result ((init M) tape) h)
@@ -27,6 +28,8 @@ def StateAutomaton.result (h : accepts M tape) : O := get M ((auto M).result ((i
 
 -- on all inputs, both automata have the same acceptance.
 def StateAutomaton.same_accept {O' : Type} (A : StateAutomaton I O) (B : StateAutomaton I O') : Prop := ∀ t : I, accepts A t ↔ accepts B t
+
+def StateAutomaton.same_halt {O' : Type} (A : StateAutomaton I O) (B : StateAutomaton I O') : Prop := ∀ t : I, halts A t ↔ halts B t
 
 
 -- def StateAutomaton.same_result (A B : StateAutomaton I O) (h : same_accept A B) : Prop := ∀ t : I, result A t = (fun (c : accepts A t) ↦ result B t ((h t).mp c))
@@ -113,22 +116,68 @@ theorem StateAutomaton.models_function_apply (f : I → Option O) (m : models_fu
   -- -- have qw:= tw t |>.mp c
   exact tm t c
 
--- this state accepts, and the final state satisfies p
-def AutomatonConfiguration.accepts_cond {H : Type} (ac : AutomatonConfiguration H) (a : H) (p : H → Prop) : Prop :=
-    ac.leads_pred' a (fun x ↦ ac.acceptsImmediate x ∧ p x)
 
--- incomplete, false
+-- old:
 -- does this go one-way? can B halt when A doesn't?
 -- if a state in B halts, then each corresponding state's yield also corresponds.
 -- given A never halts on any state, yet corresponds to every state in B, then yes.
--- there should be a constraint
-theorem simulated_same_result (A B : StateAutomaton I O) (r : A.H → B.H → Prop)
+--
+-- wait, same_result does not distinguish between reject and no halt
+-- wait, what if all states of A correspond to the starting state of B, and A never halts but B does?
+theorem StateAutomaton.simulated_same_result (A B : StateAutomaton I O) (r : A.H → B.H → Prop)
     (hi : ∀i, r (A.init i) (B.init i))
     -- (ho: ∀a b, A.auto.acceptsImmediate a → r a b → (A.get a = B.get b ∧ B.auto.acceptsImmediate b))
     (ho: ∀a b, r a b → A.auto.acceptsImmediate a → (B.auto.accepts_cond b (A.get a = B.get ·)))
     (ha: ∀a b, r a b → A.auto.rejectsImmediate a → B.auto.halt_rejects b)
-    (hs: LeadHom.simulated A.auto B.auto r) : StateAutomaton.same_result A B := sorry
+    (hhx: ∀a b, r a b → B.auto.acceptsImmediate b → A.auto.acceptsImmediate a)
+    (hhy: ∀a b, r a b → B.auto.rejectsImmediate b → A.auto.rejectsImmediate a)
+    (hs: LeadHom.simulated A.auto B.auto r) : StateAutomaton.same_result A B ∧ StateAutomaton.same_halt A B := by
 
+  rw [same_result_def]
+  constructor
+  constructor
+  ·
+    unfold same_accept
+    intro t
+    unfold accepts
+    unfold LeadHom.simulated at hs
+    have init_r := hi t
+    have hs' := LeadHom.simulated_leads.mp hs
+    have tt (a) (l : A.auto.leads' (A.init t) a) := hs' (A.init t) _ a init_r l
+
+    constructor
+    ·
+      intro ax
+      have ⟨ar,ar_acc,ar_l⟩ := ax
+      have := tt ar ar_l
+      have pp (b rarb) := ho ar b rarb ar_acc
+      unfold AutomatonConfiguration.leads_pred' at this
+      rw [leads_pred_def'] at this
+      have ⟨b, rarb,lb⟩ := this
+      specialize pp b rarb
+      have qq := B.auto.accepts_cond_accepts pp
+
+      -- accepts transitivity
+      rw [AutomatonConfiguration.accepts_def', AutomatonConfiguration.leads_pred'] at qq ⊢
+      exact leads_pred_trans B.auto.yield (B.init t) b B.auto.acceptsImmediate lb qq
+
+
+    intro bx
+
+    have ⟨br,br_acc,br_l⟩ := bx
+
+    have := (hhx · br · br_acc) -- this doesn't necessarily come into effect
+
+
+
+    sorry
+  ·
+    intro t ax bx
+
+
+    sorry
+
+  sorry
 
 
 

@@ -179,6 +179,61 @@ theorem StateAutomaton.simulated_same_result (A B : StateAutomaton I O) (r : A.H
 
   sorry
 
+theorem StateAutomaton.simulated2_same_result (A B : StateAutomaton I O) (r : A.H → B.H → Prop)
+    (hi : ∀i, r (A.init i) (B.init i))
+    -- (ho: ∀a b, A.auto.acceptsImmediate a → r a b → (A.get a = B.get b ∧ B.auto.acceptsImmediate b))
+    (ho: ∀a b, r a b → A.auto.acceptsImmediate a → (B.auto.accepts_cond b (A.get a = B.get ·)))
+    (ha: ∀a b, r a b → A.auto.rejectsImmediate a → B.auto.halt_rejects b)
+    (hhx: ∀a b, r a b → B.auto.acceptsImmediate b → A.auto.acceptsImmediate a)
+    (hhy: ∀a b, r a b → B.auto.rejectsImmediate b → A.auto.rejectsImmediate a)
+    (hs: LeadHom.simulated2 A.auto B.auto r) : StateAutomaton.same_result A B ∧ StateAutomaton.same_halt A B := by
+
+  rw [same_result_def]
+  constructor
+  constructor
+  ·
+    unfold same_accept
+    intro t
+    unfold accepts
+    unfold LeadHom.simulated2 at hs
+    have init_r := hi t
+    have hs' := LeadHom.simulated2_leads.mp hs
+    have tt (a) (l : A.auto.leads_pos (A.init t) a) := hs' (A.init t) _ a init_r l
+
+    constructor
+    ·
+      intro ax
+      #check AutomatonConfiguration.accepts_leads_pos
+      have ⟨ar,ar_acc,ar_l⟩ := ax
+      have := tt ar ar_l
+      have pp (b rarb) := ho ar b rarb ar_acc
+      unfold AutomatonConfiguration.leads_pred' at this
+      rw [leads_pred_def'] at this
+      have ⟨b, rarb,lb⟩ := this
+      specialize pp b rarb
+      have qq := B.auto.accepts_cond_accepts pp
+
+      -- accepts transitivity
+      rw [AutomatonConfiguration.accepts_def', AutomatonConfiguration.leads_pred'] at qq ⊢
+      exact leads_pred_trans B.auto.yield (B.init t) b B.auto.acceptsImmediate lb qq
+
+
+    intro bx
+
+    have ⟨br,br_acc,br_l⟩ := bx
+
+    have := (hhx · br · br_acc) -- this doesn't necessarily come into effect
+
+
+
+    sorry
+  ·
+    intro t ax bx
+
+
+    sorry
+
+  sorry
 
 
 end stateAutomaton

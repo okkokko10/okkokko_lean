@@ -424,5 +424,93 @@ theorem sequence_leading_identity {f : X → X} {a : X} (h : f a = a) (n : ℕ) 
 
 -- actually, is ha needed?
 
+def leads_pos (f : X → X) (a b: X) : Prop := ∃n>0, sequence_leading f a n = b
+theorem leads_pos_def {f : X → X} {a b: X} : leads_pos f a b ↔ ∃n>0, sequence_leading f a n = b := by rfl
+
+theorem leads_pos_def' {f : X → X} {a b: X} : leads_pos f a b ↔ leads f (f a) b := by
+  unfold leads
+  simp_rw [←sequence_leading_succ']
+  unfold leads_pos
+  set p := fun n ↦ sequence_leading f a n = b
+
+  change (∃n>0, p n) ↔ ∃n, p (n + 1)
+  constructor
+  intro ⟨n,n0,pn⟩
+  use (n - 1)
+  have : n - 1 + 1 = n := by exact Nat.sub_add_cancel n0
+  simp_all only [gt_iff_lt, p]
+  intro ⟨n,pn1⟩
+  use n + 1
+  simp_all only [sequence_leading_succ, gt_iff_lt, lt_add_iff_pos_left, add_pos_iff, zero_lt_one, or_true, and_self, p]
+
+theorem leads_pos_def'' {f : X → X} {a b: X} : leads_pos f a b ↔ ∃n, sequence_leading f a (n + 1) = b := by
+  rw [leads_pos_def']
+  simp_rw [sequence_leading_succ']
+  rfl
+
+
+
+def leads_pred_pos  (f : X → X) (a : X) (p : X → Prop) : Prop := (∃n > 0, p (sequence_leading f a n))
+
+
+theorem leads_pred_pos_def {f : X → X} {a : X} {p : X → Prop} :
+    leads_pred_pos f a p ↔ (∃b, p b ∧ leads_pos f a b) := by
+  unfold leads_pos leads_pred_pos
+  simp_all only [gt_iff_lt]
+  apply Iff.intro
+  · intro a_1
+    obtain ⟨w, h⟩ := a_1
+    obtain ⟨left, right⟩ := h
+    apply Exists.intro
+    · apply And.intro
+      · exact right
+      · apply Exists.intro
+        · apply And.intro
+          on_goal 2 => {rfl
+          }
+          · simp_all only
+  · intro a_1
+    obtain ⟨w, h⟩ := a_1
+    obtain ⟨left, right⟩ := h
+    obtain ⟨w_1, h⟩ := right
+    obtain ⟨left_1, right⟩ := h
+    subst right
+    apply Exists.intro
+    · apply And.intro
+      on_goal 2 => {exact left
+      }
+      · simp_all only
+
+
+theorem leads_pred_pos_def' {f : X → X} {a : X} {p : X → Prop} :
+    leads_pred_pos f a p ↔ leads_pred f (f a) p := by
+  rw [leads_pred_pos_def]
+  simp_rw [leads_pos_def']
+  rw [leads_pred_def']
+
+theorem leads_of_leads_pos {f : X → X} {a b: X} : leads_pos f a b → leads f a b := by
+  unfold leads_pos leads
+  tauto
+
+theorem leads_pred_of_leads_pred_pos {f : X → X} {a : X} {p : X → Prop} : leads_pred_pos f a p → leads_pred f a p := by
+  unfold leads_pred_pos leads_pred
+  tauto
+
+theorem leads_pred_pos_if_not_zero {f : X → X} {a : X} {p : X → Prop} (h1: ¬ p a) : leads_pred f a p ↔  leads_pred_pos f a p := by
+  rw [leads_pred_pos]
+  unfold leads_pred
+  constructor
+  intro h2
+  have ⟨n,w⟩ := h2
+  use n
+  refine ⟨?_,w⟩
+  by_contra n0
+  have : n = 0 := by exact Nat.eq_zero_of_not_pos n0
+  rw [this] at w
+  simp at w
+  exact h1 w
+  tauto
+
+-- some leads theorems could be solved from leads_pred using "leads f a b ↔ leads_pred f a (· = b)"
 
 end lead

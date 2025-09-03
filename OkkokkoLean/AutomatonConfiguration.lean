@@ -412,4 +412,87 @@ theorem LeadHom.simulated_leads {A B : Type}
 --     : simulated ac bc r → ∀a b a', r a b → ac.leads' a a' → bc.leads_pred' b (r a')
 --       := by
 
+@[reducible]
+def AutomatonConfiguration.leads_pred_pos (a : H) (p : H → Prop) : Prop :=
+    _root_.leads_pred_pos ac.yield a p
+@[reducible]
+def AutomatonConfiguration.leads_pos (a b: H) : Prop :=
+    _root_.leads_pos ac.yield a b
+
+def LeadHom.simulated2 {A B : Type}
+    (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B)
+    (r : A → B → Prop) : Prop :=
+    ∀a b, r a b → bc.leads_pred_pos b (r (ac.yield a))
+
+theorem LeadHom.simulated2_leads {A B : Type}
+    {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
+    {r : A → B → Prop}
+    --(a b) (hx: r a b) : ∀a', ac.leads' a a' → ∃b', bc.leads' b b' ∧ r a' b'
+    : simulated2 ac bc r ↔ ∀a b a', r a b → ac.leads_pos a a' → bc.leads_pred_pos b (r a')
+      := by
+    -- might be ↔
+    constructor
+    ·
+      intro hs
+      intro a b a' rab la'
+      unfold AutomatonConfiguration.leads_pos at la'
+      rw [leads_pos_def'] at la'
+
+      have := leads_preserves (p := fun x ↦ bc.leads_pred_pos b (r x)) ?_ la'
+      · simp only at this
+        exact this (hs a b rab)
+
+      simp only
+      intro x lbx
+
+      -- unfold AutomatonConfiguration.leads_pred'
+      have ⟨q, rxq, lbq⟩: ∃y, r x y ∧ bc.leads_pos b y := by
+        have ⟨n,n0,rxn⟩ := lbx
+        refine ⟨_, rxn, ?_⟩
+        unfold AutomatonConfiguration.leads_pos
+        rw [leads_pos_def]
+        use n
+      unfold AutomatonConfiguration.leads_pred_pos
+      rw [leads_pred_pos_def']
+      unfold AutomatonConfiguration.leads_pos at lbq
+      rw [leads_pos_def'] at lbq
+
+      apply leads_pred_trans _ _ q _ lbq
+      exact leads_pred_of_leads_pred_pos (hs x q rxq)
+    intro w
+
+    have (a b) := w a b (ac.yield a)
+    unfold AutomatonConfiguration.leads_pos at this
+    simp_rw [leads_pos_def'] at this
+    simp only [leads_self, forall_const] at this
+    exact this
+
+
+
+-- same for reject and halt
+theorem AutomatonConfiguration.accepts_leads_pos {H} {ac : AutomatonConfiguration H} {a : H} :
+    ac.accepts a ↔ ac.leads_pred_pos a ac.acceptsImmediate := by
+
+  by_cases h : ac.acceptsImmediate a
+  -- todo: acceptsImmediate_accepts
+  have true1: ac.accepts a := by
+    refine ⟨a,h,?_⟩
+    rw [leads']
+    exact leads_self ac.yield a
+  simp only [true1, true_iff]
+
+
+  unfold leads_pred_pos
+  rw [leads_pred_pos_def']
+  refine ⟨0,?_⟩
+  simp only [sequence_leading_zero]
+  exact acceptsImmediate_yield_acceptsImmediate ac a h
+
+  simp [accepts_def']
+  unfold leads_pred'
+  exact leads_pred_pos_if_not_zero h
+
+
+
+
 end automatonConfiguration

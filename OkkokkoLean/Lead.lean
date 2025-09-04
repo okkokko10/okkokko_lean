@@ -46,12 +46,17 @@ theorem sequence_leading_succ' {f : X → X} {a: X} {i : ℕ} : sequence_leading
   rw [Function.iterate_succ, Function.comp_apply]
 
 
-theorem sequence_leading_tail {f : X → X} {a: X} (n : ℕ) {i : ℕ} :
+theorem sequence_leading_tail {f : X → X} {a: X} {n : ℕ} {i : ℕ} :
     (sequence_leading f a) (n + i) = sequence_leading f (sequence_leading f a n) i := by
   simp_rw [sequence_leading_def']
   rw [add_comm]
   rw [Function.iterate_add_apply]
 
+
+theorem sequence_leading_tail' {f : X → X} {a: X} {n : ℕ} {i : ℕ} :
+    (sequence_leading f a) (n + i) = sequence_leading f (sequence_leading f a i) n := by
+  rw [show n + i = i + n by group]
+  exact sequence_leading_tail
 
 
 theorem sequence_leading_is_leading {f : X → X} {a: X} : is_leading f (sequence_leading f a) := by
@@ -261,7 +266,7 @@ lemma leads_connected1  {f : X → X} {a b c : X}
   have : nc = nb + (nc - nb) := by
     rw [←Nat.add_sub_assoc hn nb, add_tsub_cancel_left]
   set m := nc - nb
-  have t:= wb ▸ sequence_leading_tail _ ▸ this ▸ wc
+  have t:= wb ▸ sequence_leading_tail ▸ this ▸ wc
   rw [this] at wc
   rw [sequence_leading_tail] at wc
   rw [wb] at wc
@@ -327,11 +332,11 @@ theorem leads_in_connection (f : X → X) (a b c: X) (ab bc) : leads_in f a b ab
   unfold leads_in
   intro a_b b_c
   rw [←b_c,←a_b]
-  exact sequence_leading_tail ab
+  exact sequence_leading_tail
 theorem leads_in_connection' (f : X → X) (a b c: X) (ab bc) : leads_in f a b ab → leads_in f a c (ab + bc) → leads_in f b c bc := by
   unfold leads_in
   intro a_b a_c
-  rw [sequence_leading_tail ab,a_b] at a_c
+  rw [sequence_leading_tail,a_b] at a_c
   exact a_c
 
 
@@ -512,5 +517,179 @@ theorem leads_pred_pos_if_not_zero {f : X → X} {a : X} {p : X → Prop} (h1: �
   tauto
 
 -- some leads theorems could be solved from leads_pred using "leads f a b ↔ leads_pred f a (· = b)"
+
+
+theorem leads_pred_pos_as_leads_pred {f : X → X} {a : X} {p : X → Prop} : leads_pred_pos f a p ↔ leads_pred f a (p <| f ·) := by
+  rw [leads_pred_pos_def']
+  rw [leads_pred_def,leads_pred_def]
+  simp only [← sequence_leading_succ, sequence_leading_succ', implies_true]
+
+theorem leads_as_leads_pred {f : X → X} {a b : X} : leads f a b ↔ leads_pred f a (· = b) := by rfl
+theorem leads_pos_as_leads_pred_pos {f : X → X} {a b : X} : leads_pos f a b ↔ leads_pred_pos f a (· = b) := by rfl
+
+
+theorem leads_pred_impl {p p' : X → Prop} (h : ∀x, p x → p' x) {f : X → X} {a} (lp : leads_pred f a p) :  leads_pred f a p' := by
+  simp only [leads_pred_def'] at lp ⊢
+  obtain ⟨w, h_1⟩ := lp
+  obtain ⟨left, right⟩ := h_1
+  apply Exists.intro
+  · apply And.intro
+    on_goal 2 => {exact right
+    }
+    · simp_all only
+
+
+theorem leads_pos_next {f : X → X} {a: X} : leads_pos f a (f a) := by
+  rw [leads_pos_def']
+  apply leads_self
+
+
+
+
+
+def leads_always  (f : X → X) (a : X) (p : X → Prop) : Prop := (∀n, p (sequence_leading f a n))
+
+theorem leads_always_def {f : X → X} {a : X} {p : X → Prop} : leads_always f a p ↔ (∀n, p (sequence_leading f a n)) := by rfl
+
+theorem leads_always_def' {f : X → X} {a : X} {p : X → Prop} : leads_always f a p ↔ (∀b, leads f a b → p b) := by
+  unfold leads_always leads
+  simp only [forall_exists_index, forall_apply_eq_imp_iff]
+
+theorem leads_preserves'  {f : X → X} {p : X → Prop} (hp : ∀x, p x → p (f x)) {a: X} : p a → leads_always f a p := by
+  intro pa
+  rw [leads_always_def']
+  intro b lb
+  exact leads_preserves hp lb pa
+
+/--
+there exists infinitely many successors that satisfy p
+-/
+def leads_frequently (f : X → X) (a : X) (p : X → Prop) : Prop := (∀m, ∃n ≥ m, p (sequence_leading f a n))
+
+-- move to misc
+@[simp]
+theorem exists_ge (p : ℕ → Prop) (m : ℕ) : (∃n ≥ m, p n) ↔ ∃n, p (n + m) := by
+
+  constructor
+  · intro ⟨n,g,pn⟩
+    use n - m
+    simp_all only [ge_iff_le, Nat.sub_add_cancel]
+  intro a
+  simp_all only [ge_iff_le]
+  obtain ⟨w, h⟩ := a
+  apply Exists.intro
+  · apply And.intro
+    on_goal 2 => {exact h
+    }
+    · simp_all only [le_add_iff_nonneg_left, zero_le]
+
+-- move to misc
+@[simp]
+theorem eventually_ge (p : ℕ → Prop) : (∃m, ∀n ≥ m, p n) ↔ ∃m, ∀n, p (n + m) := by
+  rw [← @not_iff_not]
+  simp only [ge_iff_le, not_exists, not_forall, Classical.not_imp]
+  simp only [exists_prop, exists_ge]
+
+theorem leads_frequently_def_add {f : X → X} {a : X} {p : X → Prop} : leads_frequently f a p ↔ (∀m, ∃n, p (sequence_leading f a (n + m))) := by
+  unfold leads_frequently
+  simp only [exists_ge]
+
+
+theorem leads_frequently_def' {f : X → X} {a : X} {p : X → Prop} : leads_frequently f a p ↔ leads_always f a (leads_pred f · p) := by
+  rw [leads_frequently_def_add]
+  simp only [sequence_leading_tail']
+  rw [leads_always_def]
+  simp only [leads_pred_def]
+
+
+def leads_eventually (f : X → X) (a : X) (p : X → Prop) : Prop := (∃m, ∀n ≥ m, p (sequence_leading f a n))
+
+
+theorem leads_eventually_def_add {f : X → X} {a : X} {p : X → Prop} : leads_eventually f a p ↔ (∃m, ∀n, p (sequence_leading f a (n + m))) := by
+  unfold leads_eventually
+  simp only [eventually_ge]
+
+theorem leads_eventually_def' {f : X → X} {a : X} {p : X → Prop} : leads_eventually f a p ↔ leads_pred f a (leads_always f · p) := by
+  rw [leads_eventually_def_add]
+  simp only [sequence_leading_tail']
+  rfl
+
+theorem leads_eventually_of_leads_always {f : X → X} {a : X} {p : X → Prop} : leads_always f a p → leads_eventually f a p := by
+  intro alw
+  use 0
+  simp only [ge_iff_le, zero_le, forall_const]
+  exact alw
+
+theorem leads_eventually_of_pred_monotone {f : X → X} {a : X} {p : X → Prop}
+    (hp : ∀x, p x → p (f x)) (lp : leads_pred f a p) : leads_eventually f a p := by
+  rw [leads_eventually_def']
+  exact leads_pred_impl (fun x px ↦ leads_preserves' hp px) lp
+
+theorem leads_pred_of_eventually {f : X → X} {a : X} {p : X → Prop} (lp : leads_eventually f a p) :
+    leads_pred f a p := by
+  reduce at lp ⊢
+  tauto
+
+
+theorem leads_pred_of_frequently {f : X → X} {a : X} {p : X → Prop} (lp : leads_frequently f a p) :
+    leads_pred f a p := by
+  reduce at lp ⊢
+  specialize lp 0
+  tauto
+
+theorem leads_pred_of_always {f : X → X} {a : X} {p : X → Prop} (lp : leads_always f a p) :
+    leads_pred f a p := by
+  reduce at lp ⊢
+  tauto
+
+
+theorem leads_always_impl {p p' : X → Prop} (h : ∀x, p x → p' x) {f : X → X} {a} (lp : leads_always f a p) :  leads_always f a p' := by
+  rw [leads_always_def'] at lp ⊢
+  intro b lb
+  exact h b (lp b lb)
+
+
+theorem leads_frequently_impl {p p' : X → Prop} (h : ∀x, p x → p' x) {f : X → X} {a} (lp : leads_frequently f a p) :  leads_frequently f a p' := by
+  rw [leads_frequently_def'] at lp ⊢
+  refine leads_always_impl ?_ lp
+  apply leads_pred_impl
+  apply h
+
+theorem leads_frequently_idempotent {f : X → X} {a : X} {p : X → Prop} :
+    leads_frequently f a p ↔ leads_frequently f a (leads_frequently f · p) := by
+
+  constructor
+  · unfold leads_frequently
+    simp only [ge_iff_le, exists_ge]
+    simp only [← sequence_leading_tail']
+    group
+    intro q m
+    have := q m
+    use 0
+    intro m1
+    simp_all only [zero_add]
+    group
+    have := q (m1 + m)
+    group at this
+    exact this
+
+  intro q
+  have := leads_pred_of_frequently q
+  have := leads_pred_impl
+  simp only [leads_frequently_def'] at this
+  have ⟨n, ns⟩:= q 0
+  simp_all
+  specialize ns 0
+  simp_all
+
+  specialize lp 0
+  tauto
+
+theorem leads_eventually_connected {f : X → X} {a : X} {p p' : X → Prop}
+    (hp : leads_eventually f a p) (hp' : leads_eventually f a p') :
+    leads_eventually f a (fun x ↦ p x ∧ p' x) := by
+
+  sorry
+
 
 end lead

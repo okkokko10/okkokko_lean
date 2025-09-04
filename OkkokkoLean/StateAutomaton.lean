@@ -203,19 +203,27 @@ theorem StateAutomaton.simulated2_same_result (A B : StateAutomaton I O) (r : A.
     constructor
     ·
       intro ax
-      #check AutomatonConfiguration.accepts_leads_pos
+      --#check AutomatonConfiguration.accepts_leads_pos
+      rw [AutomatonConfiguration.accepts_leads_pos] at ax
+      unfold AutomatonConfiguration.leads_pred_pos at ax
+      rw [leads_pred_pos_def] at ax
+      -- rw [leads_pred_def'] at ax
+
       have ⟨ar,ar_acc,ar_l⟩ := ax
+
       have := tt ar ar_l
       have pp (b rarb) := ho ar b rarb ar_acc
-      unfold AutomatonConfiguration.leads_pred' at this
-      rw [leads_pred_def'] at this
+      unfold AutomatonConfiguration.leads_pred_pos at this
+      rw [leads_pred_pos_def] at this
       have ⟨b, rarb,lb⟩ := this
       specialize pp b rarb
       have qq := B.auto.accepts_cond_accepts pp
 
       -- accepts transitivity
       rw [AutomatonConfiguration.accepts_def', AutomatonConfiguration.leads_pred'] at qq ⊢
-      exact leads_pred_trans B.auto.yield (B.init t) b B.auto.acceptsImmediate lb qq
+
+      refine leads_pred_trans B.auto.yield (B.init t) b B.auto.acceptsImmediate ?_ qq
+      exact leads_of_leads_pos lb
 
 
     intro bx

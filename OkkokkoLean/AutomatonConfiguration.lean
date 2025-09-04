@@ -86,6 +86,10 @@ def AutomatonConfiguration.accepts (a : H) : Prop :=
 def AutomatonConfiguration.halts (a : H) : Prop :=
   ac.accepts a ∨ ac.halt_rejects a
 
+
+def AutomatonConfiguration.halts_to (a : H) (b : H) : Prop :=
+    ac.leads' a b ∧ ac.haltsImmediate b
+
 theorem AutomatonConfiguration.halts_def (a : H) : ac.halts a ↔ ∃b, (ac.haltsImmediate b) ∧ ac.leads' a b := by
   unfold haltsImmediate halts accepts halt_rejects
   -- constructor
@@ -141,6 +145,8 @@ theorem AutomatonConfiguration.acceptsImmediate_leads_acceptsImmediate {a b : H}
   refine leads_preserves ac.acceptsImmediate_yield_acceptsImmediate hl h
 
 
+
+
 -- -- if C rejects, so does its predecessor and successor
 -- theorem AutomatonConfiguration.rejects_stable (a : H): halt_rejects a ↔ halt_rejects (yield a) := by
 
@@ -177,7 +183,7 @@ theorem AutomatonConfiguration.exclusive_rejects_accepts (a : H) :
   have := ac.rejectsImmediate_leads_rejectsImmediate t2 r_q
   exact ac.exclusive_rejects_accepts_immediate acc this a_q
 
-
+@[reducible]
 def AutomatonConfiguration.leads_nth (a : H) (n : ℕ) : H :=
     _root_.sequence_leading ac.yield a n
 
@@ -190,6 +196,10 @@ theorem AutomatonConfiguration.leads_nth_leads {a : H} {n : ℕ} : ac.leads' a (
   simp only [leads_nth_def, exists_apply_eq_apply]
 
 
+theorem AutomatonConfiguration.leads_nth_from_leads {a b : H} (l : ac.leads' a b) : ∃n, ac.leads_nth a n = b := by
+  unfold leads' leads at l
+  simp_all only [leads_nth_def]
+
 def AutomatonConfiguration.haltsIn (a : H) (h : ac.halts a) : ℕ := Nat.find (ac.halts_def'.mp h)
 theorem AutomatonConfiguration.haltsIn_min (a : H) (h : ac.halts a) (m) : m < ac.haltsIn a h → ¬ ac.haltsImmediate (ac.leads_nth a m) := by
   intro mh
@@ -198,6 +208,16 @@ theorem AutomatonConfiguration.haltsIn_min (a : H) (h : ac.halts a) (m) : m < ac
 
 
 def AutomatonConfiguration.result (a : H) (h : ac.accepts a) : H := ac.leads_nth a (ac.haltsIn a (ac.halts_of_accepts h))
+
+def AutomatonConfiguration.result_halt (a : H) (h : ac.halts a) : H := ac.leads_nth a (ac.haltsIn a (h))
+
+theorem AutomatonConfiguration.result_halt_eq_result (a : H) (h : ac.accepts a) : ac.result a h = ac.result_halt a (ac.halts_of_accepts h) := by rfl
+
+theorem AutomatonConfiguration.result_halt_halts (a : H) (h : ac.halts a) : ac.haltsImmediate (ac.result_halt a h) := by
+  unfold result_halt haltsIn
+  exact Nat.find_spec (ac.halts_def'.mp h)
+
+
 
 
 theorem AutomatonConfiguration.accepts_never_rejectsImmediate (a : H) (h : ac.accepts a) (b : H) : ac.leads' a b → ac.rejectsImmediate b → False := by
@@ -254,6 +274,33 @@ theorem AutomatonConfiguration.haltsImmediate_leads_nth_self
     (a : H) (h : ac.haltsImmediate a) (n: ℕ) : (ac.leads_nth a n) = a := by
   apply sequence_leading_identity (ac.yield_of_haltsImmediate a h)
 
+
+theorem AutomatonConfiguration.result_halt_leads (a: H) (h : ac.halts a) : ac.leads' a (ac.result_halt a h) := by
+  unfold result_halt
+  simp only [leads_nth_leads]
+/--
+also means it's unique
+-/
+theorem AutomatonConfiguration.result_halt_unique (a b : H) (l : ac.leads' a b) (h : ac.haltsImmediate b) : b = ac.result_halt a ((by rw [halts_def]; use b) : ac.halts a) := by
+  -- halts_to
+  have hal : ac.halts a := (by rw [halts_def]; use b)
+  change b = ac.result_halt a hal
+  have lr := ac.result_halt_leads a hal
+  have := leads_connected l lr
+  cases this with
+  | inl q =>
+    have := ac.haltsImmediate_leads_nth_self b h
+    have ⟨n,nt⟩:= ac.leads_nth_from_leads q
+    unfold result_halt
+    symm
+    specialize this n
+    simp_all only
+    subst nt
+    rfl
+  | inr q =>
+
+
+  sorry
 
 -- if a leads to a acceptsImmediate state, that state is the result.
 theorem AutomatonConfiguration.result_of_acceptsImmediate (a b : H) (l : ac.leads' a b) (h : ac.acceptsImmediate b) : b = (ac.result a ⟨b, h,l⟩) := by
@@ -365,10 +412,32 @@ def LeadHom.simulated {A B : Type}
 def AutomatonConfiguration.accepts_cond {H : Type} (ac : AutomatonConfiguration H) (a : H) (p : H → Prop) : Prop :=
     ac.leads_pred' a (fun x ↦ ac.acceptsImmediate x ∧ p x)
 
+-- this state halts, and the final state satisfies p
+def AutomatonConfiguration.halts_cond {H : Type} (ac : AutomatonConfiguration H) (a : H) (p : H → Prop) : Prop :=
+    ac.leads_pred' a (fun x ↦ ac.haltsImmediate x ∧ p x)
+
 theorem AutomatonConfiguration.accepts_cond_accepts {H : Type} {ac : AutomatonConfiguration H} {a : H} {p : H → Prop} :
     ac.accepts_cond a p → ac.accepts a := by
   unfold accepts_cond accepts leads_pred' leads_pred
   tauto
+theorem AutomatonConfiguration.halts_cond_halts {H : Type} {ac : AutomatonConfiguration H} {a : H} {p : H → Prop} :
+    ac.halts_cond a p → ac.halts a := by
+  unfold halts_cond leads_pred' leads_pred
+  rw [halts_def]
+  tauto
+
+
+theorem AutomatonConfiguration.halts_cond_applies {H : Type} {ac : AutomatonConfiguration H} {a : H} {p : H → Prop}
+    (h : ac.halts_cond a p) : p (ac.result_halt a (ac.halts_cond_halts h)) := by
+
+  unfold halts_cond leads_pred' leads_pred at h
+  simp only [leads_nth_def] at h
+  have ⟨n,hn,pn⟩ := h
+  rw [ac.leads_nth] at h
+
+  rw [halts_def]
+  tauto
+
 
 theorem LeadHom.simulated_leads {A B : Type}
     {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
@@ -493,6 +562,65 @@ theorem AutomatonConfiguration.accepts_leads_pos {H} {ac : AutomatonConfiguratio
   exact leads_pred_pos_if_not_zero h
 
 
+def LeadHom.simulated2_next_index {A B : Type}
+    (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B)
+    (r : A → B → Prop) [DecidableRel r] (hs : simulated ac bc r) (a b) (rab : r a b) : ℕ
+    := Nat.find (hs a b rab)
+
+def LeadHom.simulated2_next_index1 {A B : Type}
+    (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B)
+    (r : A → B → Prop) [DecidableRel r] (hs : simulated ac bc r) (a b) (rab : r a b) : ℕ
+    := Nat.find (hs a b rab)
+
+-- def LeadHom.simulated2_index {A B : Type}
+--     (ac : AutomatonConfiguration A) (bc : AutomatonConfiguration B)
+--     (r : A → B → Prop) [DecidableRel r] (hs : simulated ac bc r) (a b) (rab : r a b) : ℕ → ℕ
+--     := Nat.find (hs a b rab)
+
+
+-- of the corresponding b being later than the a
+theorem LeadHom.simulated2_bound {A B : Type}
+    {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
+    {r : A → B → Prop}
+    (hs: simulated2 ac bc r)
+    (a : A) (b : B) (rab: r a b)
+    : True
+    := by
+
+  sorry
+
+
+theorem AutomatonConfiguration.haltsImmediate_loops {a} (h : ac.haltsImmediate a) : ac.leads_pos a a := by
+  have p2 : ac.yield a = a := by
+    exact yield_constant _ _ h
+  nth_rewrite 2 [←p2]
+  exact leads_pos_next
+
+
+
+
+-- if B gets in a loop, that loop must contain the rest of the corresponding
+theorem LeadHom.simulated2_loop {A B : Type}
+    {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
+    {r : A → B → Prop}
+    (hs: simulated2 ac bc r)
+    (a : A) (b : B) (rab: r a b) (x : B) (lx: bc.leads' b x) (x_loop: bc.leads_pos x x)
+    : ac.leads_pred' a (fun a' ↦ ∀y, ac.leads' a' y → bc.leads_pred' x (r y))
+    := by
+  rw [simulated2_leads] at hs
+  have  (u):= hs a b u rab
+
+
+  sorry
+
+
+theorem LeadHom.simulated2_halt_loop {A B : Type}
+    {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
+    {r : A → B → Prop}
+    (hs: simulated2 ac bc r)
+    (a : A) (b : B) (rab: r a b) (hb : bc.halts b) : ac.leads_pred' a (fun a' ↦ bc.halts_cond b (r a)) := by
+
+  sorry
 
 
 end automatonConfiguration

@@ -1,5 +1,5 @@
 import Mathlib.tactic
-
+import OkkokkoLean.Basic
 section lead
 
 variable {X : Type}
@@ -232,7 +232,7 @@ def leadsPreorder (f : X → X) : Preorder X where
   le_trans := leads_trans f
 
 @[simp]
-theorem leads_next (f : X → X) (a: X) : leads f a (f a) := by
+theorem leads_succ (f : X → X) (a: X) : leads f a (f a) := by
   rw [leads_def]
   use 1
   exact rfl
@@ -324,7 +324,7 @@ def leads_pred_steps {f : X → X}  {a: X} {p : X → Prop} [DecidablePred p] (l
 
 
 -- todo: use this form more.
-def leads_in (f : X → X) (a b : X) (n : ℕ) : Prop := sequence_leading f a n = b
+abbrev leads_in (f : X → X) (a b : X) (n : ℕ) : Prop := sequence_leading f a n = b
 
 
 -- @[trans]
@@ -566,29 +566,6 @@ there exists infinitely many successors that satisfy p
 -/
 def leads_frequently (f : X → X) (a : X) (p : X → Prop) : Prop := (∀m, ∃n ≥ m, p (sequence_leading f a n))
 
--- move to misc
-@[simp]
-theorem exists_ge (p : ℕ → Prop) (m : ℕ) : (∃n ≥ m, p n) ↔ ∃n, p (n + m) := by
-
-  constructor
-  · intro ⟨n,g,pn⟩
-    use n - m
-    simp_all only [ge_iff_le, Nat.sub_add_cancel]
-  intro a
-  simp_all only [ge_iff_le]
-  obtain ⟨w, h⟩ := a
-  apply Exists.intro
-  · apply And.intro
-    on_goal 2 => {exact h
-    }
-    · simp_all only [le_add_iff_nonneg_left, zero_le]
-
--- move to misc
-@[simp]
-theorem eventually_ge (p : ℕ → Prop) : (∃m, ∀n ≥ m, p n) ↔ ∃m, ∀n, p (n + m) := by
-  rw [← @not_iff_not]
-  simp only [ge_iff_le, not_exists, not_forall, Classical.not_imp]
-  simp only [exists_prop, exists_ge]
 
 theorem leads_frequently_def_add {f : X → X} {a : X} {p : X → Prop} : leads_frequently f a p ↔ (∀m, ∃n, p (sequence_leading f a (n + m))) := by
   unfold leads_frequently
@@ -613,6 +590,18 @@ theorem leads_eventually_def' {f : X → X} {a : X} {p : X → Prop} : leads_eve
   rw [leads_eventually_def_add]
   simp only [sequence_leading_tail']
   rfl
+
+
+theorem leads_eventually_frequently_inverse {f : X → X} {a : X} {p : X → Prop} :
+    (¬ leads_eventually f a p) ↔ leads_frequently f a (¬ p ·)  := by
+  unfold leads_eventually leads_frequently
+  simp only [ge_iff_le, eventually_ge, not_exists, not_forall, exists_ge]
+
+theorem leads_pred_always_inverse {f : X → X} {a : X} {p : X → Prop} :
+    (¬ leads_pred f a p) ↔ leads_always f a (¬ p ·)  := by
+  unfold leads_pred leads_always
+  simp only [not_exists]
+
 
 theorem leads_eventually_of_leads_always {f : X → X} {a : X} {p : X → Prop} : leads_always f a p → leads_eventually f a p := by
   intro alw
@@ -655,41 +644,212 @@ theorem leads_frequently_impl {p p' : X → Prop} (h : ∀x, p x → p' x) {f : 
   apply leads_pred_impl
   apply h
 
-theorem leads_frequently_idempotent {f : X → X} {a : X} {p : X → Prop} :
-    leads_frequently f a p ↔ leads_frequently f a (leads_frequently f · p) := by
-
-  constructor
-  · unfold leads_frequently
-    simp only [ge_iff_le, exists_ge]
-    simp only [← sequence_leading_tail']
-    group
-    intro q m
-    have := q m
-    use 0
-    intro m1
-    simp_all only [zero_add]
-    group
-    have := q (m1 + m)
-    group at this
-    exact this
-
-  intro q
-  have := leads_pred_of_frequently q
-  have := leads_pred_impl
-  simp only [leads_frequently_def'] at this
-  have ⟨n, ns⟩:= q 0
-  simp_all
-  specialize ns 0
-  simp_all
-
-  specialize lp 0
+@[simp]
+theorem leads_pred_idempotent {f : X → X} {a : X} {p : X → Prop} : leads_pred f a (leads_pred f · p) ↔ leads_pred f a p := by
+  unfold leads_pred
+  simp only [←sequence_leading_tail]
   tauto
+
+@[simp]
+theorem leads_always_idempotent {f : X → X} {a : X} {p : X → Prop} : leads_always f a (leads_always f · p) ↔ leads_always f a p := by
+
+  unfold leads_always
+  simp only
+  simp only [←sequence_leading_tail]
+  --conv => left; rw [forall_add]
+  simp only [forall_add (p <| sequence_leading f a ·)]
+
+
+theorem leads_frequently_pred_invariant {f : X → X} {a : X} {p : X → Prop} :
+    leads_frequently f a (leads_pred f · p) ↔ leads_frequently f a p  := by
+  simp only [leads_frequently_def', leads_pred_idempotent]
+
+theorem leads_frequently_pred_invariant' {f : X → X} {a : X} {p : X → Prop} :
+     leads_pred f a (leads_frequently f · p) ↔ leads_frequently f a p := by
+  symm
+  constructor
+  ·
+    intro w
+    use 0
+    exact w
+
+  intro w
+  rw [leads_pred_def'] at w
+  have ⟨b,lfbp,lab⟩ := w
+  unfold leads_frequently at lfbp ⊢
+  intro m
+  have ⟨k,kb⟩ := lab
+  rw [←kb] at lfbp
+  simp only [ge_iff_le, exists_ge, ←sequence_leading_tail'] at lfbp
+  simp only [ge_iff_le, exists_ge]
+  specialize lfbp m
+  have ⟨n,ns⟩ := lfbp
+  use n + k
+  clear * - ns
+  have : n + k + m = n + m + k := by group
+  rw [this]
+  exact ns
+
+@[simp]
+theorem leads_frequently_idempotent {f : X → X} {a : X} {p : X → Prop} :
+    leads_frequently f a (leads_frequently f · p) ↔ leads_frequently f a p  := by
+  nth_rw 1 [leads_frequently_def']
+  simp_rw [leads_frequently_pred_invariant']
+  simp_rw [leads_frequently_def']
+  simp_rw [leads_always_idempotent]
+
+@[simp]
+theorem leads_eventually_idempotent {f : X → X} {a : X} {p : X → Prop} :
+    leads_eventually f a (leads_eventually f · p) ↔ leads_eventually f a p  := by
+  suffices (¬¬leads_eventually f a fun x ↦ ¬ ¬ leads_eventually f x p) ↔ leads_eventually f a p by
+    simp_all only [not_not]
+  simp only [leads_eventually_frequently_inverse, not_not, leads_frequently_idempotent]
+  simp only [← leads_eventually_frequently_inverse, not_not]
+
+
+theorem leads_always_and {f : X → X} {a : X} {p p' : X → Prop} : (leads_always f a p ∧ leads_always f a p') ↔ leads_always f a (fun x ↦ p x ∧ p' x) := by
+  simp only [leads_always_def']
+  constructor
+  ·
+    intro ⟨wl,wr⟩ b lb
+    exact ⟨wl b lb, wr b lb⟩
+  intro w
+  exact forall₂_and.mp w
+
+
+
 
 theorem leads_eventually_connected {f : X → X} {a : X} {p p' : X → Prop}
     (hp : leads_eventually f a p) (hp' : leads_eventually f a p') :
     leads_eventually f a (fun x ↦ p x ∧ p' x) := by
+  rw [leads_eventually_def']
+  simp_rw [←leads_always_and]
+  rw [leads_eventually_def',leads_pred_def'] at hp hp'
+  obtain ⟨b,lbp,lab⟩ := hp
+  obtain ⟨b',lbp',lab'⟩ := hp'
+  have := leads_connected lab lab'
+  cases this with
+  | inl h =>
+    rw [leads_pred_def']
+    refine ⟨b',⟨?_,lbp'⟩,lab'⟩
+    rw [leads_always_def'] at lbp ⊢
+    intro c lb'c
+    have : leads f b c := by exact leads_trans f b b' c h lb'c
+    exact lbp c this
+  | inr h =>
+    -- I wonder how this kind of repetition could be avoided.
+    rw [leads_pred_def']
+    refine ⟨b,⟨lbp,?_⟩,lab⟩
+    rw [leads_always_def'] at lbp' ⊢
+    intro c lb'c
+    have : leads f b' c := by exact leads_trans f b' b c h lb'c
+    exact lbp' c this
+
+
+theorem leads_eventually_frequently_connected {f : X → X} {a : X} {p p' : X → Prop}
+    (hp : leads_eventually f a p) (hp' : leads_frequently f a p') :
+    leads_frequently f a (fun x ↦ p x ∧ p' x) := by
+  unfold leads_frequently at hp' ⊢
+  simp only -- [ge_iff_le]
+  intro m
+  unfold leads_eventually at hp
+  obtain ⟨mm,hp⟩ := hp
+  have ⟨n,n_m,w⟩ := hp' (max m mm)
+  simp only [ge_iff_le, sup_le_iff] at n_m
+  refine ⟨n,n_m.left,?_,w⟩
+  apply hp
+  exact n_m.right
+
+
+theorem leads_always_leads {f : X → X} {a b : X} : leads f a b ↔ leads_always f b (leads f a) := by
+  constructor
+  ·
+    intro lab
+    simp_rw [leads_always_def']
+    intro c lbc
+    trans
+    exact lab
+    exact lbc
+  intro la_bl
+  simp_rw [leads_always_def'] at la_bl
+  apply la_bl
+  exact leads_self f b
+
+
+def leads_converge (f : X → X) (a b : X) : Prop := ∃c, leads f a c ∧ leads f b c
+
+@[symm]
+theorem leads_converge_comm {f : X → X} {a b : X} : leads_converge f a b ↔ leads_converge f b a := by
+  unfold leads_converge
+  simp_rw [and_comm]
+
+
+abbrev leads_loop (f : X → X) (a: X) : Prop := leads_pos f a a
+
+def leads_within (f : X → X) (a b : X) (m : ℕ) : Prop := ∃n ≤ m, sequence_leading f a n = b
+theorem leads_of_leads_within {f : X → X} {a b : X} {m : ℕ} (h : leads_within f a b m) : leads f a b := by
+  reduce at h ⊢
+  tauto
+
+def leads_loop_within (f : X → X) (a: X) (m : ℕ) : Prop := ∃n, 0 < n ∧ n ≤ m ∧ sequence_leading f a n = a
+
+theorem leads_loop_of_loop_within {f : X → X} {a : X} {m : ℕ} (h : leads_loop_within f a m) : leads_loop f a := by
+  unfold leads_loop_within at h
+  tauto
+
+theorem leads_loop_within_of_loop {f : X → X} {a : X} (h : leads_loop f a) : ∃m, leads_loop_within f a m := by
+  unfold leads_loop_within
+  unfold leads_loop leads_pos at h
+  obtain ⟨n,n_pos,w⟩ := h
+  use n, n
+
+theorem leads_within_succ_a {f : X → X} {a b : X} {m : ℕ} (h : leads_within f a b m) (d : a ≠ b) : leads_within f (f a) (b) (m - 1) := by
+  unfold leads_within at h ⊢
+  obtain ⟨n, n_m, lb⟩ := h
+  simp only [← sequence_leading_succ']
+  have n_pos : n > 0 := by
+    by_contra x
+    have : n = 0 := by exact Nat.eq_zero_of_not_pos x
+    rw [this] at lb
+    simp only [sequence_leading_zero] at lb
+    exact d lb
+
+  use (n - 1)
+  rw [←lb]
+  constructor
+  bound
+  congrm sequence_leading _ _ ?_
+  exact Nat.sub_add_cancel n_pos
+
+
+
+theorem leads_within_succ_b {f : X → X} {a b : X} {m : ℕ} (h : leads_within f a b m) : leads_within f a (f b) (m + 1) := by
+  unfold leads_within at h ⊢
+  obtain ⟨n, n_m, lb⟩ := h
+  have := congrArg f lb
+  simp only [←sequence_leading_succ] at this
+  use (n + 1)
+  subst lb
+  simp_all only [sequence_leading_succ, add_le_add_iff_right, and_self]
+
+theorem leads_loop_eventually {f : X → X} {a b : X} {m : ℕ}
+    (lab : leads f a b) (h : leads_loop_within f b m) :
+    leads_eventually f a (leads_within f b · m)
+     := by
+  rw [leads_eventually_def']
+
+  -- simp_rw [←leads_always_leads]
+  -- simp_rw [leads_always_def']
+
+
 
   sorry
 
+theorem leads_loop_frequently {f : X → X} {a b : X}
+    (lab : leads f a b) (h : leads_loop f b) :
+    leads_frequently f a (· = b)
+     := by
+
+  sorry
 
 end lead

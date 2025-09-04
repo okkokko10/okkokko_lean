@@ -470,7 +470,7 @@ theorem LeadHom.simulated_leads {A B : Type}
     intro w
     have (a b) := w a b (ac.yield a)
     unfold AutomatonConfiguration.leads' at this
-    simp only [leads_next, forall_const] at this
+    simp only [leads_succ, forall_const] at this
     exact this
 
 -- if b

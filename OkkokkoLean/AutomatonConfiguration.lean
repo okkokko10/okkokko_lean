@@ -597,6 +597,7 @@ theorem AutomatonConfiguration.haltsImmediate_loops {a} (h : ac.haltsImmediate a
   exact leads_pos_next
 
 
+-- todo: what happens when r is injective, as in r a b → r c b → a = c
 
 
 -- if B gets in a loop, that loop must contain the rest of the corresponding
@@ -604,8 +605,10 @@ theorem LeadHom.simulated2_loop {A B : Type}
     {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
     {r : A → B → Prop}
     (hs: simulated2 ac bc r)
-    (a : A) (b : B) (rab: r a b) (x : B) (lx: bc.leads' b x) (x_loop: bc.leads_pos x x)
-    : ac.leads_pred' a (fun a' ↦ ∀y, ac.leads' a' y → bc.leads_pred' x (r y))
+    (a : A) (b : B) (rab: r a b) (x : B) (lx: bc.leads' b x) (x_loop: leads_loop bc.yield x)
+    -- : ac.leads_pred' a (fun a' ↦ ∀y, ac.leads' a' y → bc.leads_pred' x (r y))
+    -- : leads_pred ac.yield a (leads_always ac.yield · fun y ↦ bc.leads_pred' x (r y))
+    : leads_eventually ac.yield a (fun y ↦ bc.leads_pred' x (r y))
     := by
   rw [simulated2_leads] at hs
   have  (u):= hs a b u rab
@@ -618,7 +621,7 @@ theorem LeadHom.simulated2_halt_loop {A B : Type}
     {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
     {r : A → B → Prop}
     (hs: simulated2 ac bc r)
-    (a : A) (b : B) (rab: r a b) (hb : bc.halts b) : ac.leads_pred' a (fun a' ↦ bc.halts_cond b (r a)) := by
+    (a : A) (b : B) (rab: r a b) (hb : bc.halts b) : ac.leads_pred' a (fun a' ↦ bc.halts_cond b (r a')) := by
 
   sorry
 

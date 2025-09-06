@@ -216,7 +216,7 @@ theorem leads_trans (f : X → X) (a b c: X) : leads f a b → leads f b c → l
   rw [fab,fbc]
   done
 
-
+@[refl]
 theorem leads_self (f : X → X) (a: X) : leads f a a := by
   rw [leads_def]
   use 0
@@ -541,7 +541,6 @@ theorem leads_pred_impl {p p' : X → Prop} (h : ∀x, p x → p' x) {f : X → 
 
 theorem leads_pos_next {f : X → X} {a: X} : leads_pos f a (f a) := by
   rw [leads_pos_def']
-  apply leads_self
 
 
 
@@ -581,6 +580,7 @@ theorem leads_frequently_def' {f : X → X} {a : X} {p : X → Prop} : leads_fre
 
 def leads_eventually (f : X → X) (a : X) (p : X → Prop) : Prop := (∃m, ∀n ≥ m, p (sequence_leading f a n))
 
+theorem leads_eventually_def {f : X → X} {a : X} {p : X → Prop} : leads_eventually f a p ↔ (∃m, ∀n ≥ m, p (sequence_leading f a n)) := by rfl
 
 theorem leads_eventually_def_add {f : X → X} {a : X} {p : X → Prop} : leads_eventually f a p ↔ (∃m, ∀n, p (sequence_leading f a (n + m))) := by
   unfold leads_eventually
@@ -596,12 +596,24 @@ theorem leads_eventually_frequently_inverse {f : X → X} {a : X} {p : X → Pro
     (¬ leads_eventually f a p) ↔ leads_frequently f a (¬ p ·)  := by
   unfold leads_eventually leads_frequently
   simp only [ge_iff_le, eventually_ge, not_exists, not_forall, exists_ge]
+theorem leads_eventually_frequently_inverse' {f : X → X} {a : X} {p : X → Prop} :
+    (¬ leads_eventually f a (¬ p ·)) ↔ leads_frequently f a p  := by
+  simp only [leads_eventually_frequently_inverse, not_not]
+theorem leads_eventually_frequently_inverse'' {f : X → X} {a : X} {p : X → Prop} :
+    (¬ leads_frequently f a (¬ p ·)) ↔ leads_eventually f a p  := by
+  simp only [← leads_eventually_frequently_inverse, not_not]
 
 theorem leads_pred_always_inverse {f : X → X} {a : X} {p : X → Prop} :
     (¬ leads_pred f a p) ↔ leads_always f a (¬ p ·)  := by
   unfold leads_pred leads_always
   simp only [not_exists]
 
+theorem leads_pred_always_inverse' {f : X → X} {a : X} {p : X → Prop} :
+    (¬ leads_pred f a (¬ p ·)) ↔ leads_always f a p  := by
+  simp only [leads_pred_always_inverse, not_not]
+theorem leads_pred_always_inverse'' {f : X → X} {a : X} {p : X → Prop} :
+    (¬ leads_always f a (¬ p ·)) ↔ leads_pred f a p  := by
+  simp only [← leads_pred_always_inverse, not_not]
 
 theorem leads_eventually_of_leads_always {f : X → X} {a : X} {p : X → Prop} : leads_always f a p → leads_eventually f a p := by
   intro alw
@@ -777,14 +789,85 @@ theorem leads_always_leads {f : X → X} {a b : X} : leads f a b ↔ leads_alway
 
 
 def leads_converge (f : X → X) (a b : X) : Prop := ∃c, leads f a c ∧ leads f b c
+theorem leads_converge_def {f : X → X} {a b : X} : leads_converge f a b ↔ ∃c, leads f a c ∧ leads f b c := by rfl
 
 @[symm]
 theorem leads_converge_comm {f : X → X} {a b : X} : leads_converge f a b ↔ leads_converge f b a := by
   unfold leads_converge
   simp_rw [and_comm]
 
+@[refl]
+theorem leads_converge_refl {f : X → X} {a : X} : leads_converge f a a := by use a
+@[trans]
+theorem leads_converge_trans {f : X → X} {a b c : X} : leads_converge f a b →  leads_converge f b c →  leads_converge f a c := by
+  unfold leads_converge
+  intro ⟨ab,a_ab,b_ab⟩ ⟨bc,b_bc,c_bc⟩
+  cases leads_connected b_ab b_bc with
+  | inl h =>
+    use bc
+    constructor
+    exact leads_trans f a ab bc a_ab h
+    exact c_bc
+  | inr h =>
+    use ab
+    constructor
+    exact a_ab
+    exact leads_trans f c bc ab c_bc h
+
+def leads_converge_equiv (f : X → X) :  @Equivalence X (leads_converge f) where
+  refl a := by
+    use a
+  symm := leads_converge_comm.mp
+  trans := leads_converge_trans
+
+-- todo: leads_eventually_, leads_frequently, leads_always etc also hold for all successors.
+
+
+
+theorem leads_always_successors {f : X → X} {a b : X} {p} (lab :  leads f a b) (a_ap :  leads_always f a p) : leads_always f b p := by
+  revert b
+  rw [←leads_always_def']
+  simp only [leads_always_idempotent]
+  exact a_ap
+
+theorem leads_eventually_successors {f : X → X} {a b : X} {p} (lab : leads f a b) : leads_eventually f a p ↔ leads_eventually f b p := by
+  constructor
+  intro e_ap
+  rw [leads_eventually_def_add] at e_ap ⊢
+  obtain ⟨mp,e_ap⟩ := e_ap
+  obtain ⟨nb,nb_s⟩ := leads_def.mp lab
+  rw [←nb_s]
+  simp only [←sequence_leading_tail']
+  use mp
+  intro n
+  have := e_ap (n + nb)
+  group at this ⊢
+  exact this
+  rw [leads_eventually_def'] at ⊢
+  intro w
+  have := leads_pred_trans _ _ _ _ lab w
+  exact leads_eventually_def'.mpr this
+
+
+theorem leads_frequently_successors {f : X → X} {a b : X} {p} (lab : leads f a b) : leads_frequently f a p ↔ leads_frequently f b p := by
+  simp_rw [←leads_eventually_frequently_inverse']
+  simp only [leads_eventually_successors lab]
+
+
+theorem leads_eventually_convergents {f : X → X} {a b : X} {p} (lab : leads_converge f a b) : leads_eventually f a p ↔ leads_eventually f b p := by
+  obtain ⟨c,lac,lbc⟩ := leads_converge_def.mp lab
+  rw [leads_eventually_successors lbc]
+  rw [leads_eventually_successors lac]
+
+theorem leads_frequently_convergents {f : X → X} {a b : X} {p} (lab : leads_converge f a b) : leads_frequently f a p ↔ leads_frequently f b p := by
+  simp_rw [←leads_eventually_frequently_inverse']
+  simp only [leads_eventually_convergents lab]
+
+
 
 abbrev leads_loop (f : X → X) (a: X) : Prop := leads_pos f a a
+
+-- todo: leads_loop turns leads_pred into leads_frequently
 
 def leads_within (f : X → X) (a b : X) (m : ℕ) : Prop := ∃n ≤ m, sequence_leading f a n = b
 theorem leads_of_leads_within {f : X → X} {a b : X} {m : ℕ} (h : leads_within f a b m) : leads f a b := by
@@ -851,5 +934,8 @@ theorem leads_loop_frequently {f : X → X} {a b : X}
      := by
 
   sorry
+
+
+
 
 end lead

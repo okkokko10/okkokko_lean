@@ -936,6 +936,30 @@ theorem leads_loop_frequently {f : X → X} {a b : X}
   sorry
 
 
+-- todo: leads_frequently from induction.
+theorem leads_frequently_induction {X} {f : X → X} (p : X → Prop) (a : X)
+    (ha : leads_pred f a p)
+    (hx : ∀b, leads f a b → p b → leads_pred_pos f b p)
+    : leads_frequently f a p := by
+  rw [leads_frequently_def']
+  have : leads_always f a (leads f a) := by sorry
+  suffices (leads_always f a fun x ↦ leads_pred f x p) ∧ True by tauto
+  rw [←eq_true this]
+  apply leads_always_and.mpr
+  apply leads_preserves' -- todo: this is not enough
+  intro x ⟨lxp,lax⟩
+  constructor
+  rw [leads_pred_def'] at lxp
+  obtain ⟨y,py,lxy⟩ := lxp
+  have := hx y (leads_trans f a x y lax lxy) py
+
+  -- apply leads_pred_trans (b := y)
+  sorry
+
+  sorry
+
+  exact ha
+
 
 
 end lead

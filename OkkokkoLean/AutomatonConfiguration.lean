@@ -429,14 +429,12 @@ theorem AutomatonConfiguration.halts_cond_halts {H : Type} {ac : AutomatonConfig
 
 theorem AutomatonConfiguration.halts_cond_applies {H : Type} {ac : AutomatonConfiguration H} {a : H} {p : H → Prop}
     (h : ac.halts_cond a p) : p (ac.result_halt a (ac.halts_cond_halts h)) := by
-
   unfold halts_cond leads_pred' leads_pred at h
   simp only [leads_nth_def] at h
   have ⟨n,hn,pn⟩ := h
-  rw [ac.leads_nth] at h
-
-  rw [halts_def]
-  tauto
+  have := ac.result_halt_unique a (ac.leads_nth a n) (leads_nth_leads ac) hn
+  rw [←this]
+  exact pn
 
 
 theorem LeadHom.simulated_leads {A B : Type}
@@ -600,18 +598,28 @@ theorem AutomatonConfiguration.haltsImmediate_loops {a} (h : ac.haltsImmediate a
 -- todo: what happens when r is injective, as in r a b → r c b → a = c
 
 
+
+
 -- if B gets in a loop, that loop must contain the rest of the corresponding
 theorem LeadHom.simulated2_loop {A B : Type}
     {ac : AutomatonConfiguration A} {bc : AutomatonConfiguration B}
     {r : A → B → Prop}
     (hs: simulated2 ac bc r)
-    (a : A) (b : B) (rab: r a b) (x : B) (lx: bc.leads' b x) (x_loop: leads_loop bc.yield x)
+    (a : A) (b : B) (rab: r a b) (x : B) (lx: bc.leads' b x)
+    -- (x_loop: leads_loop bc.yield x) -- this is unnecessary
     -- : ac.leads_pred' a (fun a' ↦ ∀y, ac.leads' a' y → bc.leads_pred' x (r y))
     -- : leads_pred ac.yield a (leads_always ac.yield · fun y ↦ bc.leads_pred' x (r y))
     : leads_eventually ac.yield a (fun y ↦ bc.leads_pred' x (r y))
     := by
   rw [simulated2_leads] at hs
   have  (u):= hs a b u rab
+  have key : leads_pred ac.yield a (fun y ↦ bc.leads_pred' x (r y)) := by
+    rw [leads_pred_def']
+    have : leads_frequently bc.yield b (fun b' ↦ ∃y, leads ac.yield a y ∧ r y b') := by
+      -- todo: leads_frequently from induction.
+      sorry
+    sorry
+
 
 
   sorry

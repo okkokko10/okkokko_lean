@@ -114,13 +114,18 @@ theorem setsum_inf (A B : Set ℝ≥0∞) : sInf A + sInf B = ⨅(a ∈ A)(b ∈
 
 variable {N : Type} {R : Type} [AddCommMonoid R] [TopologicalSpace R]
 -- def Setsum {N : Type} [Encodable N] (A : N → Set ℝ≥0∞) : Set ℝ≥0∞ := { x | ∃f : (i : N) → A i, (∑' i, f i) = x}
-def Setsum (A : N → Set R) : Set R := { x | ∃(f : N → R) (_ : ∀i, f i ∈ A i), tsum f = x}
+def Setsum (A : N → Set R) : Set R := { x | ∃(f : N → R), (∀i, f i ∈ A i) ∧  tsum f = x}
+def Condsum (P : Set (N → R)) : Set R := { x | ∃f ∈ P, tsum f = x}
+example (P : Set (N → R)) : Condsum P = tsum '' P := by rfl
+theorem Setsum.as_image (A : N → Set R) : Setsum A = tsum '' {f | ∀i, f i ∈ A i} := by rfl
 
+#check image2
 
 -- Is this true? if not, is there a topology that satisfies this?
-theorem Setsum.other (A : N → Set R) : Setsum A = @tsum _ (set_add R) (trivial_topo _) _ A := by
-
-  sorry
+-- theorem Setsum.other (A : N → Set R) : Setsum A = @tsum _ (set_add R) (trivial_topo _) _ A := by
+--   sorry
+#check sInf_le_of_le
+#check sInf_le_sInf_of_isCoinitialFor
 
 
 lemma sInf_dense (A : Set ℝ≥0∞)(h : Nonempty A)(ε)(ε_pos : ε > 0) : ∃x ∈ A, x ≤ sInf A + ε := by
@@ -156,12 +161,25 @@ theorem Setsum.empty_iff (A : N → Set R) : Nonempty (Setsum A) ↔ ∀i, Nonem
 
 -- this is known to be true.
 theorem convergent_series {ε} (ε_pos : ε > 0) : ∃g : ℕ → ℝ≥0∞, (∀i, g i > 0) ∧  ∑' i, g i ≤ ε :=  by
-  use fun i ↦ ε * (1 / 2 ^ (i + 2))
-  simp only [one_div, gt_iff_lt, CanonicallyOrderedAdd.mul_pos, ε_pos, ENNReal.inv_pos, ne_eq,
-    pow_eq_top_iff, ofNat_ne_top, Nat.add_eq_zero, OfNat.ofNat_ne_zero, and_false,
-    not_false_eq_true, and_true, and_self, implies_true, true_and]
+  -- have := tsum_geometric_inv_two
+  use fun n ↦ (2⁻¹ ^ n) * (ε / 2)
+  constructor
+  ·
+    intro i
+    simp only [gt_iff_lt, CanonicallyOrderedAdd.mul_pos, ENNReal.div_pos_iff, ne_eq, ofNat_ne_top,
+      not_false_eq_true, and_true]
+    constructor
+    ·
+      refine ENNReal.pow_pos ?_ i
+      simp only [ENNReal.inv_pos, ne_eq, ofNat_ne_top, not_false_eq_true]
+    exact pos_iff_ne_zero.mp ε_pos
+  apply le_of_eq
+  rw [ENNReal.tsum_mul_right]
+  simp only [tsum_geometric, one_sub_inv_two, inv_inv]
+  refine ENNReal.mul_div_cancel' ?_ ?_'
+  simp only [OfNat.ofNat_ne_zero, IsEmpty.forall_iff]
+  simp only [ofNat_ne_top, IsEmpty.forall_iff]
 
-  sorry
 -- theorem countable_setsum_inf (f : ℕ → Set ℝ≥0∞) : ∑' (i : ℕ), sInf (f i) = sInf (∑' (i : ℕ), (f i)) := by
 theorem Setsum.inf (A : ℕ → Set ℝ≥0∞) : ∑' (i : ℕ), sInf (A i) = sInf (Setsum A) := by
 
@@ -239,7 +257,93 @@ theorem Setsum.inf (A : ℕ → Set ℝ≥0∞) : ∑' (i : ℕ), sInf (A i) = s
     rw [this]
     exact add_le_add_left g_spec (∑' (i : ℕ), sInf (A i))
 
+theorem Setsum.inf_countable {N : Type} [e : Encodable N] (A : N → Set ℝ≥0∞) : ∑' (i : N), sInf (A i) = sInf (Setsum A) := by
 
+  let B : ℕ → Set ℝ≥0∞ := fun i ↦  (e.decode i).casesOn' {0} A
+  have : ∑' (i : N), sInf (A i) = ∑' (i), sInf (B i) := by
+    have w (i) : sInf (B i) = (e.decode i).casesOn' 0 (sInf <| A ·) := by
+      unfold B
+      match (e.decode i) with
+      | none => simp only [Option.casesOn'_none, sInf_singleton]
+      | some x => simp only [Option.casesOn'_some]
+    simp_rw [w]
+
+    sorry
+  sorry
+
+
+def Condsum_comp {N' : Type} (P : N' → Set (N → R)) : Set R := Setsum ( fun j ↦ {∑' i, (B i) | B ∈ P j})
+theorem Condsum_comp_simple {N' : Type} (P : N' → Set (N → X)) (m : X → R) :
+    Condsum_comp (fun j ↦ { fun i ↦ m (B i) | B ∈ P j}) = Setsum ( fun j ↦ {∑' i, m (B i) | B ∈ P j}) := by
+  unfold Condsum_comp
+  simp only [mem_setOf_eq, exists_exists_and_eq_and]
+theorem Condsum_comp_simple' {N' : Type} (P : N' → Set (N → R)) : Condsum_comp P = Setsum ( fun j ↦ tsum '' (P j)) := by rfl
+theorem Condsum_comp_simple'' {N' : Type} (P : N' → Set (N → R)) : Condsum_comp P = tsum '' {f | ∀i, f i ∈ (tsum '' (P i))} := by rfl
+
+-- example : ℕ → ℕ × ℕ
+
+#check tsum_geometric_inv_two
+
+-- theorem Condsum_comp_e (P : ℕ → Set (ℕ → R)) : ∃f : ℕ → Set R, Condsum_comp P = Setsum f := by
+--   rw [Condsum_comp_simple']
+--   simp only [exists_apply_eq_apply']
+
+
+theorem inf_nested' {X Y : Type} [CompleteLattice Y] (A : Set X) (B : X → Set Y) : ⨅ x ∈ A, ⨅ y ∈ B x, y = ⨅ y ∈ ⋃ x ∈ A, B x, y := by
+  simp only [mem_iUnion, exists_prop,iInf_exists]
+  rw [iInf_comm]
+  simp_rw [iInf_and]
+  congr! with x
+  rw [iInf_comm]
+
+theorem inf_nested {X Y : Type} [CompleteLattice Y] (A : Set X) (B : X → Set Y) :
+    ⨅ x ∈ A, sInf (B x) = sInf (⋃x ∈ A, B x) := by
+  simp only [sInf_eq_iInf]
+  exact inf_nested' A B
+
+-- def makeup (μ : Set X → ℝ≥0∞) (𝔸 𝔹 : Set <| Set X) : Prop := ∀ A ∈ 𝔸, μ A = ⨅ B : ℕ → 𝔹, ⨅ (_ : A ⊆ ⋃ i, B i), ∑' i, μ (B i)
+def makeup (μ : Set X → ℝ≥0∞) (𝔸 𝔹 : Set <| Set X) : Prop := ∀ A ∈ 𝔸, μ A = ⨅ (N : Type), ⨅ (_ : Encodable N), ⨅ B : N → Set X, ⨅ (codomain : ∀i, B i ∈ 𝔹), ⨅ (cover : A ⊆ ⋃ i, B i), ∑' i, μ (B i)
+
+theorem makeup_composition {𝔸 𝔹 𝔽 : Set <| Set X} (μ : Set X → ℝ≥0∞)
+    (h1 : makeup μ 𝔸 𝔹) (h2 : makeup μ 𝔽 𝔸) :
+    makeup μ 𝔽 𝔹 := by
+  unfold makeup at *
+
+  intro F FiF
+  specialize h2 F FiF
+  rw [h2]
+
+  apply le_antisymm
+  ·
+    simp only [le_iInf_iff]
+    intros N' countableN'
+
+    intros B B_codomain B_cover_F
+    rename_bvar B → A
+
+    apply _root_.le_of_forall_pos_le_add
+    intros ε ε_pos
+    -- change ⨅ N,⨅ (_ : Countable N),⨅ A, ⨅ (_ : ∀ (i : N), A i ∈ 𝔸), ⨅ (_ : F ⊆ ⋃ i, A i), ∑' (i : N), μ (A i) ≤ ∑' (i : N'), μ (f i) + ε
+    conv => {
+      enter [-2, -1, N, -1, cN, -1, A, -1, A_codomain, -1, A_cover_F, -2, i]
+
+      rw [h1 (A i) (A_codomain i)]
+
+
+    }
+
+
+    sorry
+  ·
+    simp only [le_iInf_iff]
+    intros N' countableN' A A_codomain A_cover_F
+    have A_value (i : N') : μ (A i) = _ := h1 (A i) (A_codomain i)
+    simp_rw [A_value]
+
+    sorry
+
+
+#version
 -- #check image2
 
 -- hw2e1
@@ -292,3 +396,11 @@ example {X : Type} (F : Set <| Set X)
 
 
     sorry
+
+-- example : False := by
+--   have := {f | ∃ (n : ℕ → ℕ+) (g : (i : ℕ) → Fin (n i) → ℝ), g = f}
+--   sorry
+
+
+example (x y : ℝ) (h : ∀ε>0, x ≤ y + ε) : x ≤ y := by
+  exact _root_.le_of_forall_pos_le_add h

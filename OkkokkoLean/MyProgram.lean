@@ -139,7 +139,7 @@ variable  {X : Type} {F : Type} [SetLike F X] {c : Cardinal}
 open scoped Cardinal
 
 -- if c is finite, it's any finite combination
-structure MultiCover {X : Type} (F : Type) (c : Cardinal) [SetLike F X] where
+structure CardMultiCover {X : Type} (F : Type) (c : Cardinal) [SetLike F X] where
   func (x : X) : ℕ∞
   possible: ∃(ι : Type)(_ : ℵ₀ ≤ #ι → #ι ≤ c)(series: ι → F), func = fun x ↦ ENat.card {n | x ∈ series n}
 
@@ -155,8 +155,8 @@ example : ℕ ≃ ℕ ⊕ ℕ := by exact Equiv.natSumNatEquivNat.symm
 --   -- func (x : X) : ℕ∞ := ENat.card {n | x ∈ series n}
 -- def MultiCover2.func (f : MultiCover2 F) (x : X) : ℕ∞ := ENat.card {n | x ∈ f.series n}
 
-instance : FunLike (MultiCover F c) X ℕ∞ where
-  coe := MultiCover.func
+instance : FunLike (CardMultiCover F c) X ℕ∞ where
+  coe := CardMultiCover.func
   coe_injective' := by
     intro a b fu
     change ⟨a.func,_⟩ = b
@@ -164,7 +164,7 @@ instance : FunLike (MultiCover F c) X ℕ∞ where
 
 -- instance : CoeFun (MultiCover F) (fun _ ↦ (X → ℕ∞)) := ⟨MultiCover.func⟩
 
-instance : Membership X (MultiCover F c) where
+instance : Membership X (CardMultiCover F c) where
   mem f x := f x > 0
 
 -- #check type_eq_of_heq
@@ -222,7 +222,7 @@ lemma cw_greater_cardinal {ai : Type} {c : Cardinal} (c_infty : ℵ₀ ≤ c) (a
         exact le_trans aw.le c_infty
         exact ai_c aw
 
-instance : Add (MultiCover F c) where
+instance : Add (CardMultiCover F c) where
   add a b := ⟨(a + b), by
     have ⟨ai,ai_c,as,as_spec⟩ := a.possible
     have ⟨bi,bi_c,bs,bs_spec⟩ := b.possible
@@ -257,7 +257,7 @@ instance : Add (MultiCover F c) where
 
   ⟩
 
-instance : AddCommSemigroup (MultiCover F c)  where
+instance : AddCommSemigroup (CardMultiCover F c)  where
   add_assoc a b c := by
     change a + b + c = ⟨a + (b + c), _⟩
     ring_nf
@@ -265,14 +265,14 @@ instance : AddCommSemigroup (MultiCover F c)  where
   add_comm a b := by
     change ⟨a + b, _⟩ = b + a
     rw [show b + a = ⟨b + a, _⟩ by rfl]
-    simp only [MultiCover.mk.injEq]
+    simp only [CardMultiCover.mk.injEq]
     exact AddCommMagma.add_comm ⇑a ⇑b
 
 -- Surely this already exists.
 class HasEmpty (A : Type*) {B : outParam Type*} [SetLike A B] extends EmptyCollection A where
   empty_is_empty : SetLike.coe (∅ : A) = ∅
 
-theorem MultiCover.hasEmpty_strict_cardinal [HasEmpty F] (h : ℵ₀ ≤ c) (f : X → ℕ∞) :
+theorem CardMultiCover.hasEmpty_strict_cardinal [HasEmpty F] (h : ℵ₀ ≤ c) (f : X → ℕ∞) :
   (∃(ι : Type)(_ : ℵ₀ ≤ #ι → #ι ≤ c)(series: ι → F), f = fun x ↦ ENat.card {n | x ∈ series n})
   ↔ (∃(series: c.out → F), f = fun x ↦ ENat.card {n | x ∈ series n}) := by
   constructor
@@ -312,7 +312,7 @@ noncomputable def emptyFun (X : Type): Empty → X := by
   apply emb.toFun
 
 
-instance : Zero (MultiCover F c) where
+instance : Zero (CardMultiCover F c) where
   zero := ⟨fun x ↦ 0, by
     use Empty
     simp only [Set.coe_setOf, Cardinal.mk_eq_zero, nonpos_iff_eq_zero, zero_le, implies_true,
@@ -323,7 +323,7 @@ instance : Zero (MultiCover F c) where
     exact instIsEmptySubtype fun n ↦ x ∈ emptyFun F n
     ⟩
 
-instance : AddCommMonoid (MultiCover F c) where
+instance : AddCommMonoid (CardMultiCover F c) where
   zero_add a := by
     rw [show 0 + a = ⟨0 + a,_⟩ by rfl]
     simp only [zero_add]
@@ -335,16 +335,16 @@ instance : AddCommMonoid (MultiCover F c) where
   nsmul := nsmulRec
 
 
-theorem MultiCover.add_fun_coe {a b : MultiCover F c} : ⇑(a + b) = ⇑a + ⇑b := by rfl
-theorem MultiCover.zero_fun_coe : ⇑(0 : MultiCover F c) = 0 := by rfl
+theorem CardMultiCover.add_fun_coe {a b : CardMultiCover F c} : ⇑(a + b) = ⇑a + ⇑b := by rfl
+theorem CardMultiCover.zero_fun_coe : ⇑(0 : CardMultiCover F c) = 0 := by rfl
 
 
 
-instance : LE (MultiCover F c) where
+instance : LE (CardMultiCover F c) where
   le a b := (a : X → ℕ∞) ≤ (b : X → ℕ∞)
   -- le a b := LE.le (a : X → ℕ∞) (b : X → ℕ∞)
 
-instance : Preorder (MultiCover F c) where
+instance : Preorder (CardMultiCover F c) where
   le_refl a := by
     intro x
     exact Std.IsPreorder.le_refl _
@@ -352,7 +352,7 @@ instance : Preorder (MultiCover F c) where
     intro a b c ab bc x
     exact Std.IsPreorder.le_trans (a x) (b x) (c x) (ab x) (bc x)
 
-instance : TopologicalSpace (MultiCover F c) := Preorder.topology _
+instance : TopologicalSpace (CardMultiCover F c) := Preorder.topology _
 local instance : TopologicalSpace ℕ∞ := Preorder.topology _
 
 example : ℕ ≃ ℕ × ℕ := by exact Nat.pairEquiv.symm
@@ -361,7 +361,7 @@ example : ℕ ≃ ℕ × ℕ := by exact Nat.pairEquiv.symm
 -- issue: the result of the sum has a different type...
 -- I should just let the cardinality be a property.
 
-theorem MultiCover.hasSum {ι : Type} (s : ι → MultiCover F c) : HasSum s ⟨
+theorem CardMultiCover.hasSum {ι : Type} (s : ι → CardMultiCover F c) : HasSum s ⟨
   (∑' n, ⇑(s n)),
   by
   -- let series n : F := Nat.pairEquiv
@@ -371,13 +371,13 @@ theorem MultiCover.hasSum {ι : Type} (s : ι → MultiCover F c) : HasSum s ⟨
   sorry
 ⟩ := by sorry
 
-theorem MultiCover.summable {ι : Type}  (s : ι → MultiCover F c) : Summable s := by sorry
+theorem CardMultiCover.summable {ι : Type}  (s : ι → CardMultiCover F c) : Summable s := by sorry
 
-theorem MultiCover.sum_coe {ι : Type}  (s : ι → MultiCover F c) : (∑' n, ⇑(s n)) = ⇑(∑' n, (s n)) := by
+theorem CardMultiCover.sum_coe {ι : Type}  (s : ι → CardMultiCover F c) : (∑' n, ⇑(s n)) = ⇑(∑' n, (s n)) := by
 
   sorry
 
-theorem MultiCover.sum {ι : Type}  (s : ι → MultiCover F c) (x : X) : (∑' n, (s n)) x = (∑' n, (s n x)) := by
+theorem CardMultiCover.sum {ι : Type}  (s : ι → CardMultiCover F c) (x : X) : (∑' n, (s n)) x = (∑' n, (s n x)) := by
   -- rw [tsum]
   -- apply ENNReal.tsum_apply
   -- apply tsum_apply
@@ -387,23 +387,23 @@ theorem MultiCover.sum {ι : Type}  (s : ι → MultiCover F c) (x : X) : (∑' 
 
 section exact_multi_cover
 
-structure ExactMultiCover {X : Type} (F : Type) [SetLike F X] where
+structure MultiCover {X : Type} (F : Type) [SetLike F X] where
   func (x : X) : ℕ∞
   possible: ∃(series: ℕ → F), func = fun x ↦ ENat.card {n | x ∈ series n}
 
 
-instance : FunLike (ExactMultiCover F) X ℕ∞ where
-  coe := ExactMultiCover.func
+instance : FunLike (MultiCover F) X ℕ∞ where
+  coe := MultiCover.func
   coe_injective' := by
     intro a b fu
     change ⟨a.func,_⟩ = b
     simp only [fu]
 
-instance : Membership X (ExactMultiCover F) where
+instance : Membership X (MultiCover F) where
   mem f x := f x > 0
 
 
-instance : Add (ExactMultiCover F) where
+instance : Add (MultiCover F) where
   add a b := ⟨(a + b), by
     have ⟨as,as_spec⟩ := a.possible
     have ⟨bs,bs_spec⟩ := b.possible
@@ -421,7 +421,7 @@ instance : Add (ExactMultiCover F) where
   ⟩
 
 
-instance : AddCommSemigroup (ExactMultiCover F)  where
+instance : AddCommSemigroup (MultiCover F)  where
   add_assoc a b c := by
     change a + b + c = ⟨a + (b + c), _⟩
     ring_nf
@@ -429,11 +429,11 @@ instance : AddCommSemigroup (ExactMultiCover F)  where
   add_comm a b := by
     change ⟨a + b, _⟩ = b + a
     rw [show b + a = ⟨b + a, _⟩ by rfl]
-    simp only [ExactMultiCover.mk.injEq]
+    simp only [MultiCover.mk.injEq]
     exact AddCommMagma.add_comm ⇑a ⇑b
 
 
-instance [HasEmpty F] : Zero (ExactMultiCover F) where
+instance [HasEmpty F] : Zero (MultiCover F) where
   zero := ⟨fun x ↦ 0, by
     use fun i ↦ ∅
     funext x
@@ -448,7 +448,7 @@ instance [HasEmpty F] : Zero (ExactMultiCover F) where
 
 
 
-instance [HasEmpty F] : AddCommMonoid (ExactMultiCover F) where
+instance [HasEmpty F] : AddCommMonoid (MultiCover F) where
   zero_add a := by
     rw [show 0 + a = ⟨0 + a,_⟩ by rfl]
     simp only [zero_add]
@@ -460,16 +460,16 @@ instance [HasEmpty F] : AddCommMonoid (ExactMultiCover F) where
   nsmul := nsmulRec
 
 
-theorem ExactMultiCover.add_fun_coe {a b : ExactMultiCover F} : ⇑(a + b) = ⇑a + ⇑b := by rfl
-theorem ExactMultiCover.zero_fun_coe [HasEmpty F] : ⇑(0 : ExactMultiCover F) = 0 := by rfl
+theorem MultiCover.add_fun_coe {a b : MultiCover F} : ⇑(a + b) = ⇑a + ⇑b := by rfl
+theorem MultiCover.zero_fun_coe [HasEmpty F] : ⇑(0 : MultiCover F) = 0 := by rfl
 
 
 
-instance : LE (ExactMultiCover F) where
+instance : LE (MultiCover F) where
   le a b := (a : X → ℕ∞) ≤ (b : X → ℕ∞)
   -- le a b := LE.le (a : X → ℕ∞) (b : X → ℕ∞)
 
-instance : Preorder (ExactMultiCover F) where
+instance : Preorder (MultiCover F) where
   le_refl a := by
     intro x
     exact Std.IsPreorder.le_refl _

@@ -140,6 +140,10 @@ structure MultiCover {X : Type} (F : Type) [SetLike F X] where
   possible: ∃(series: ℕ → F), func = fun x ↦ ENat.card {n | x ∈ series n}
 
 
+-- structure MultiCover {X : Type} (F : Type) (c : Cardinal) [SetLike F X] where
+--   func (x : X) : ℕ∞
+--   possible: ∃(ι : Type)(_ : Cardinal.mk ι ≤ c)(series: ι → F), func = fun x ↦ ENat.card {n | x ∈ series n}
+
 example : ℕ ≃ ℕ ⊕ ℕ := by exact Equiv.natSumNatEquivNat.symm
 
 -- instance : ℕ ≅ ℕ×ℕ := by
@@ -163,6 +167,33 @@ instance : FunLike (MultiCover F) X ℕ∞ where
 instance : Membership X (MultiCover F) where
   mem f x := f x > 0
 
+-- #check type_eq_of_heq
+
+
+def possible_equiv' {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) (f : ι₁ → F) (x : X)
+  : {n | x ∈ f n} ≃ {n | x ∈ f (e.symm n)} := by
+  rw [Equiv.setOf_apply_symm_eq_image_setOf e (x ∈ f ·)]
+  exact e.image {n | x ∈ f n}
+
+theorem possible_equiv {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) (f : ι₁ → F) (x : X)
+  : ENat.card ↑{n | x ∈ f n} = ENat.card ↑{n | x ∈ f (e.symm n)} := by
+  apply ENat.card_congr
+  exact possible_equiv' e f x
+
+
+-- theorem MultiCover.equiv_ι {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) : MultiCover F ι₁ = MultiCover F ι₂ := by
+
+--   let w : MultiCover F ι₁ := sorry
+--   have ⟨w_func,⟨w_series,w_poss⟩⟩ := w
+--   let q : MultiCover F ι₂ := ⟨w_func,
+--     by
+--     use w_series ∘ e.symm
+--     rw [w_poss]
+--     funext x
+--     exact possible_equiv e w_series x
+--     ⟩
+--   apply type_eq_of_heq (a := w) (b := q)
+--   sorry
 
 
 def alternating' {X : Type} (a b : ℕ → X) : ℕ → X
@@ -197,12 +228,9 @@ instance : Add (MultiCover F) where
     rw [←ENat.card_sum]
     apply ENat.card_congr
     symm
-    calc
-      _ = ↑{n | ((x ∈ ·) ∘ (Sum.elim as bs)) (Equiv.natSumNatEquivNat.symm n)} := by rfl
-      _ = _                                         := by rw [Sum.comp_elim]
-      _ = _                                         := by rw [Equiv.setOf_apply_symm_eq_image_setOf _ _]
-      _ ≃ {a | Sum.elim (x ∈ as ·) (x ∈ bs ·) a}   := by exact (Equiv.natSumNatEquivNat.image _).symm
-      _ ≃ {a | x ∈ as a} ⊕ {b | x ∈ bs b}         := Equiv.subtypeSum
+    trans
+    apply (possible_equiv' Equiv.natSumNatEquivNat _ x).symm
+    apply Equiv.subtypeSum
   ⟩
 
 instance : AddCommSemigroup (MultiCover F)  where
@@ -293,5 +321,26 @@ theorem MultiCover.sum [HasEmpty F]  (s : ℕ → MultiCover F) (x : X) : (∑' 
   -- simp only [SummationFilter.support_eq_univ, Set.inter_univ, Set.indicator_univ]
   sorry
 
+/-
+section test_structure_parameters
+
+-- is test X = test Y if they don't use the parameter anywhere?
+
+structure test (X : Type) where
+  foo : Prop
+
+theorem test_heq {X Y : Type} : test X = test Y := sorry
+
+def test_back {X : Type} (t : test X) : Type := X
+
+-- if this is true, I'm wrong.
+example {X Y : Type} (x : test X) (y : test Y) (h : test X = test Y) : X = Y := by
+  change test_back x = test_back y
+  rw [h] at x
+  -- x is now a different variable.
+  -- this is useless
+  sorry
+end test_structure_parameters
+-/
 
 end multi_cover

@@ -140,7 +140,7 @@ structure MultiCover {X : Type} (F : Type) [SetLike F X] where
   possible: ∃(series: ℕ → F), func = fun x ↦ ENat.card {n | x ∈ series n}
 
 
-instance : ℕ ≃ ℕ ⊕ ℕ := by exact Equiv.natSumNatEquivNat.symm
+example : ℕ ≃ ℕ ⊕ ℕ := by exact Equiv.natSumNatEquivNat.symm
 
 -- instance : ℕ ≅ ℕ×ℕ := by
 
@@ -250,6 +250,48 @@ theorem MultiCover.add_fun_coe {a b : MultiCover F} : ⇑(a + b) = ⇑a + ⇑b :
 theorem MultiCover.zero_fun_coe [HasEmpty F] : ⇑(0 : MultiCover F) = 0 := by rfl
 
 
+
+instance : LE (MultiCover F) where
+  le a b := (a : X → ℕ∞) ≤ (b : X → ℕ∞)
+  -- le a b := LE.le (a : X → ℕ∞) (b : X → ℕ∞)
+
+instance : Preorder (MultiCover F) where
+  le_refl a := by
+    intro x
+    exact Std.IsPreorder.le_refl _
+  le_trans := by
+    intro a b c ab bc x
+    exact Std.IsPreorder.le_trans (a x) (b x) (c x) (ab x) (bc x)
+
+instance : TopologicalSpace (MultiCover F) := Preorder.topology _
+local instance : TopologicalSpace ℕ∞ := Preorder.topology _
+
+example : ℕ ≃ ℕ × ℕ := by exact Nat.pairEquiv.symm
+
+
+theorem MultiCover.hasSum [HasEmpty F]  (s : ℕ → MultiCover F) : HasSum s ⟨
+  (∑' n, ⇑(s n)),
+  by
+  -- let series n : F := Nat.pairEquiv
+
+
+
+  sorry
+⟩ := by sorry
+
+theorem MultiCover.summable [HasEmpty F]  (s : ℕ → MultiCover F) : Summable s := by sorry
+
+theorem MultiCover.sum_coe [HasEmpty F]  (s : ℕ → MultiCover F) : (∑' n, ⇑(s n)) = ⇑(∑' n, (s n)) := by
+
+  sorry
+
+theorem MultiCover.sum [HasEmpty F]  (s : ℕ → MultiCover F) (x : X) : (∑' n, (s n)) x = (∑' n, (s n x)) := by
+  -- rw [tsum]
+  -- apply ENNReal.tsum_apply
+  -- apply tsum_apply
+  -- rw [tsum_apply]
+  -- simp only [SummationFilter.support_eq_univ, Set.inter_univ, Set.indicator_univ]
+  sorry
 
 
 end multi_cover

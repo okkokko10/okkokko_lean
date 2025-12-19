@@ -1,4 +1,5 @@
 import Mathlib.tactic
+import Mathlib
 
 -- #check MeasureTheory.measurableSet_of_null
 
@@ -404,3 +405,78 @@ example {X : Type} (F : Set <| Set X)
 
 example (x y : ℝ) (h : ∀ε>0, x ≤ y + ε) : x ≤ y := by
   exact _root_.le_of_forall_pos_le_add h
+
+
+-- example :
+-- #check MeasureTheory.integral
+
+-- example {n : ℕ} : MeasureTheory.MeasureSpace (Vector ℝ n) :=
+
+-- X → ℤ to X → ℝ
+
+section hw4
+
+open MeasureTheory
+
+#check MeasureTheory.volume
+
+variable {ι : Type} [Fintype ι]
+
+def Q : Set (ι → ℝ) := {q | ∃(w : ι → ℚ), ∀i, q i = w i}
+
+
+/-
+hw4e3
+assume A ⊆ ℝⁿ is a Lebesque measurable set with m*(A)>0.
+let B := ⋃ q∈ℚⁿ, (q + A)
+show that m*(ℝⁿ\B)=0
+
+-/
+example
+  (A : Set (ι → ℝ))
+  (hm : MeasurableSet A)
+  (h : volume A > 0) :
+  volume ((⋃ q ∈ Q, (q + ·) '' A).compl) = 0 := by
+
+
+
+
+  sorry
+
+open Metric
+
+#check Tendsto
+#check ae
+
+/-
+hw4e1
+-/
+example
+  (A : Set (ι → ℝ)) :
+    volume A = 0
+    ↔ ∀ε>0,
+    ∃ (x : ℕ → ι → ℝ)(r : ℕ → ℝ),
+    (A ⊆ ⋃n, ball (x n) (r n))
+    ∧ ∑' n, volume (ball (x n) (r n)) < ε := by
+
+  constructor
+  {
+    intro A_0 ε ε_pos
+    have uu : ∃s, s = 1 := sorry
+    have := uu.choose
+
+    sorry
+  }
+
+
+  sorry
+
+end hw4
+
+
+section make_own
+
+class OuterMeasure {X : Type} (μ : Set X → ℝ≥0∞)
+
+
+end make_own

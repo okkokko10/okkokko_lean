@@ -389,7 +389,7 @@ section exact_multi_cover
 
 structure MultiCover {X : Type} (F : Type) [SetLike F X] where
   func (x : X) : ℕ∞
-  possible: ∃(series: ℕ → F), func = fun x ↦ ENat.card {n | x ∈ series n}
+  possible: ∃(series: ℕ → F), func = fun x ↦ ENat.card {n // x ∈ series n}
 
 
 instance : FunLike (MultiCover F) X ℕ∞ where
@@ -398,6 +398,19 @@ instance : FunLike (MultiCover F) X ℕ∞ where
     intro a b fu
     change ⟨a.func,_⟩ = b
     simp only [fu]
+
+
+noncomputable def MultiCover.series (a : MultiCover F) : ℕ → F := a.possible.choose
+
+theorem MultiCover.series_def (a : MultiCover F) (x : X) : a x = ENat.card {n // x ∈ a.series n} := by
+  change a.func x = _
+  rw [a.possible.choose_spec]
+  rfl
+
+theorem MultiCover.series_def' (a : MultiCover F) : ⇑a = fun x ↦ ENat.card {n // x ∈ a.series n} := by
+  funext x
+  exact series_def a x
+
 
 instance : Membership X (MultiCover F) where
   mem f x := f x > 0
@@ -477,6 +490,67 @@ instance : Preorder (MultiCover F) where
     intro a b c ab bc x
     exact Std.IsPreorder.le_trans (a x) (b x) (c x) (ab x) (bc x)
 
+
+instance : TopologicalSpace (MultiCover F) := Preorder.topology _
+local instance : TopologicalSpace ℕ∞ := Preorder.topology _
+
+example (s : ℕ → ℕ → ENNReal) : Summable s := by
+
+
+  sorry
+
+-- I wonder, should I just leave this
+
+variable [HasEmpty F]
+open Filter in
+theorem MultiCover.summable_coe (s : ℕ → MultiCover F) : Summable (fun n ↦ ⇑(s n)) := by
+
+  -- use fun x ↦ _
+  constructor
+  rotate_left
+  use fun x ↦ ∑' n, ⇑(s n) x
+  unfold HasSum
+  simp only [SummationFilter.unconditional_filter]
+
+  unfold Tendsto
+  unfold map
+  rw [le_def]
+  simp only [Filter.mem_mk, Set.mem_preimage, Filter.mem_sets, mem_atTop_sets, ge_iff_le,
+    Finset.le_eq_subset]
+  intro x x_nhds
+
+
+  sorry
+
+open scoped ENNReal
+
+#check ENat.toENNRealOrderEmbedding
+
+lemma enat_as_ennreal_tsum (f : ℕ → ℕ∞) : (tsum f).toENNReal = tsum (f · |>.toENNReal) := by
+
+  sorry
+
+theorem MultiCover.hasSum (s : ℕ → MultiCover F) : HasSum s ⟨
+  (∑' n, ⇑(s n)),
+  by
+
+  let ser n := Function.uncurry (s · |>.series) (Nat.pairEquiv.symm n)
+  use ser
+  funext x
+
+  -- rw [tsum_apply]
+  #check ENNReal.tsum_apply
+  #check tsum_apply
+
+
+
+  simp only [series_def']
+  simp_rw [ENNReal.tsum_apply]
+
+
+
+  sorry
+⟩ := by sorry
 
 end exact_multi_cover
 

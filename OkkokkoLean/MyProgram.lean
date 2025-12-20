@@ -485,40 +485,106 @@ theorem MultiCover.add_fun_coe {a b : MultiCover F} : ⇑(a + b) = ⇑a + ⇑b :
 theorem MultiCover.zero_fun_coe [HasEmpty F] : ⇑(0 : MultiCover F) = 0 := by rfl
 
 
+-- in the future, use .lift?
+-- #check Preorder.lift
+-- interesting: #check CircularOrder
 
-instance : LE (MultiCover F) where
-  le a b := (a : X → ℕ∞) ≤ (b : X → ℕ∞)
-  -- le a b := LE.le (a : X → ℕ∞) (b : X → ℕ∞)
-
-instance : Preorder (MultiCover F) where
-  le_refl a := by
-    intro x
-    exact Std.IsPreorder.le_refl _
-  le_trans := by
-    intro a b c ab bc x
-    exact Std.IsPreorder.le_trans (a x) (b x) (c x) (ab x) (bc x)
+-- instance : Preorder (MultiCover F) := Preorder.lift (⇑)
+instance : PartialOrder (MultiCover F) := PartialOrder.lift (⇑) (DFunLike.coe_injective')
 
 
 
--- instance : TopologicalSpace (MultiCover F) := Preorder.topology _
--- local instance : TopologicalSpace ℕ∞ := Preorder.topology _
 
 example (s : ℕ → ℕ → ENNReal) : Summable s := by
 
 
   sorry
 
+
+
 -- I wonder, should I just leave this
 
 variable [HasEmpty F]
 
+#check hasSum_of_isLUB_of_nonneg
+
+#check instOrderTopENat
+#check OrderTop
+
+-- MultiCover does not have a LinearOrder
+
+-- #check X → ℕ∞
+
+-- example := hasSum_of_isLUB_of_nonneg (α := MultiCover F)
+
+local instance : TopologicalSpace ℕ∞ := Preorder.topology ℕ∞
+instance : OrderTopology ℕ∞ := by exact { topology_eq_generate_intervals := rfl }
+-- example (f : ℕ → ℕ∞) (i : ℕ∞) := hasSum_of_isLUB_of_nonneg (α := ℕ∞) (f := f)
+
+local instance : TopologicalSpace (ℕ → ℕ∞) := by exact Pi.topologicalSpace
+
+lemma enat_HasSum_IsLUB {X : Type} (f : X → ℕ∞) (i : ℕ∞) (hf : IsLUB (Set.range fun s ↦ ∑ i ∈ s, f i) i) : HasSum f i := hasSum_of_isLUB_of_nonneg (α := ℕ∞) (f := f) (h := by simp only [zero_le, implies_true]) i hf
+
+-- why is this not in Mathlib?
+theorem IsLUB_top {X : Type} [LE X] [OrderTop X] {s : Set X} (h : ⊤ ∈ s) : IsLUB s ⊤ := by
+  unfold IsLUB IsLeast upperBounds lowerBounds
+  simp_all only [Set.mem_setOf_eq, le_top, implies_true, and_self]
 
 
--- def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
---   func x := ∑' n, (s n).func x
---   possible := by
+theorem enat_sum_hasTop {f : ℕ → ℕ∞} (h : ∃n, f n = ⊤) : HasSum f ⊤ := by
 
---     sorry
+  apply enat_HasSum_IsLUB
+  have : ⊤ ∈ (Set.range fun s ↦ ∑ i ∈ s, f i) := by
+    simp only [Set.mem_range]
+    obtain ⟨n, ns⟩ := h
+    use {n}
+    simp only [Finset.sum_singleton]
+    exact ns
+  exact IsLUB_top this
+theorem enat_sum_infinite_support {X : Type} (f : X → ℕ∞) (h : (Function.support f).Infinite) : HasSum f ⊤ := by
+  apply enat_HasSum_IsLUB
+  have tw (n : ℕ) : ∃(s : Finset X), ↑n ≤ ∑ i ∈ s, f i := by
+    have ⟨s, s_s, sc⟩ := h.exists_subset_card_eq n
+    use s
+    rw [←sc]
+    trans ∑ i ∈ s, 1
+    simp only [Finset.sum_const, nsmul_eq_mul, mul_one, le_refl]
+    have qqq (i) (hh : i ∈ s) : 1 ≤ f i := ENat.one_le_iff_ne_zero.mpr (s_s hh)
+    exact Finset.sum_le_sum qqq
+  have : ⊤ = ⨆ i, (fun s ↦ ∑ i ∈ s, f i) i  := by
+    set sc := fun s ↦ ∑ i ∈ s, f i
+    change ∀(n : ℕ), ∃ s, ↑n ≤ sc s at tw
+    symm
+    apply ENat.eq_top_iff_forall_ge.mpr
+    intro m
+    have ⟨s,sw⟩ := tw (m)
+    exact le_iSup_of_le s sw
+  rw [this]
+  apply isLUB_ciSup
+  simp only [OrderTop.bddAbove]
+
+-- either f is finitely supported or it sums to ∞
+theorem enat_summable {X : Type} (f : X → ℕ∞) : Summable f := by
+  by_cases! h : f.support.Finite
+  exact summable_of_finite_support h
+  exact ⟨⊤, enat_sum_infinite_support _ h⟩
+
+example {X : Type} (f : X → ENNReal) : Summable f := by exact ENNReal.summable
+#check ENNReal.hasSum
+
+
+-- #check tsum_apply
+
+theorem enat_fun_summable {X : Type} (f : X → ℕ → ℕ∞) : Summable f := by
+
+  sorry
+
+
+noncomputable def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
+  func := ∑' n, (s n).func
+  possible := by
+
+    sorry
 
 
 -- open Filter in

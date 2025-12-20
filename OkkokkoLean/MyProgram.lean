@@ -523,26 +523,37 @@ instance : OrderTopology ℕ∞ := by exact { topology_eq_generate_intervals := 
 
 local instance : TopologicalSpace (ℕ → ℕ∞) := by exact Pi.topologicalSpace
 
+--nevermind, unused.
 lemma enat_HasSum_IsLUB {X : Type} (f : X → ℕ∞) (i : ℕ∞) (hf : IsLUB (Set.range fun s ↦ ∑ i ∈ s, f i) i) : HasSum f i := hasSum_of_isLUB_of_nonneg (α := ℕ∞) (f := f) (h := by simp only [zero_le, implies_true]) i hf
 
 -- why is this not in Mathlib?
+-- nevermind
 theorem IsLUB_top {X : Type} [LE X] [OrderTop X] {s : Set X} (h : ⊤ ∈ s) : IsLUB s ⊤ := by
   unfold IsLUB IsLeast upperBounds lowerBounds
   simp_all only [Set.mem_setOf_eq, le_top, implies_true, and_self]
 
 
-theorem enat_sum_hasTop {f : ℕ → ℕ∞} (h : ∃n, f n = ⊤) : HasSum f ⊤ := by
+-- based on:
+-- #check ENNReal.hasSum
+theorem ENat.hasSum  {α : Type} (f : α → ℕ∞) : HasSum f (⨆ s : Finset α, ∑ a ∈ s, f a) :=
+  tendsto_atTop_iSup fun _ _ => Finset.sum_le_sum_of_subset
 
-  apply enat_HasSum_IsLUB
-  have : ⊤ ∈ (Set.range fun s ↦ ∑ i ∈ s, f i) := by
-    simp only [Set.mem_range]
-    obtain ⟨n, ns⟩ := h
-    use {n}
-    simp only [Finset.sum_singleton]
-    exact ns
-  exact IsLUB_top this
+@[simp]
+theorem ENat.summable {α : Type} (f : α → ℕ∞) : Summable f :=
+  ⟨_, ENat.hasSum _⟩
+
+theorem enat_sum_hasTop {f : ℕ → ℕ∞} (h : ∃n, f n = ⊤) : HasSum f ⊤ := by
+  convert ENat.hasSum f
+  symm
+  apply ciInf_eq_top_of_top_mem
+  simp only [Set.mem_range]
+  obtain ⟨n, ns⟩ := h
+  use {n}
+  simp only [Finset.sum_singleton]
+  exact ns
+
 theorem enat_sum_infinite_support {X : Type} (f : X → ℕ∞) (h : (Function.support f).Infinite) : HasSum f ⊤ := by
-  apply enat_HasSum_IsLUB
+  convert ENat.hasSum f
   have tw (n : ℕ) : ∃(s : Finset X), ↑n ≤ ∑ i ∈ s, f i := by
     have ⟨s, s_s, sc⟩ := h.exists_subset_card_eq n
     use s
@@ -551,33 +562,20 @@ theorem enat_sum_infinite_support {X : Type} (f : X → ℕ∞) (h : (Function.s
     simp only [Finset.sum_const, nsmul_eq_mul, mul_one, le_refl]
     have qqq (i) (hh : i ∈ s) : 1 ≤ f i := ENat.one_le_iff_ne_zero.mpr (s_s hh)
     exact Finset.sum_le_sum qqq
-  have : ⊤ = ⨆ i, (fun s ↦ ∑ i ∈ s, f i) i  := by
-    set sc := fun s ↦ ∑ i ∈ s, f i
-    change ∀(n : ℕ), ∃ s, ↑n ≤ sc s at tw
-    symm
-    apply ENat.eq_top_iff_forall_ge.mpr
-    intro m
-    have ⟨s,sw⟩ := tw (m)
-    exact le_iSup_of_le s sw
-  rw [this]
-  apply isLUB_ciSup
-  simp only [OrderTop.bddAbove]
-
--- either f is finitely supported or it sums to ∞
-theorem enat_summable {X : Type} (f : X → ℕ∞) : Summable f := by
-  by_cases! h : f.support.Finite
-  exact summable_of_finite_support h
-  exact ⟨⊤, enat_sum_infinite_support _ h⟩
-
-example {X : Type} (f : X → ENNReal) : Summable f := by exact ENNReal.summable
-#check ENNReal.hasSum
+  set sc := fun s ↦ ∑ i ∈ s, f i
+  change ∀(n : ℕ), ∃ s, ↑n ≤ sc s at tw
+  symm
+  apply ENat.eq_top_iff_forall_ge.mpr
+  intro m
+  have ⟨s,sw⟩ := tw (m)
+  exact le_iSup_of_le s sw
 
 
 -- #check tsum_apply
 
-theorem enat_fun_summable {X : Type} (f : X → ℕ → ℕ∞) : Summable f := by
 
-  sorry
+theorem ENat.hasSum_apply  {α : Type} (f : α → ℕ → ℕ∞) : HasSum f (⨆ s : Finset α, ∑ a ∈ s, f a) :=
+  tendsto_atTop_iSup fun _ _ => Finset.sum_le_sum_of_subset
 
 
 noncomputable def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where

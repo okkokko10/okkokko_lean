@@ -133,9 +133,26 @@ variable  {X : Type} {F : Type} [SetLike F X] {c : Cardinal}
 #check Subgroup
 
 
+
+def possible_equiv' {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) (f : ι₁ → F) (x : X)
+  : {n | x ∈ f n} ≃ {n | x ∈ f (e.symm n)} := by
+  rw [Equiv.setOf_apply_symm_eq_image_setOf e (x ∈ f ·)]
+  exact e.image {n | x ∈ f n}
+
+theorem possible_equiv {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) (f : ι₁ → F) (x : X)
+  : ENat.card ↑{n | x ∈ f n} = ENat.card ↑{n | x ∈ f (e.symm n)} := by
+  apply ENat.card_congr
+  exact possible_equiv' e f x
+
+class HasEmpty (A : Type*) {B : outParam Type*} [SetLike A B] extends EmptyCollection A where
+  empty_is_empty : SetLike.coe (∅ : A) = ∅
+
+
+
+
 -- todo: other sets than N
 
-
+section card_multi_cover
 open scoped Cardinal
 
 -- if c is finite, it's any finite combination
@@ -169,16 +186,6 @@ instance : Membership X (CardMultiCover F c) where
 
 -- #check type_eq_of_heq
 
-
-def possible_equiv' {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) (f : ι₁ → F) (x : X)
-  : {n | x ∈ f n} ≃ {n | x ∈ f (e.symm n)} := by
-  rw [Equiv.setOf_apply_symm_eq_image_setOf e (x ∈ f ·)]
-  exact e.image {n | x ∈ f n}
-
-theorem possible_equiv {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) (f : ι₁ → F) (x : X)
-  : ENat.card ↑{n | x ∈ f n} = ENat.card ↑{n | x ∈ f (e.symm n)} := by
-  apply ENat.card_congr
-  exact possible_equiv' e f x
 
 
 -- theorem MultiCover.equiv_ι {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) : MultiCover F ι₁ = MultiCover F ι₂ := by
@@ -269,8 +276,7 @@ instance : AddCommSemigroup (CardMultiCover F c)  where
     exact AddCommMagma.add_comm ⇑a ⇑b
 
 -- Surely this already exists.
-class HasEmpty (A : Type*) {B : outParam Type*} [SetLike A B] extends EmptyCollection A where
-  empty_is_empty : SetLike.coe (∅ : A) = ∅
+
 
 theorem CardMultiCover.hasEmpty_strict_cardinal [HasEmpty F] (h : ℵ₀ ≤ c) (f : X → ℕ∞) :
   (∃(ι : Type)(_ : ℵ₀ ≤ #ι → #ι ≤ c)(series: ι → F), f = fun x ↦ ENat.card {n | x ∈ series n})
@@ -352,8 +358,8 @@ instance : Preorder (CardMultiCover F c) where
     intro a b c ab bc x
     exact Std.IsPreorder.le_trans (a x) (b x) (c x) (ab x) (bc x)
 
-instance : TopologicalSpace (CardMultiCover F c) := Preorder.topology _
-local instance : TopologicalSpace ℕ∞ := Preorder.topology _
+-- instance : TopologicalSpace (CardMultiCover F c) := Preorder.topology _
+-- local instance : TopologicalSpace ℕ∞ := Preorder.topology _
 
 example : ℕ ≃ ℕ × ℕ := by exact Nat.pairEquiv.symm
 
@@ -361,29 +367,31 @@ example : ℕ ≃ ℕ × ℕ := by exact Nat.pairEquiv.symm
 -- issue: the result of the sum has a different type...
 -- I should just let the cardinality be a property.
 
-theorem CardMultiCover.hasSum {ι : Type} (s : ι → CardMultiCover F c) : HasSum s ⟨
-  (∑' n, ⇑(s n)),
-  by
-  -- let series n : F := Nat.pairEquiv
+-- theorem CardMultiCover.hasSum {ι : Type} (s : ι → CardMultiCover F c) : HasSum s ⟨
+--   (∑' n, ⇑(s n)),
+--   by
+--   -- let series n : F := Nat.pairEquiv
 
 
 
-  sorry
-⟩ := by sorry
+--   sorry
+-- ⟩ := by sorry
 
-theorem CardMultiCover.summable {ι : Type}  (s : ι → CardMultiCover F c) : Summable s := by sorry
+-- theorem CardMultiCover.summable {ι : Type}  (s : ι → CardMultiCover F c) : Summable s := by sorry
 
-theorem CardMultiCover.sum_coe {ι : Type}  (s : ι → CardMultiCover F c) : (∑' n, ⇑(s n)) = ⇑(∑' n, (s n)) := by
+-- theorem CardMultiCover.sum_coe {ι : Type}  (s : ι → CardMultiCover F c) : (∑' n, ⇑(s n)) = ⇑(∑' n, (s n)) := by
 
-  sorry
+--   sorry
 
-theorem CardMultiCover.sum {ι : Type}  (s : ι → CardMultiCover F c) (x : X) : (∑' n, (s n)) x = (∑' n, (s n x)) := by
-  -- rw [tsum]
-  -- apply ENNReal.tsum_apply
-  -- apply tsum_apply
-  -- rw [tsum_apply]
-  -- simp only [SummationFilter.support_eq_univ, Set.inter_univ, Set.indicator_univ]
-  sorry
+-- theorem CardMultiCover.sum {ι : Type}  (s : ι → CardMultiCover F c) (x : X) : (∑' n, (s n)) x = (∑' n, (s n x)) := by
+--   -- rw [tsum]
+--   -- apply ENNReal.tsum_apply
+--   -- apply tsum_apply
+--   -- rw [tsum_apply]
+--   -- simp only [SummationFilter.support_eq_univ, Set.inter_univ, Set.indicator_univ]
+--   sorry
+end card_multi_cover
+
 
 section exact_multi_cover
 
@@ -491,8 +499,9 @@ instance : Preorder (MultiCover F) where
     exact Std.IsPreorder.le_trans (a x) (b x) (c x) (ab x) (bc x)
 
 
-instance : TopologicalSpace (MultiCover F) := Preorder.topology _
-local instance : TopologicalSpace ℕ∞ := Preorder.topology _
+
+-- instance : TopologicalSpace (MultiCover F) := Preorder.topology _
+-- local instance : TopologicalSpace ℕ∞ := Preorder.topology _
 
 example (s : ℕ → ℕ → ENNReal) : Summable s := by
 
@@ -502,57 +511,70 @@ example (s : ℕ → ℕ → ENNReal) : Summable s := by
 -- I wonder, should I just leave this
 
 variable [HasEmpty F]
-open Filter in
-theorem MultiCover.summable_coe (s : ℕ → MultiCover F) : Summable (fun n ↦ ⇑(s n)) := by
-
-  -- use fun x ↦ _
-  constructor
-  rotate_left
-  use fun x ↦ ∑' n, ⇑(s n) x
-  unfold HasSum
-  simp only [SummationFilter.unconditional_filter]
-
-  unfold Tendsto
-  unfold map
-  rw [le_def]
-  simp only [Filter.mem_mk, Set.mem_preimage, Filter.mem_sets, mem_atTop_sets, ge_iff_le,
-    Finset.le_eq_subset]
-  intro x x_nhds
 
 
-  sorry
+
+-- def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
+--   func x := ∑' n, (s n).func x
+--   possible := by
+
+--     sorry
+
+
+-- open Filter in
+-- theorem MultiCover.summable_coe (s : ℕ → MultiCover F) : Summable (fun n ↦ ⇑(s n)) := by
+
+--   -- use fun x ↦ _
+--   constructor
+--   rotate_left
+--   use fun x ↦ ∑' n, ⇑(s n) x
+--   unfold HasSum
+--   simp only [SummationFilter.unconditional_filter]
+
+--   unfold Tendsto
+--   unfold map
+--   rw [le_def]
+--   simp only [Filter.mem_mk, Set.mem_preimage, Filter.mem_sets, mem_atTop_sets, ge_iff_le,
+--     Finset.le_eq_subset]
+--   intro x x_nhds
+
+
+--   sorry
 
 open scoped ENNReal
 
 #check ENat.toENNRealOrderEmbedding
 
-lemma enat_as_ennreal_tsum (f : ℕ → ℕ∞) : (tsum f).toENNReal = tsum (f · |>.toENNReal) := by
-
-  sorry
-
-theorem MultiCover.hasSum (s : ℕ → MultiCover F) : HasSum s ⟨
-  (∑' n, ⇑(s n)),
-  by
-
-  let ser n := Function.uncurry (s · |>.series) (Nat.pairEquiv.symm n)
-  use ser
-  funext x
-
-  -- rw [tsum_apply]
-  #check ENNReal.tsum_apply
-  #check tsum_apply
+-- lemma enat_as_ennreal_tsum (f : ℕ → ℕ∞) : (tsum f).toENNReal = tsum (f · |>.toENNReal) := by
 
 
 
-  simp only [series_def']
-  simp_rw [ENNReal.tsum_apply]
+--   sorry
+
+-- theorem MultiCover.hasSum (s : ℕ → MultiCover F) : HasSum s ⟨
+--   (∑' n, ⇑(s n)),
+--   by
+
+--   let ser n := Function.uncurry (s · |>.series) (Nat.pairEquiv.symm n)
+--   use ser
+--   funext x
+
+--   -- rw [tsum_apply]
+--   #check ENNReal.tsum_apply
+--   #check tsum_apply
 
 
 
-  sorry
-⟩ := by sorry
+--   simp only [series_def']
+--   -- simp_rw [ENNReal.tsum_apply]
+
+
+
+--   sorry
+-- ⟩ := by sorry
 
 end exact_multi_cover
+
 
 
 end multi_cover

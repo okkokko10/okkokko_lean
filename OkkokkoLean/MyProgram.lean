@@ -709,6 +709,7 @@ theorem encard_sigma {X Y : Type} (hit : X → Y → Prop) :
   simp_all only [nonempty_subtype, σ]
 
 
+-- todo: establish TopologicalSpace (MultiCover F) where this is equal
 noncomputable def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
   func := ∑' n, (s n).func
   possible := by
@@ -720,7 +721,85 @@ noncomputable def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
     rw [tsum_apply ⟨_, ENat.hasSum_apply _ ⟩]
     exact encard_sigma _
 
+noncomputable instance : Coe (ℕ → F) (MultiCover F) where
+  coe s : MultiCover F := {
+    func := MultiCover.series_func s
+    possible := ⟨s, rfl⟩
+  }
 
+example (a b : Set X) :=  a \ b
+#check sdiff_eq
+#check BooleanAlgebra
+#check sdiff_le_sdiff_left
+#check GeneralizedCoheytingAlgebra
+instance : GeneralizedCoheytingAlgebra (Set X) := by exact
+  CompleteBooleanAlgebra.toCompleteDistribLattice.toCoframe.toCoheytingAlgebra.toGeneralizedCoheytingAlgebra
+
+-- instance (h : F):
+#check @SetLike.coe_mono F _ _
+
+-- def DiffClosed (F : Type) [SetLike F X] := ∀(a b : F), ∃ c : F, c = (a : Set X) \ ↑b
+
+class DiffClosed (F : Type*) {X : outParam Type*} [SetLike F X] extends SDiff F where
+  closed (a b : F) : ((a \ b) : F) = (a : Set X) \ ↑b
+
+@[simp]
+theorem DiffClosed.mem {F : Type*} {X : outParam Type*} [SetLike F X] [DiffClosed F] (a b : F) (x : X) : x ∈ a \ b ↔ (x ∈ a ∧ x ∉ b) := by
+  rw [←SetLike.mem_coe]
+  simp only [closed, Set.mem_diff, SetLike.mem_coe]
+
+
+-- MultiCover is not DiffClosed when F is.
+
+theorem MultiCover.fdiff_removed [DiffClosed F] (m : MultiCover F) (f : F) (x : X) (h : x ∈ f) : MultiCover.series_func (m.series · \ f) x = 0 := by
+  have q a : x ∉ a \ f := by
+    simp only [DiffClosed.mem, not_and, not_not]
+    (expose_names; exact fun a ↦ h)
+  unfold series_func
+  simp only [q]
+  refine ENat.card_eq_zero_iff_empty _ |>.mpr ?_
+  exact Subtype.isEmpty_false
+
+theorem MultiCover.fdiff_kept [DiffClosed F] (m : MultiCover F) (f : F) (x : X) (h : x ∉ f) : MultiCover.series_func (m.series · \ f) x = m.func x := by
+    unfold series_func
+    have q a : x ∈ a \ f ↔ x ∈ a := by
+      simp only [DiffClosed.mem, and_iff_left_iff_imp]
+      (expose_names; exact fun a ↦ h)
+    simp only [q]
+    symm
+    exact m.series_def x
+
+noncomputable def MultiCover.fdiff [DiffClosed F] (m : MultiCover F) (f : F) : MultiCover F where
+  func x := by classical exact if x ∈ f then 0 else m.func x
+  possible := by
+    use (m.series · \ f)
+    simp only
+    funext x
+    split
+    expose_names
+    symm
+    apply fdiff_removed m f x h
+    expose_names
+    symm
+    apply fdiff_kept m f x h
+
+
+
+noncomputable instance : F ↪ (MultiCover F) where
+  toFun f : MultiCover F := (fun n ↦ if n = 0 then f else ∅) -- could be made computable by writing the function
+  inj' := by
+
+    sorry
+
+
+-- instance : SDiff F
+-- this needs that MultiCover is closed under m \ f
+noncomputable def MultiCover.disjointed [DiffClosed F] (m : MultiCover F) : MultiCover F where
+  func := m.func ⊓ 1
+  possible := by
+    have := m.series
+
+    sorry
 
 
 -- open Filter in

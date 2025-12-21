@@ -399,7 +399,11 @@ section exact_multi_cover
 
 structure MultiCover {X : Type} (F : Type) [SetLike F X] where
   func (x : X) : ℕ∞
-  possible: ∃(series: ℕ → F), func = fun x ↦ ENat.card {n // x ∈ series n}
+  possible: ∃(α : Type)(series: α → F), func = fun x ↦ ENat.card {n // x ∈ series n}
+
+structure MultiCover' {X : Type} (F : Type) [SetLike F X] where
+  func (x : X) : ℕ∞
+  possible: ∃(α : Type)(series: α → F), func = fun x ↦ ENat.card {n // x ∈ series n}
 
 
 instance : FunLike (MultiCover F) X ℕ∞ where
@@ -409,12 +413,13 @@ instance : FunLike (MultiCover F) X ℕ∞ where
     change ⟨a.func,_⟩ = b
     simp only [fu]
 
+noncomputable def MultiCover.series_α (a : MultiCover F) : Type := a.possible.choose
 
-noncomputable def MultiCover.series (a : MultiCover F) : ℕ → F := a.possible.choose
+noncomputable def MultiCover.series (a : MultiCover F) : a.series_α → F := a.possible.choose_spec.choose
 
 theorem MultiCover.series_def (a : MultiCover F) (x : X) : a x = ENat.card {n // x ∈ a.series n} := by
   change a.func x = _
-  rw [a.possible.choose_spec]
+  rw [a.possible.choose_spec.choose_spec]
   rfl
 
 theorem MultiCover.series_def' (a : MultiCover F) : ⇑a = fun x ↦ ENat.card {n // x ∈ a.series n} := by
@@ -422,18 +427,18 @@ theorem MultiCover.series_def' (a : MultiCover F) : ⇑a = fun x ↦ ENat.card {
   exact series_def a x
 
 
-def MultiCover.mem_series (a : MultiCover F) (x : X) (n : ℕ) := x ∈ a.series n
+def MultiCover.mem_series (a : MultiCover F) (x : X) (n : a.series_α) := x ∈ a.series n
 
 theorem MultiCover.mem_series_def (a : MultiCover F) : ⇑a = fun x ↦ ENat.card {n // a.mem_series x n} := series_def' a
 
 
-noncomputable def MultiCover.series_func (s : ℕ → F) (x : X) := ENat.card {n // x ∈ s n}
+noncomputable def MultiCover.series_func {α : Type} (s : α → F) (x : X) := ENat.card {n // x ∈ s n}
 
 theorem MultiCover.series_def'' (a : MultiCover F) : ⇑a = series_func a.series := series_def' a
 
 def MultiCover.mk' (f : X → ℕ∞) (p : ∃(series: ℕ → F), f = series_func series) : MultiCover F where
   func := f
-  possible := p
+  possible := ⟨ℕ, p⟩
 
 
 instance : Membership X (MultiCover F) where
@@ -444,17 +449,34 @@ instance : Add (MultiCover F) where
   add a b := ⟨(a + b), by
     have ⟨as,as_spec⟩ := a.possible
     have ⟨bs,bs_spec⟩ := b.possible
-    use fun n ↦ (Equiv.natSumNatEquivNat.symm n).elim as bs
-    change a.func + b.func = _
-    rw [as_spec,bs_spec]
+    have as := a.series
+    have as_spec := a.series_def
+    use a.series_α ⊕ b.series_α
+    refine ⟨?_,?_⟩
+
+    use fun n ↦ n.elim (a.series) b.series
+    -- change a.func + b.func = _
+
+
     funext x
     simp only [Pi.add_apply]
+    rw [a.series_def,b.series_def]
     rw [←ENat.card_sum]
     apply ENat.card_congr
+    trans { n // Sum.elim (x ∈ a.series ·) (x ∈ b.series ·) n }
+
+    let p := Sum.elim (x ∈ a.series ·) (x ∈ b.series ·)
+    change
+      { n // p <| .inl n } ⊕ { n // p <| .inr n } ≃
+        { n // p n }
     symm
-    trans
-    apply (possible_equiv' Equiv.natSumNatEquivNat _ x)
-    apply Equiv.subtypeSum
+    exact Equiv.subtypeSum
+
+
+    refine Equiv.subtypeEquiv ?_ ?_
+    rfl
+    simp only [Equiv.refl_apply, Sum.forall, Sum.elim_inl, implies_true, Sum.elim_inr, and_self]
+
   ⟩
 
 
@@ -472,15 +494,17 @@ instance : AddCommSemigroup (MultiCover F)  where
 
 instance [HasEmpty F] : Zero (MultiCover F) where
   zero := ⟨fun x ↦ 0, by
+    use Empty
     use fun i ↦ ∅
     funext x
     symm
     rw [ENat.card_eq_zero_iff_empty]
-    have : x ∉ (∅ : F) := by
-      simp [←SetLike.mem_coe]
-      rw [HasEmpty.empty_is_empty]
-      exact fun a ↦ a
-    exact Subtype.isEmpty_of_false fun a ↦ this
+    exact instIsEmptySubtype fun n ↦ x ∈ ∅
+    -- have : x ∉ (∅ : F) := by
+    --   simp [←SetLike.mem_coe]
+    --   rw [HasEmpty.empty_is_empty]
+    --   exact fun a ↦ a
+    -- exact Subtype.isEmpty_of_false fun a ↦ this
     ⟩
 
 
@@ -708,23 +732,31 @@ theorem encard_sigma {X Y : Type} (hit : X → Y → Prop) :
   simp_all only
   simp_all only [nonempty_subtype, σ]
 
+theorem encard_sigma' {X: Type} {Y : X → Type} (hit : (x : X) → (Y x) → Prop) :
+  ∑' (a), ENat.card { b // hit a b } = ENat.card { ab : (x : X) × (Y x) // hit ab.1 ab.2 }  := by
+  sorry
 
 -- todo: establish TopologicalSpace (MultiCover F) where this is equal
 noncomputable def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
   func := ∑' n, (s n).func
   possible := by
-    use fun n ↦ (fun ab ↦ s ab.1 |>.series ab.2) (Nat.pairEquiv.symm n)
+    use (n : ℕ) × (s n |>.series_α)
+    use fun ⟨n,a⟩ ↦ (s n).series a
+    -- use fun n ↦ (fun ab ↦ s ab.1 |>.series ab.2) (Nat.pairEquiv.symm n)
     change ∑' n, ⇑(s n) = _
     funext x
-    rw [possible_equiv]
+    -- rw [possible_equiv]
     simp only [series_def']
     rw [tsum_apply ⟨_, ENat.hasSum_apply _ ⟩]
-    exact encard_sigma _
+    change
+      ∑' (i : ℕ), ENat.card { n // x ∈ (s i).series n } =
+        ENat.card { ab : ((n : ℕ) × (s n |>.series_α)) // (fun a b ↦ x ∈ (s a).series b) ab.fst ab.snd }
+    apply encard_sigma' (fun a b ↦ x ∈ (s a).series b)
 
-noncomputable instance : Coe (ℕ → F) (MultiCover F) where
+noncomputable def coe_series (α : Type) : Coe (α → F) (MultiCover F) where
   coe s : MultiCover F := {
     func := MultiCover.series_func s
-    possible := ⟨s, rfl⟩
+    possible := ⟨α, s, rfl⟩
   }
 
 example (a b : Set X) :=  a \ b
@@ -772,6 +804,7 @@ theorem MultiCover.fdiff_kept [DiffClosed F] (m : MultiCover F) (f : F) (x : X) 
 noncomputable def MultiCover.fdiff [DiffClosed F] (m : MultiCover F) (f : F) : MultiCover F where
   func x := by classical exact if x ∈ f then 0 else m.func x
   possible := by
+    use m.series_α
     use (m.series · \ f)
     simp only
     funext x
@@ -786,7 +819,7 @@ noncomputable def MultiCover.fdiff [DiffClosed F] (m : MultiCover F) (f : F) : M
 
 
 noncomputable instance : F ↪ (MultiCover F) where
-  toFun f : MultiCover F := (fun n ↦ if n = 0 then f else ∅) -- could be made computable by writing the function
+  toFun f : MultiCover F := (coe_series _).coe (fun n ↦ if n = 0 then f else ∅) -- could be made computable by writing the function
   inj' := by
 
     sorry

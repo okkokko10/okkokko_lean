@@ -135,12 +135,14 @@ variable  {X : Type} {F : Type} [SetLike F X] {c : Cardinal}
 
 
 def possible_equiv' {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) (f : ι₁ → F) (x : X)
-  : {n | x ∈ f n} ≃ {n | x ∈ f (e.symm n)} := by
+  :  {n | x ∈ f (e.symm n)} ≃ {n | x ∈ f n} := by
+  symm
   rw [Equiv.setOf_apply_symm_eq_image_setOf e (x ∈ f ·)]
   exact e.image {n | x ∈ f n}
 
+@[simp]
 theorem possible_equiv {ι₁ ι₂ : Type} (e : ι₁ ≃ ι₂) (f : ι₁ → F) (x : X)
-  : ENat.card ↑{n | x ∈ f n} = ENat.card ↑{n | x ∈ f (e.symm n)} := by
+  : ENat.card {n // x ∈ f (e.symm n)} = ENat.card {n // x ∈ f n}  := by
   apply ENat.card_congr
   exact possible_equiv' e f x
 
@@ -420,6 +422,20 @@ theorem MultiCover.series_def' (a : MultiCover F) : ⇑a = fun x ↦ ENat.card {
   exact series_def a x
 
 
+def MultiCover.mem_series (a : MultiCover F) (x : X) (n : ℕ) := x ∈ a.series n
+
+theorem MultiCover.mem_series_def (a : MultiCover F) : ⇑a = fun x ↦ ENat.card {n // a.mem_series x n} := series_def' a
+
+
+noncomputable def MultiCover.series_func (s : ℕ → F) (x : X) := ENat.card {n // x ∈ s n}
+
+theorem MultiCover.series_def'' (a : MultiCover F) : ⇑a = series_func a.series := series_def' a
+
+def MultiCover.mk' (f : X → ℕ∞) (p : ∃(series: ℕ → F), f = series_func series) : MultiCover F where
+  func := f
+  possible := p
+
+
 instance : Membership X (MultiCover F) where
   mem f x := f x > 0
 
@@ -437,7 +453,7 @@ instance : Add (MultiCover F) where
     apply ENat.card_congr
     symm
     trans
-    apply (possible_equiv' Equiv.natSumNatEquivNat _ x).symm
+    apply (possible_equiv' Equiv.natSumNatEquivNat _ x)
     apply Equiv.subtypeSum
   ⟩
 
@@ -493,35 +509,27 @@ theorem MultiCover.zero_fun_coe [HasEmpty F] : ⇑(0 : MultiCover F) = 0 := by r
 instance : PartialOrder (MultiCover F) := PartialOrder.lift (⇑) (DFunLike.coe_injective')
 
 
-
-
-example (s : ℕ → ℕ → ENNReal) : Summable s := by
-
-
-  sorry
-
-
-
--- I wonder, should I just leave this
-
 variable [HasEmpty F]
-
-#check hasSum_of_isLUB_of_nonneg
-
-#check instOrderTopENat
-#check OrderTop
 
 -- MultiCover does not have a LinearOrder
 
--- #check X → ℕ∞
-
--- example := hasSum_of_isLUB_of_nonneg (α := MultiCover F)
-
 local instance : TopologicalSpace ℕ∞ := Preorder.topology ℕ∞
 instance : OrderTopology ℕ∞ := by exact { topology_eq_generate_intervals := rfl }
--- example (f : ℕ → ℕ∞) (i : ℕ∞) := hasSum_of_isLUB_of_nonneg (α := ℕ∞) (f := f)
 
-local instance : TopologicalSpace (ℕ → ℕ∞) := by exact Pi.topologicalSpace
+-- local instance ww: TopologicalSpace (ℕ → ℕ∞) := by exact Pi.topologicalSpace
+-- local instance www: TopologicalSpace (ℕ → ℕ∞) := Preorder.topology _
+
+
+
+-- instance : OrderTopology (ℕ → ℕ∞) := by exact { topology_eq_generate_intervals := rfl }
+
+
+
+-- instance : TopologicalSpace (MultiCover F) := by
+
+--   exact Preorder.topology (MultiCover F)
+
+
 
 --nevermind, unused.
 lemma enat_HasSum_IsLUB {X : Type} (f : X → ℕ∞) (i : ℕ∞) (hf : IsLUB (Set.range fun s ↦ ∑ i ∈ s, f i) i) : HasSum f i := hasSum_of_isLUB_of_nonneg (α := ℕ∞) (f := f) (h := by simp only [zero_le, implies_true]) i hf
@@ -542,7 +550,7 @@ theorem ENat.hasSum  {α : Type} (f : α → ℕ∞) : HasSum f (⨆ s : Finset 
 theorem ENat.summable {α : Type} (f : α → ℕ∞) : Summable f :=
   ⟨_, ENat.hasSum _⟩
 
-theorem enat_sum_hasTop {f : ℕ → ℕ∞} (h : ∃n, f n = ⊤) : HasSum f ⊤ := by
+theorem ENat.sum_with_top {α : Type}  {f : α → ℕ∞} (h : ∃n, f n = ⊤) : HasSum f ⊤ := by
   convert ENat.hasSum f
   symm
   apply ciInf_eq_top_of_top_mem
@@ -552,9 +560,9 @@ theorem enat_sum_hasTop {f : ℕ → ℕ∞} (h : ∃n, f n = ⊤) : HasSum f �
   simp only [Finset.sum_singleton]
   exact ns
 
-theorem enat_sum_infinite_support {X : Type} (f : X → ℕ∞) (h : (Function.support f).Infinite) : HasSum f ⊤ := by
+theorem ENat.sum_infinite_support_top {α : Type} (f : α → ℕ∞) (h : (Function.support f).Infinite) : HasSum f ⊤ := by
   convert ENat.hasSum f
-  have tw (n : ℕ) : ∃(s : Finset X), ↑n ≤ ∑ i ∈ s, f i := by
+  have tw (n : ℕ) : ∃(s : Finset α), ↑n ≤ ∑ i ∈ s, f i := by
     have ⟨s, s_s, sc⟩ := h.exists_subset_card_eq n
     use s
     rw [←sc]
@@ -571,18 +579,148 @@ theorem enat_sum_infinite_support {X : Type} (f : X → ℕ∞) (h : (Function.s
   exact le_iSup_of_le s sw
 
 
--- #check tsum_apply
+#check tsum_apply
 
 
-theorem ENat.hasSum_apply  {α : Type} (f : α → ℕ → ℕ∞) : HasSum f (⨆ s : Finset α, ∑ a ∈ s, f a) :=
+theorem ENat.hasSum_apply  {α β  : Type} (f : α → β → ℕ∞) : HasSum f (⨆ s : Finset α, ∑ a ∈ s, f a) :=
   tendsto_atTop_iSup fun _ _ => Finset.sum_le_sum_of_subset
+
+theorem ENat.sum_finite_support {α : Type} (f : α → ℕ∞) (hf : (f.support).Finite)
+  : HasSum f (∑ a ∈ hf.toFinset, f a) := by
+  convert ENat.hasSum f
+  change (Finset.sum · f) hf.toFinset = iSup (Finset.sum · f)
+  apply le_antisymm
+  exact le_iSup_iff.mpr fun b a ↦ a hf.toFinset
+  simp only [iSup_le_iff]
+  intro s
+  refine Finset.sum_le_sum_of_ne_zero ?_
+  simp only [ne_eq, Set.Finite.mem_toFinset, Function.mem_support, imp_self, implies_true]
+
+-- instance : TopologicalSpace (MultiCover F) := by
+
+--   exact Preorder.topology (MultiCover F)
+
+-- -- instance : SupSet (MultiCover F) := by
+
+-- --   sorry
+
+-- theorem MultiCover.hasSum_apply  {α : Type} (f : α → (MultiCover F)) : HasSum f (⨆ s : Finset α, ∑ a ∈ s, f a) :=
+--   tendsto_atTop_iSup fun _ _ => Finset.sum_le_sum_of_subset
+
+-- -- instance : T2Space (MultiCover F) := sorry
+
+theorem encard_sigma {X Y : Type} (hit : X → Y → Prop) :
+  ∑' (a), ENat.card { b // hit a b } = ENat.card { ab : X × Y // hit ab.1 ab.2 }  := by
+  symm
+
+  set σ := (fun (a : X) ↦ { b // hit a b })
+
+  trans ENat.card (Sigma σ)
+  apply ENat.card_congr
+  exact Equiv.subtypeProdEquivSigmaSubtype hit
+
+  by_cases! h : ∃ a, ENat.card (σ a) = ⊤
+  {
+  trans ⊤
+  ·
+    simp only [ENat.card_eq_top] at h ⊢
+    obtain ⟨a, aw⟩ := h
+    exact Infinite.sigma_of_right (a := a)
+  refine HasSum.tsum_eq ?_ |>.symm
+  exact ENat.sum_with_top h
+  }
+
+  have h' : ∀ (a : X), Finite (σ a) := by
+    simpa only [ne_eq, ENat.card_eq_top, not_infinite_iff_finite] using h
+  clear h
+  change _ = ∑' a, ENat.card (σ a)
+  simp only [(ENat.card_eq_coe_natCard <| σ ·)]
+  have q: {a | Nonempty (σ a)} = Function.support fun a ↦ (Nat.card (σ a) : ℕ∞) := by
+    ext a
+    simp only [Set.mem_setOf_eq, Function.mem_support, ne_eq, Nat.cast_eq_zero]
+    simp only [iff_not_comm, not_nonempty_iff]
+    exact Finite.card_eq_zero_iff
+
+
+  have s_equiv : Sigma σ ≃ (Σ x : {a // Nonempty (σ a)}, σ x) := by
+    refine (Equiv.sigmaSubtypeEquivOfSubset σ (fun a ↦ Nonempty (σ a)) ?_).symm
+    exact fun _ ↦ Nonempty.intro
+
+  rw [ENat.card_congr s_equiv]
+
+
+  by_cases! hf : (fun a ↦ (Nat.card (σ a) : ℕ∞)).support.Finite
+  {
+    have hf' : {a | Nonempty (σ a)}.Finite := by convert hf
+    have hf'' : Finite {a // Nonempty (σ a)} := hf'
+    have hf''' : Fintype {a // Nonempty (σ a)} := Fintype.ofFinite _
+
+    have : Finite (Sigma σ) := by
+      apply Equiv.finite_iff s_equiv |>.mpr
+      apply Finite.instSigma
+
+    simp only [ENat.card_eq_coe_natCard]
+    rw [Nat.card_sigma]
+
+
+    have hfa : hf.toFinset = { a | Nonempty (σ a) } := by
+      rw [q]
+      exact Set.Finite.coe_toFinset hf
+
+    have hfa' : hf.toFinset = { a // Nonempty (σ a) } := by exact congrArg Subtype hfa
+
+
+
+    have hfaq : hf.toFinset = @Set.toFinset _ { a | Nonempty (σ a) } hf''' := by
+      simp_all [σ]
+      ext a : 1
+      simp_all only [Set.Finite.mem_toFinset, Function.mem_support, ne_eq, Nat.cast_eq_zero, nonempty_subtype,
+        Set.mem_toFinset]
+    symm
+    refine HasSum.tsum_eq ?_
+    convert ENat.sum_finite_support _ hf
+    norm_cast
+    let ss x := Nat.card (σ x)
+    change ∑ x : { a // Nonempty (σ a) }, (ss ↑x) = ∑ x ∈ hf.toFinset, ss x
+    rw [hfaq]
+
+    convert Finset.sum_finset_coe ss ?_
+    simp only [Set.coe_toFinset]
+    rfl
+    simp only [Set.coe_toFinset, Set.mem_setOf_eq]
+  }
+
+  change Set.Infinite _ at hf
+
+  symm
+  trans ⊤
+  ·
+    refine HasSum.tsum_eq ?_
+    exact ENat.sum_infinite_support_top _ hf
+  refine Eq.symm ((fun {α} ↦ ENat.card_eq_top.mpr) ?_)
+
+  refine @Infinite.instSigmaOfNonempty _ _ ?_ ?_
+  rw [←q] at hf
+  exact { not_finite := hf }
+  intro a
+  simp_all only [nonempty_subtype, σ]
+  obtain ⟨val, property⟩ := a
+  simp_all only
+  simp_all only [nonempty_subtype, σ]
 
 
 noncomputable def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
   func := ∑' n, (s n).func
   possible := by
+    use fun n ↦ (fun ab ↦ s ab.1 |>.series ab.2) (Nat.pairEquiv.symm n)
+    change ∑' n, ⇑(s n) = _
+    funext x
+    rw [possible_equiv]
+    simp only [series_def']
+    rw [tsum_apply ⟨_, ENat.hasSum_apply _ ⟩]
+    exact encard_sigma _
 
-    sorry
+
 
 
 -- open Filter in

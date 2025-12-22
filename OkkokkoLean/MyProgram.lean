@@ -732,15 +732,123 @@ theorem encard_sigma {X Y : Type} (hit : X → Y → Prop) :
   simp_all only
   simp_all only [nonempty_subtype, σ]
 
+
 theorem encard_sigma' {X: Type} {Y : X → Type} (hit : (x : X) → (Y x) → Prop) :
   ∑' (a), ENat.card { b // hit a b } = ENat.card { ab : (x : X) × (Y x) // hit ab.1 ab.2 }  := by
-  sorry
+  symm
+  set σ := (fun (a : X) ↦ { b // hit a b })
+
+  trans ENat.card (Sigma σ)
+  apply ENat.card_congr
+  {
+  unfold σ
+  apply Equiv.ofBijective
+  rotate_left
+  intro ⟨⟨a,b⟩,pr⟩
+  exact ⟨a,⟨b,pr⟩⟩
+  apply Function.bijective_iff_has_inverse.mpr
+  refine ⟨?_,?_,?_⟩
+  · intro ⟨a,⟨b,pr⟩⟩
+    exact ⟨⟨a,b⟩,pr⟩
+  exact congrFun rfl
+  exact congrFun rfl
+  }
+  by_cases! h : ∃ a, ENat.card (σ a) = ⊤
+  {
+  trans ⊤
+  ·
+    simp only [ENat.card_eq_top] at h ⊢
+    obtain ⟨a, aw⟩ := h
+    exact Infinite.sigma_of_right (a := a)
+  refine HasSum.tsum_eq ?_ |>.symm
+  exact ENat.sum_with_top h
+  }
+
+  have h' : ∀ (a : X), Finite (σ a) := by
+    simpa only [ne_eq, ENat.card_eq_top, not_infinite_iff_finite] using h
+  clear h
+  change _ = ∑' a, ENat.card (σ a)
+  simp only [(ENat.card_eq_coe_natCard <| σ ·)]
+  have q: {a | Nonempty (σ a)} = Function.support fun a ↦ (Nat.card (σ a) : ℕ∞) := by
+    ext a
+    simp only [Set.mem_setOf_eq, Function.mem_support, ne_eq, Nat.cast_eq_zero]
+    simp only [iff_not_comm, not_nonempty_iff]
+    exact Finite.card_eq_zero_iff
+
+
+  have s_equiv : Sigma σ ≃ (Σ x : {a // Nonempty (σ a)}, σ x) := by
+    refine (Equiv.sigmaSubtypeEquivOfSubset σ (fun a ↦ Nonempty (σ a)) ?_).symm
+    exact fun _ ↦ Nonempty.intro
+
+  rw [ENat.card_congr s_equiv]
+
+
+  by_cases! hf : (fun a ↦ (Nat.card (σ a) : ℕ∞)).support.Finite
+  {
+    have hf' : {a | Nonempty (σ a)}.Finite := by convert hf
+    have hf'' : Finite {a // Nonempty (σ a)} := hf'
+    have hf''' : Fintype {a // Nonempty (σ a)} := Fintype.ofFinite _
+
+    have : Finite (Sigma σ) := by
+      apply Equiv.finite_iff s_equiv |>.mpr
+      apply Finite.instSigma
+
+    simp only [ENat.card_eq_coe_natCard]
+    rw [Nat.card_sigma]
+
+
+    have hfa : hf.toFinset = { a | Nonempty (σ a) } := by
+      rw [q]
+      exact Set.Finite.coe_toFinset hf
+
+    have hfa' : hf.toFinset = { a // Nonempty (σ a) } := by exact congrArg Subtype hfa
+
+
+
+    have hfaq : hf.toFinset = @Set.toFinset _ { a | Nonempty (σ a) } hf''' := by
+      simp_all [σ]
+      ext a : 1
+      simp_all only [Set.Finite.mem_toFinset, Function.mem_support, ne_eq, Nat.cast_eq_zero, nonempty_subtype,
+        Set.mem_toFinset]
+    symm
+    refine HasSum.tsum_eq ?_
+    convert ENat.sum_finite_support _ hf
+    norm_cast
+    let ss x := Nat.card (σ x)
+    change ∑ x : { a // Nonempty (σ a) }, (ss ↑x) = ∑ x ∈ hf.toFinset, ss x
+    rw [hfaq]
+
+    convert Finset.sum_finset_coe ss ?_
+    simp only [Set.coe_toFinset]
+    rfl
+    simp only [Set.coe_toFinset, Set.mem_setOf_eq]
+  }
+
+  change Set.Infinite _ at hf
+
+  symm
+  trans ⊤
+  ·
+    refine HasSum.tsum_eq ?_
+    exact ENat.sum_infinite_support_top _ hf
+  refine Eq.symm ((fun {α} ↦ ENat.card_eq_top.mpr) ?_)
+
+  refine @Infinite.instSigmaOfNonempty _ _ ?_ ?_
+  rw [←q] at hf
+  exact { not_finite := hf }
+  intro a
+  simp_all only [nonempty_subtype, σ]
+  obtain ⟨val, property⟩ := a
+  simp_all only
+  simp_all only [nonempty_subtype, σ]
+
+
 
 -- todo: establish TopologicalSpace (MultiCover F) where this is equal
-noncomputable def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
+noncomputable def MultiCover.sum {β : Type} (s : β → MultiCover F) : MultiCover F where
   func := ∑' n, (s n).func
   possible := by
-    use (n : ℕ) × (s n |>.series_α)
+    use (n : β) × (s n |>.series_α)
     use fun ⟨n,a⟩ ↦ (s n).series a
     -- use fun n ↦ (fun ab ↦ s ab.1 |>.series ab.2) (Nat.pairEquiv.symm n)
     change ∑' n, ⇑(s n) = _
@@ -749,8 +857,8 @@ noncomputable def MultiCover.sum (s : ℕ → MultiCover F) : MultiCover F where
     simp only [series_def']
     rw [tsum_apply ⟨_, ENat.hasSum_apply _ ⟩]
     change
-      ∑' (i : ℕ), ENat.card { n // x ∈ (s i).series n } =
-        ENat.card { ab : ((n : ℕ) × (s n |>.series_α)) // (fun a b ↦ x ∈ (s a).series b) ab.fst ab.snd }
+      ∑' (i : β), ENat.card { n // x ∈ (s i).series n } =
+        ENat.card { ab : ((n : β) × (s n |>.series_α)) // (fun a b ↦ x ∈ (s a).series b) ab.fst ab.snd }
     apply encard_sigma' (fun a b ↦ x ∈ (s a).series b)
 
 noncomputable def coe_series (α : Type) : Coe (α → F) (MultiCover F) where

@@ -397,7 +397,12 @@ end card_multi_cover
 
 section exact_multi_cover
 
-structure MultiCover {X : Type} (F : Type) [SetLike F X] where
+variable  {X : Type*} {F : Type*} [SetLike F X] {c : Cardinal}
+
+
+
+
+structure MultiCover {X : Type*} (F : Type*) [SetLike F X] where
   func (x : X) : ℕ∞
   possible: ∃(α : Type)(series: α → F), func = fun x ↦ ENat.card {n // x ∈ series n}
 
@@ -606,7 +611,7 @@ theorem ENat.sum_infinite_support_top {α : Type} (f : α → ℕ∞) (h : (Func
 #check tsum_apply
 
 
-theorem ENat.hasSum_apply  {α β  : Type} (f : α → β → ℕ∞) : HasSum f (⨆ s : Finset α, ∑ a ∈ s, f a) :=
+theorem ENat.hasSum_apply  {α β  : Type*} (f : α → β → ℕ∞) : HasSum f (⨆ s : Finset α, ∑ a ∈ s, f a) :=
   tendsto_atTop_iSup fun _ _ => Finset.sum_le_sum_of_subset
 
 theorem ENat.sum_finite_support {α : Type} (f : α → ℕ∞) (hf : (f.support).Finite)
@@ -942,6 +947,33 @@ noncomputable def MultiCover.disjointed [DiffClosed F] (m : MultiCover F) : Mult
 
     sorry
 
+open scoped MeasureTheory
+-- could this give card sum using counting measures?
+#check Sigma.instMeasurableSpace
+#check MeasurableSpace
+-- incomplete.
+-- variable {F' : Set (Set X)}
+-- instance : SetLike (F') X := SetLike.instSubtypeSet
+-- abbrev F'' := Subtype F'
+
+-- example : MultiCover F' := sorry
+
+instance {S : MeasurableSpace X} : SetLike (Subtype (MeasurableSet[S])) X := (SetLike.instSubtypeSet)
+def MultiCover.sigma_algebra (S : MeasurableSpace X) := MultiCover (Subtype (MeasurableSet[S]))
+
+instance [S : MeasurableSpace X] : CommSemigroup (MultiCover.sigma_algebra S) where
+  mul a b := ⟨
+    a.func * b.func,
+    by
+    use (a.series_α × b.series_α)
+    -- use fun x y ↦
+
+    sorry
+  ⟩
+  mul_assoc := sorry
+  mul_comm := sorry
+
+
 
 -- open Filter in
 -- theorem MultiCover.summable_coe (s : ℕ → MultiCover F) : Summable (fun n ↦ ⇑(s n)) := by
@@ -994,6 +1026,22 @@ open scoped ENNReal
 
 --   sorry
 -- ⟩ := by sorry
+
+-- Plans for restarting:
+
+structure MultiCoverFree {X : Type*} where
+  func (x : X) : ℕ∞
+  possible: ∃(α : Type)(series: α → Set X), func = fun x ↦ ENat.card {n // x ∈ series n} -- trivial.
+def MultiCoverFree.cover (m : MultiCoverFree) (F : Set (Set X)) := ∃(α : Type)(series: α → F), m.func = fun x ↦ ENat.card {n // x ∈ (series n : Set X)}
+
+#check Set.range (_ : SetLike F X).coe
+
+def MultiCoverFree.coverSubtype (F : Set (Set X)) := Subtype (cover · F)
+
+-- todo: also as SetLike, maybe?
+noncomputable def ComposeCover  {α : Type*} (series: α → Set X) (x : X) := ENat.card {n // x ∈ series n}
+def CoverDecomposes (func : X → ℕ∞) {α : Type*} (series: α → Set X) : Prop := func = ComposeCover series
+def CoverDecomposesIn (func : X → ℕ∞) (α : Type*) (F : Set (Set X)) : Prop := ∃ series: α → F, CoverDecomposes func (series · : _ → Set X)
 
 end exact_multi_cover
 

@@ -10,13 +10,16 @@ variable {X : Type*} {ι : Type*} {func : X → ℕ∞} {series: ι → Set X} {
 
 noncomputable def ComposeCover (series: ι → Set X)
   (x : X) : ℕ∞ := ENat.card {i // x ∈ series i}
+theorem ComposeCover_def {series: ι → Set X} {x : X}
+  : (ComposeCover series x) = ENat.card {i // x ∈ series i}
+  := by rfl
 theorem ComposeCover_def_comp (x : X)
   : (ComposeCover · x) = (ENat.card ∘ Subtype ∘ (fun (series : ι → Set X) i ↦ x ∈ series i))
   := by rfl
-def CoverDecomposes (func : X → ℕ∞) (series: ι → Set X) : Prop
-  := func = ComposeCover series
+def CoverDecomposes (func : X → ℕ∞) (F : Set (Set X)) (series: ι → Set X) : Prop
+  := (∀i, series i ∈ F) ∧ func = ComposeCover series
 def CoverDecomposesIn (func : X → ℕ∞) (ι : Type*) (F : Set (Set X)) : Prop
-  := ∃ series: ι → Set X, (∀i, series i ∈ F) ∧ CoverDecomposes func series
+  := ∃ series: ι → Set X, CoverDecomposes func F series
 theorem CoverDecomposesIn_def (func : X → ℕ∞) (ι : Type*) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, (∀i, series i ∈ F) ∧ func = ComposeCover series
@@ -31,7 +34,10 @@ theorem CoverDecomposesIn_def'' (func : X → ℕ∞) (ι : Type*) (F : Set (Set
   := by
   convert CoverDecomposesIn_def func ι F
   exact Set.range_subset_iff
-
+theorem CoverDecomposesIn_def''' (func : X → ℕ∞) (ι : Type*) (F : Set (Set X))
+  : CoverDecomposesIn func ι F ↔
+  ∃ series: ι → Set X, CoverDecomposes func F series
+  := by rfl
 
 section setlike
 variable {F' : Type*} [SetLike F' X]
@@ -95,17 +101,19 @@ theorem ComposeCover_equiv_comp {ι₂ : Type*} (e : ι₂ ≃ ι)
 
 --   change Subtype ((x ∈ series ·) ∘ e) ≃ Subtype (x ∈ series ·)
 
-def removed_empties (series : ι → Set X)
-  : {i : ι // series i ≠ ∅} → Set X
-  := (series ·)
+def removed_empties [EmptyCollection X] (series : ι → X)
+  : {i : ι // ¬ series i = ∅} → X
+  := Subtype.restrict (¬ series · = ∅) series
 
+theorem removed_empties.restriction [EmptyCollection X]
+  : removed_empties series = (setOf (¬ series · = ∅) ).restrict series
+  := by rfl
 
 #check Equiv.subtypeEquivOfSubtype
 
 theorem ComposeCover_nonempty
   : ComposeCover series = ComposeCover (removed_empties series)
   := by
-  simp only [ne_eq]
   unfold ComposeCover
   funext x
   apply ENat.card_congr
@@ -116,9 +124,77 @@ theorem ComposeCover_nonempty
   refine (Equiv.subtypeSubtypeEquivSubtype ?_).symm
   unfold P Q
   intro i pi w
-  have := w ▸ pi
-  exact this
+  apply w ▸ pi
 
+section perm_nonempty
+
+variable {X : Type*} [EmptyCollection X] {ι ι' : Type} {a : ι → X} {b : ι' → X}
+
+
+def perm_nonempty' (a' b' : Σ (ι : Type), (ι → X)) : Prop
+  := ∃(e : _ ≃ _), removed_empties a'.snd = (removed_empties b'.snd) ∘ e
+
+def perm_nonempty (a : ι → X) (b : ι' → X) : Prop
+  := perm_nonempty' ⟨_, a⟩ ⟨_, b⟩
+
+theorem perm_nonempty.coe (p : perm_nonempty a b)
+  : perm_nonempty' ⟨_, a⟩ ⟨_, b⟩
+  := p
+
+theorem perm_nonempty.coe_iff
+  : perm_nonempty a b ↔ perm_nonempty' ⟨_, a⟩ ⟨_, b⟩
+  := Iff.rfl
+
+theorem perm_nonempty.simple (p : perm_nonempty a b)
+  : ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e
+  := p
+
+theorem perm_nonempty.simple_iff
+  : perm_nonempty a b ↔ ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e := by rfl
+
+instance inst_perm_nonempty : Equivalence (perm_nonempty' (X := X)) where
+  refl a := ⟨Equiv.refl _,by rfl⟩
+  symm := by
+    intro ⟨ai, a⟩ ⟨bi, b⟩ ⟨e, s⟩
+    refine ⟨e.symm,?_⟩
+    simp_all only
+    ext x : 1
+    simp_all only [Function.comp_apply, Equiv.apply_symm_apply]
+  trans := by
+    intro ⟨ai, a⟩ ⟨bi, b⟩ ⟨ci, c⟩ ⟨e_ab, s_ab⟩ ⟨e_bc, s_bc⟩
+    refine ⟨Equiv.trans e_ab e_bc, ?_⟩
+    simp_all only [Equiv.coe_trans]
+    rfl
+
+#check Eq.symm
+
+theorem perm_nonempty.refl (a : ι → X)
+  : perm_nonempty a a := inst_perm_nonempty.refl ⟨_, a⟩
+theorem perm_nonempty.symm (h : perm_nonempty a b)
+  : perm_nonempty b a := inst_perm_nonempty.symm h.coe
+theorem perm_nonempty.trans {ι'' : Type} {c : ι'' → X}
+  (ab : perm_nonempty a b) (bc : perm_nonempty b c)
+  : perm_nonempty a c := inst_perm_nonempty.trans ab.coe bc.coe
+
+-- #check Module
+
+
+
+end perm_nonempty
+
+
+-- theorem CoverDecomposes.perm {ι₂ : Type} {series₂ : ι₂ → Set X} (p : perm_nonempty series series₂) :
+--   CoverDecomposes func F series ↔ CoverDecomposes func F series₂
+--   := by
+--   sorry
+
+
+
+theorem CoverDecomposes_removed_empties :
+  CoverDecomposes func F series ↔ CoverDecomposes func F (removed_empties series)
+  := by
+
+  sorry
 
 -- todo: use ComposeCover_nonempty
 theorem CoverDecomposesIn_embedding {ι₂ : Type*} (n : ∅ ∈ F) (e : ι ↪ ι₂)
@@ -192,7 +268,8 @@ theorem MultiCover.ι_equiv {ι₂ : Type*} (e : ι₂ ≃ ι)
 
 open scoped Cardinal
 -- #check embeddingToCardinal
-
+#check Cardinal.le_def
+-- ↪ is ≤
 
 theorem MultiCover.ι_less (n : ∅ ∈ F) {ι₂ : Type*} (e : ι ↪ ι₂)
   : MultiCover ι F ⊆ MultiCover ι₂ F := by

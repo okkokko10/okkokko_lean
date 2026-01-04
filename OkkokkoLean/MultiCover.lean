@@ -1,6 +1,8 @@
 import Mathlib.Tactic
 
-variable {X : Type*} {ι : Type*} {func : X → ℕ∞} {series: ι → Set X} {F : Set (Set X)}
+universe u v v' v''
+
+variable {X : Type u} {func : X → ℕ∞} {F : Set (Set X)} {ι : Type v} {ι' : Type v'} {series: ι → Set X} {series': ι' → Set X}
 
 -- #check Set.range (_ : SetLike F X).coe
 
@@ -18,23 +20,23 @@ theorem ComposeCover_def_comp (x : X)
   := by rfl
 def CoverDecomposes (func : X → ℕ∞) (F : Set (Set X)) (series: ι → Set X) : Prop
   := (∀i, series i ∈ F) ∧ func = ComposeCover series
-def CoverDecomposesIn (func : X → ℕ∞) (ι : Type*) (F : Set (Set X)) : Prop
+def CoverDecomposesIn (func : X → ℕ∞) (ι : Type v) (F : Set (Set X)) : Prop
   := ∃ series: ι → Set X, CoverDecomposes func F series
-theorem CoverDecomposesIn_def (func : X → ℕ∞) (ι : Type*) (F : Set (Set X))
+theorem CoverDecomposesIn_def (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, (∀i, series i ∈ F) ∧ func = ComposeCover series
   := by rfl
-theorem CoverDecomposesIn_def' (func : X → ℕ∞) (ι : Type*) (F : Set (Set X))
+theorem CoverDecomposesIn_def' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, (∀i, series i ∈ F) ∧ ∀x, func x = ENat.card {n // x ∈ series n}
   := by simp_rw [←funext_iff]; rfl
-theorem CoverDecomposesIn_def'' (func : X → ℕ∞) (ι : Type*) (F : Set (Set X))
+theorem CoverDecomposesIn_def'' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, (Set.range series ⊆ F) ∧ func = ComposeCover series
   := by
   convert CoverDecomposesIn_def func ι F
   exact Set.range_subset_iff
-theorem CoverDecomposesIn_def''' (func : X → ℕ∞) (ι : Type*) (F : Set (Set X))
+theorem CoverDecomposesIn_def''' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, CoverDecomposes func F series
   := by rfl
@@ -81,7 +83,7 @@ theorem CoverDecomposesIn'_isom {F' : Type*} [SetLike F' X] {F : Set (Set X)}
 end setlike
 
 @[simp]
-theorem ComposeCover_equiv_comp {ι₂ : Type*} (e : ι₂ ≃ ι)
+theorem ComposeCover_equiv_comp {ι₂ : Type v'} (e : ι₂ ≃ ι)
   : ComposeCover (series ∘ e) = ComposeCover series := by
   unfold ComposeCover
   funext x
@@ -128,31 +130,30 @@ theorem ComposeCover_nonempty
 
 section perm_nonempty
 
-variable {X : Type*} [EmptyCollection X] {ι ι' : Type} {a : ι → X} {b : ι' → X}
+variable {X : Type u} [EmptyCollection X] {ι : Type v} {ι' : Type v'} {a : ι → X} {b : ι' → X}
 
-
-def perm_nonempty' (a' b' : Σ (ι : Type), (ι → X)) : Prop
-  := ∃(e : _ ≃ _), removed_empties a'.snd = (removed_empties b'.snd) ∘ e
 
 def perm_nonempty (a : ι → X) (b : ι' → X) : Prop
-  := perm_nonempty' ⟨_, a⟩ ⟨_, b⟩
+  := ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e
 
-theorem perm_nonempty.coe (p : perm_nonempty a b)
+section same_universe
+
+variable {ι' : Type v}  {b : ι' → X}
+private
+def perm_nonempty' (a' b' : Σ (ι : Type v), (ι → X)) : Prop
+  := ∃(e : _ ≃ _), removed_empties a'.snd = (removed_empties b'.snd) ∘ e
+
+
+theorem perm_nonempty'.coe (p : perm_nonempty a b)
   : perm_nonempty' ⟨_, a⟩ ⟨_, b⟩
   := p
 
-theorem perm_nonempty.coe_iff
+theorem perm_nonempty'.coe_iff
   : perm_nonempty a b ↔ perm_nonempty' ⟨_, a⟩ ⟨_, b⟩
   := Iff.rfl
 
-theorem perm_nonempty.simple (p : perm_nonempty a b)
-  : ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e
-  := p
 
-theorem perm_nonempty.simple_iff
-  : perm_nonempty a b ↔ ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e := by rfl
-
-instance inst_perm_nonempty : Equivalence (perm_nonempty' (X := X)) where
+instance inst_perm_nonempty' : Equivalence (perm_nonempty' (X := X)) where
   refl a := ⟨Equiv.refl _,by rfl⟩
   symm := by
     intro ⟨ai, a⟩ ⟨bi, b⟩ ⟨e, s⟩
@@ -166,27 +167,50 @@ instance inst_perm_nonempty : Equivalence (perm_nonempty' (X := X)) where
     simp_all only [Equiv.coe_trans]
     rfl
 
+
+end same_universe
+
+
+theorem perm_nonempty.simple (p : perm_nonempty a b)
+  : ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e
+  := p
+
+theorem perm_nonempty.simple_iff
+  : perm_nonempty a b ↔ ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e := by rfl
+
 #check Eq.symm
 
+@[refl]
 theorem perm_nonempty.refl (a : ι → X)
-  : perm_nonempty a a := inst_perm_nonempty.refl ⟨_, a⟩
+  : perm_nonempty a a := inst_perm_nonempty'.refl ⟨_, a⟩
+@[symm]
 theorem perm_nonempty.symm (h : perm_nonempty a b)
-  : perm_nonempty b a := inst_perm_nonempty.symm h.coe
-theorem perm_nonempty.trans {ι'' : Type} {c : ι'' → X}
+  : perm_nonempty b a := by
+    obtain ⟨e, s⟩ := h
+    refine ⟨e.symm,?_⟩
+    simp_all only
+    ext x : 1
+    simp_all only [Function.comp_apply, Equiv.apply_symm_apply]
+@[trans]
+theorem perm_nonempty.trans {ι'' : Type v''} {c : ι'' → X}
   (ab : perm_nonempty a b) (bc : perm_nonempty b c)
-  : perm_nonempty a c := inst_perm_nonempty.trans ab.coe bc.coe
+  : perm_nonempty a c := by
+    obtain ⟨e_ab, s_ab⟩ := ab
+    obtain ⟨e_bc, s_bc⟩ := bc
+    refine ⟨Equiv.trans e_ab e_bc, ?_⟩
+    simp_all only [Equiv.coe_trans]
+    rfl
 
--- #check Module
 
 
 
 end perm_nonempty
 
 
--- theorem CoverDecomposes.perm {ι₂ : Type} {series₂ : ι₂ → Set X} (p : perm_nonempty series series₂) :
---   CoverDecomposes func F series ↔ CoverDecomposes func F series₂
---   := by
---   sorry
+theorem CoverDecomposes.perm (p : perm_nonempty series series') :
+  CoverDecomposes func F series ↔ CoverDecomposes func F series'
+  := by
+  sorry
 
 
 
@@ -197,7 +221,7 @@ theorem CoverDecomposes_removed_empties :
   sorry
 
 -- todo: use ComposeCover_nonempty
-theorem CoverDecomposesIn_embedding {ι₂ : Type*} (n : ∅ ∈ F) (e : ι ↪ ι₂)
+theorem CoverDecomposesIn_embedding {ι₂ : Type v'} (n : ∅ ∈ F) (e : ι ↪ ι₂)
   : CoverDecomposesIn func ι F → CoverDecomposesIn func ι₂ F
   := by
   classical
@@ -246,24 +270,26 @@ theorem CoverDecomposesIn_embedding {ι₂ : Type*} (n : ∅ ∈ F) (e : ι ↪ 
 
   sorry
 
-theorem CoverDecomposesIn_equiv {ι₁ ι₂ : Type*} (e : ι₂ ≃ ι₁)
-  : CoverDecomposesIn func ι₁ F ↔ CoverDecomposesIn func ι₂ F
+theorem CoverDecomposesIn_equiv (e : ι ≃ ι')
+  : CoverDecomposesIn func ι F ↔ CoverDecomposesIn func ι' F
   := by
+  symm
+  symm at e
   simp_rw [CoverDecomposesIn_def]
-  have t (series : ι₁ → Set X)
-    : (∀ (i : ι₁), series i ∈ F) ↔ (∀ (i : ι₂), (series ∘ e) i ∈ F)
+  have t (series : ι → Set X)
+    : (∀ (i : ι), series i ∈ F) ↔ (∀ (i : ι'), (series ∘ e) i ∈ F)
     := Equiv.forall_congr_right (q :=(series · ∈ F) ) e |>.symm
   simp_rw [t]
   simp_rw [←ComposeCover_equiv_comp e]
-  refine Iff.symm (Function.Surjective.exists ?_)
+  refine Function.Surjective.exists ?_
   refine Function.Injective.surjective_comp_right ?_
   exact Equiv.injective e
 
-def MultiCover (ι : Type*) (F : Set (Set X))
+def MultiCover (ι : Type v) (F : Set (Set X))
   := { f | CoverDecomposesIn f ι F}
 
-theorem MultiCover.ι_equiv {ι₂ : Type*} (e : ι₂ ≃ ι)
-  : MultiCover ι F = MultiCover ι₂ F
+theorem MultiCover.ι_equiv (e : ι ≃ ι')
+  : MultiCover ι F = MultiCover ι' F
   := by simp_rw [MultiCover, CoverDecomposesIn_equiv e]
 
 open scoped Cardinal
@@ -271,8 +297,8 @@ open scoped Cardinal
 #check Cardinal.le_def
 -- ↪ is ≤
 
-theorem MultiCover.ι_less (n : ∅ ∈ F) {ι₂ : Type*} (e : ι ↪ ι₂)
-  : MultiCover ι F ⊆ MultiCover ι₂ F := by
+theorem MultiCover.ι_less (n : ∅ ∈ F) (e : ι ↪ ι')
+  : MultiCover ι F ⊆ MultiCover ι' F := by
   unfold MultiCover
   simp only [Set.setOf_subset_setOf]
   intro s

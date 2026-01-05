@@ -12,8 +12,11 @@ variable {X : Type u} {func : X → ℕ∞} {F : Set (Set X)} {ι : Type v} {ι'
 
 noncomputable def ComposeCover (series: ι → Set X)
   (x : X) : ℕ∞ := ENat.card {i // x ∈ series i}
-theorem ComposeCover_def {series: ι → Set X} {x : X}
-  : (ComposeCover series x) = ENat.card {i // x ∈ series i}
+theorem ComposeCover.def
+  : (ComposeCover) = fun (series: ι → Set X) x ↦ ENat.card {i // x ∈ series i}
+  := by rfl
+theorem ComposeCover.def' {series: ι → Set X}
+  : (ComposeCover series) = fun x ↦ ENat.card {i // x ∈ series i}
   := by rfl
 theorem ComposeCover_def_comp (x : X)
   : (ComposeCover · x) = (ENat.card ∘ Subtype ∘ (fun (series : ι → Set X) i ↦ x ∈ series i))
@@ -103,17 +106,63 @@ theorem ComposeCover_equiv_comp {ι₂ : Type v'} (e : ι₂ ≃ ι)
 
 --   change Subtype ((x ∈ series ·) ∘ e) ≃ Subtype (x ∈ series ·)
 
-def removed_empties [EmptyCollection X] (series : ι → X)
-  : {i : ι // ¬ series i = ∅} → X
-  := Subtype.restrict (¬ series · = ∅) series
+section restrict_range
 
-theorem removed_empties.restriction [EmptyCollection X]
-  : removed_empties series = (setOf (¬ series · = ∅) ).restrict series
+def restrict_range (p : X → Prop) (a : ι → X) := Subtype.restrict (p ∘ a) a
+
+#check Subtype.restrict_apply
+
+@[simp]
+theorem restrict_range.apply (p : X → Prop) (a : ι → X) (i : _)
+  : restrict_range p a i = a ↑i
+  := rfl
+theorem restrict_range.comp (p : X → Prop) (a : ι → X) (e : ι' → { x // p (a x) }) (i : { x // p (a ↑(e x)) })
+  : (restrict_range p a) (e i) = restrict_range p (a <| e ·) i
+  := rfl
+theorem restrict_range.comp' (p : X → Prop) (a : ι → X) (e : ι' → { x // (p ∘ a) x })
+  : ((restrict_range p a) ∘ e) = fun i : ι' ↦ restrict_range p (a <| e ·) ⟨i,by
+    simp only [Function.comp_apply]
+    exact e i |>.prop
+    ⟩
+  := rfl
+
+#check Subtype.coind
+
+
+theorem restrict_range.comp_subtype (p p' : X → Prop) (a : ι → X)
+  : Subtype (p ∘ restrict_range p' a) = @Subtype (Subtype (p' ∘ a)) (p ∘ a ∘ Subtype.val)
+  := rfl
+@[simp]
+theorem restrict_range.comp_subtype' (p p' : X → Prop) (a : ι → X)
+  : (p ∘ restrict_range p' a) = (p ∘ a ∘ Subtype.val)
+  := rfl
+
+theorem restrict_range.and (p p' : X → Prop) (a : ι → X) i
+  : restrict_range p (restrict_range p' a) i = restrict_range (fun x ↦ p x ∧ p' x) a ⟨i.val, ⟨i.2, i.1.2⟩⟩
+  := rfl
+
+@[simp]
+theorem restrict_range.idempotent (p : X → Prop) (a : ι → X)
+  : restrict_range p (restrict_range p a) = fun i ↦ restrict_range p a i.val
+  := rfl
+
+end restrict_range
+
+
+def removed_empties' [EmptyCollection X] (a : ι → X)
+  : {i : ι // ¬ a i = ∅} → X
+  := restrict_range (¬ · = ∅) a
+def removed_empties  (a : ι → Set X)
+  -- : {i : ι // Set.Nonempty (a i)} → X
+  := restrict_range (Set.Nonempty) a
+
+theorem removed_empties.def {a : ι → Set X}
+  : removed_empties a = restrict_range (Set.Nonempty) a
   := by rfl
 
 #check Equiv.subtypeEquivOfSubtype
 
-theorem ComposeCover_nonempty
+theorem ComposeCover.with_removed_empties
   : ComposeCover series = ComposeCover (removed_empties series)
   := by
   unfold ComposeCover
@@ -121,95 +170,238 @@ theorem ComposeCover_nonempty
   apply ENat.card_congr
   unfold removed_empties
   let P i := x ∈ series i
-  let Q i := ¬series i = ∅
+  let Q i := (series i ).Nonempty
   change { i // P i } ≃ { i : { i // Q i } // P ↑i }
   refine (Equiv.subtypeSubtypeEquivSubtype ?_).symm
-  unfold P Q
-  intro i pi w
-  apply w ▸ pi
+  subst P Q
+  intro i pi
+  exact Set.nonempty_of_mem pi
 
-section perm_nonempty
+-- is there a standard for this?
 
-variable {X : Type u} [EmptyCollection X] {ι : Type v} {ι' : Type v'} {a : ι → X} {b : ι' → X}
+section perm
 
+variable {a : ι → X} {b : ι' → X}
 
-def perm_nonempty (a : ι → X) (b : ι' → X) : Prop
-  := ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e
-
-section same_universe
-
-variable {ι' : Type v}  {b : ι' → X}
-private
-def perm_nonempty' (a' b' : Σ (ι : Type v), (ι → X)) : Prop
-  := ∃(e : _ ≃ _), removed_empties a'.snd = (removed_empties b'.snd) ∘ e
-
-
-theorem perm_nonempty'.coe (p : perm_nonempty a b)
-  : perm_nonempty' ⟨_, a⟩ ⟨_, b⟩
-  := p
-
-theorem perm_nonempty'.coe_iff
-  : perm_nonempty a b ↔ perm_nonempty' ⟨_, a⟩ ⟨_, b⟩
-  := Iff.rfl
-
-
-instance inst_perm_nonempty' : Equivalence (perm_nonempty' (X := X)) where
-  refl a := ⟨Equiv.refl _,by rfl⟩
-  symm := by
-    intro ⟨ai, a⟩ ⟨bi, b⟩ ⟨e, s⟩
-    refine ⟨e.symm,?_⟩
-    simp_all only
-    ext x : 1
-    simp_all only [Function.comp_apply, Equiv.apply_symm_apply]
-  trans := by
-    intro ⟨ai, a⟩ ⟨bi, b⟩ ⟨ci, c⟩ ⟨e_ab, s_ab⟩ ⟨e_bc, s_bc⟩
-    refine ⟨Equiv.trans e_ab e_bc, ?_⟩
-    simp_all only [Equiv.coe_trans]
-    rfl
-
-
-end same_universe
-
-
-theorem perm_nonempty.simple (p : perm_nonempty a b)
-  : ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e
-  := p
-
-theorem perm_nonempty.simple_iff
-  : perm_nonempty a b ↔ ∃(e : _ ≃ _), removed_empties a = (removed_empties b) ∘ e := by rfl
-
-#check Eq.symm
+def perm (a : ι → X) (b : ι' → X) : Prop
+  := ∃(e : _ ≃ _), a = b ∘ e
 
 @[refl]
-theorem perm_nonempty.refl (a : ι → X)
-  : perm_nonempty a a := inst_perm_nonempty'.refl ⟨_, a⟩
+theorem perm.refl (a : ι → X)
+  : perm a a := ⟨Equiv.refl _, by rfl⟩
 @[symm]
-theorem perm_nonempty.symm (h : perm_nonempty a b)
-  : perm_nonempty b a := by
+theorem perm.symm (h : perm a b)
+  : perm b a := by
     obtain ⟨e, s⟩ := h
     refine ⟨e.symm,?_⟩
     simp_all only
     ext x : 1
     simp_all only [Function.comp_apply, Equiv.apply_symm_apply]
 @[trans]
-theorem perm_nonempty.trans {ι'' : Type v''} {c : ι'' → X}
-  (ab : perm_nonempty a b) (bc : perm_nonempty b c)
-  : perm_nonempty a c := by
+theorem perm.trans {ι'' : Type v''} {c : ι'' → X}
+  (ab : perm a b) (bc : perm b c)
+  : perm a c := by
     obtain ⟨e_ab, s_ab⟩ := ab
     obtain ⟨e_bc, s_bc⟩ := bc
     refine ⟨Equiv.trans e_ab e_bc, ?_⟩
     simp_all only [Equiv.coe_trans]
     rfl
 
+#check Subtype.restrict
 
+theorem perm.range: perm a b ↔ ∀x, Nonempty <| {i // a i = x} ≃ {i // b i = x}
+  := by
+  constructor
+  {
+    intro ⟨e,w⟩ x
+    refine ⟨?_⟩
+    rw [w]
+    simp only [Function.comp_apply]
+    let P i := b i = x
+    change { i // P (e i) } ≃ { i // P i }
+    exact e.subtypeEquivOfSubtype
+  }
+  intro w
+  have e : (c : X) → { i // a i = c } ≃ { i // b i = c } := fun c ↦ (w c).some
+  refine ⟨Equiv.ofFiberEquiv e, ?_⟩
+  funext i
+  symm
+  apply Equiv.ofFiberEquiv_map
+
+def perm.restrict (p : X → Prop) (a : ι → X) (b : ι' → X) : Prop
+  := perm (restrict_range p a) (restrict_range p b)
+
+
+-- if the functions are permutations, then their subcollections are too.
+theorem perm.restrict.ofPerm (p : X → Prop) (h : perm a b)
+  : perm.restrict p a b
+  := by
+    -- replace with anti_imp
+    unfold restrict
+    rw [perm.range] at h ⊢
+    simp only [restrict_range.apply]
+    intro x
+    obtain ⟨h⟩ := h x
+    refine ⟨?_⟩
+    by_cases q : p x
+    · refine Equiv.trans ?_ (Equiv.trans h ?_)
+      symm
+      repeat {
+      apply Equiv.ofBijective ?_ ?_
+      intro ⟨i, w⟩
+      exact ⟨⟨i,(w ▸ q : p _)⟩,w⟩
+      refine Function.bijective_iff_has_inverse.mpr ?_
+      refine ⟨fun ⟨h,e⟩ ↦ ⟨h.val,e⟩, by tauto⟩
+      }
+
+    refine @Equiv.equivOfIsEmpty _ _ ?_ ?_
+    <;> {
+      convert Subtype.isEmpty_false
+      rename_i i
+      simp only [iff_false]
+      intro d
+      apply q
+      rw [←d]
+      apply i.2
+    }
+theorem perm.restrict.anti_imp {p p' : X → Prop} (pp : ∀x, p x → p' x) (h : perm.restrict p' a b)
+  : perm.restrict p a b
+  := by
+    unfold restrict at h ⊢
+    rw [perm.range] at h ⊢
+    simp only [restrict_range.apply]
+    intro x
+    obtain ⟨h⟩ := h x
+    refine ⟨?_⟩
+    by_cases q : p x
+    · refine Equiv.trans ?_ (Equiv.trans h ?_)
+      symm
+      repeat
+      {
+      simp_all
+      apply Equiv.ofBijective ?_ ?_
+      intro ⟨i, w⟩
+      exact ⟨⟨i,(w ▸ q : p _)⟩,w⟩
+      refine Function.bijective_iff_has_inverse.mpr ?_
+      refine ⟨fun ⟨⟨h,hh⟩,e⟩ ↦ ⟨⟨h,pp _ hh⟩,e⟩, by tauto⟩
+      }
+    refine @Equiv.equivOfIsEmpty _ _ ?_ ?_
+    <;> {
+      convert Subtype.isEmpty_false
+      rename_i i
+      simp only [iff_false]
+      intro d
+      apply q
+      rw [←d]
+      apply i.2
+    }
+
+
+
+@[refl]
+theorem perm.restrict.refl (p : X → Prop) (a : ι → X)
+  : perm.restrict p a a := ⟨Equiv.refl _, by rfl⟩
+@[symm]
+theorem perm.restrict.symm {p : X → Prop} (h : perm.restrict p a b)
+  : perm.restrict p b a := by
+    obtain ⟨e, s⟩ := h
+    refine ⟨e.symm,?_⟩
+    simp_all only
+    ext x : 1
+    simp_all only [Function.comp_apply, Equiv.apply_symm_apply]
+@[trans]
+theorem perm.restrict.trans {p : X → Prop} {ι'' : Type v''} {c : ι'' → X}
+  (ab : perm.restrict p a b) (bc : perm.restrict p b c)
+  : perm.restrict p a c := by
+    obtain ⟨e_ab, s_ab⟩ := ab
+    obtain ⟨e_bc, s_bc⟩ := bc
+    refine ⟨Equiv.trans e_ab e_bc, ?_⟩
+    simp_all only [Equiv.coe_trans]
+    rfl
+
+theorem perm.restrict.with_restrict_range {p : X → Prop}
+  : perm.restrict p a (restrict_range p a)
+  := by
+    unfold restrict
+    simp only [restrict_range.comp_subtype', restrict_range.idempotent]
+    refine ⟨?_,?_⟩
+    exact (Equiv.subtypeSubtypeEquivSubtype (by exact fun {x} a ↦ a)).symm
+    rfl
+
+end perm
+
+section perm_nonempty
+
+
+-- #check Function
+
+-- variable [EmptyCollection X]
+
+def perm_nonempty (a : ι → Set X) (b : ι' → Set X) : Prop
+  := perm.restrict (Set.Nonempty) a b
+
+theorem perm_nonempty.of_removed_empties (a : ι → Set X)
+  : perm_nonempty a (removed_empties a)
+  := perm.restrict.with_restrict_range
+
+
+
+
+theorem perm.composeCover_eq (p : perm series series')
+  : ComposeCover series = ComposeCover series'
+  := by
+    obtain ⟨e,w⟩ := p
+    simp only [ComposeCover.def]
+    funext x
+    apply ENat.card_congr
+    refine Equiv.subtypeEquiv e ?_
+    intro a
+    subst w
+    simp_all only [Function.comp_apply]
+
+
+theorem perm_nonempty.composeCover_eq (p : perm_nonempty series series')
+  : ComposeCover series = ComposeCover series'
+  := by
+    calc  ComposeCover series
+        = ComposeCover (removed_empties series) := ComposeCover.with_removed_empties
+      _ = ComposeCover (removed_empties series') := perm.composeCover_eq p
+      _ = ComposeCover series' := ComposeCover.with_removed_empties.symm
+
+    -- obtain ⟨e,w⟩ := p
+    -- -- simp only  at w e
+    -- simp only [ComposeCover.def]
+    -- funext x
+    -- apply ENat.card_congr
+    -- simp only [restrict_range.comp', Function.comp_apply, restrict_range.apply] at w
+    -- simp only [funext_iff, restrict_range.apply, Subtype.forall, Function.comp_apply] at w
+
+    -- have tt i x (h : x ∈ series i) : x ∈ series' ↑(e ⟨i, ⟨x,h⟩⟩) := by
+    --   have := w i ⟨x,h⟩
+    --   convert h
+    --   exact id (Eq.symm this)
+
+
+    -- refine Equiv.ofBijective ?_ ?_
+    -- intro ⟨i,q⟩
+
+    -- use (e ⟨i,Set.nonempty_of_mem q⟩)
+    -- convert q
+    -- symm
+    -- exact w i (Set.nonempty_of_mem q)
+
+    -- simp only
 
 
 end perm_nonempty
 
 
+
 theorem CoverDecomposes.perm (p : perm_nonempty series series') :
   CoverDecomposes func F series ↔ CoverDecomposes func F series'
   := by
+
+
   sorry
 
 

@@ -25,21 +25,21 @@ def CoverDecomposes (func : X → ℕ∞) (F : Set (Set X)) (series: ι → Set 
   := (∀i, series i ∈ F) ∧ func = ComposeCover series
 def CoverDecomposesIn (func : X → ℕ∞) (ι : Type v) (F : Set (Set X)) : Prop
   := ∃ series: ι → Set X, CoverDecomposes func F series
-theorem CoverDecomposesIn_def (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
+theorem CoverDecomposesIn.def (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, (∀i, series i ∈ F) ∧ func = ComposeCover series
   := by rfl
-theorem CoverDecomposesIn_def' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
+theorem CoverDecomposesIn.def' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, (∀i, series i ∈ F) ∧ ∀x, func x = ENat.card {n // x ∈ series n}
   := by simp_rw [←funext_iff]; rfl
-theorem CoverDecomposesIn_def'' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
+theorem CoverDecomposesIn.def'' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, (Set.range series ⊆ F) ∧ func = ComposeCover series
   := by
-  convert CoverDecomposesIn_def func ι F
+  convert CoverDecomposesIn.def func ι F
   exact Set.range_subset_iff
-theorem CoverDecomposesIn_def''' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
+theorem CoverDecomposesIn.def''' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, CoverDecomposes func F series
   := by rfl
@@ -80,7 +80,7 @@ theorem CoverDecomposesIn'_isom {F' : Type*} [SetLike F' X] {F : Set (Set X)}
   : CoverDecomposesIn func ι F ↔ CoverDecomposesIn' func ι (F')
   := by
     rw [CoverDecomposesIn'_def]
-    rw [CoverDecomposesIn_def]
+    rw [CoverDecomposesIn.def]
     sorry
 
 end setlike
@@ -468,18 +468,25 @@ theorem CoverDecomposes.perm (n : ∅ ∈ F) (p : perm_nonempty series series') 
 
 
 
-theorem CoverDecomposes_removed_empties :
+theorem CoverDecomposes.with_removed_empties (n : ∅ ∈ F) :
   CoverDecomposes func F series ↔ CoverDecomposes func F (removed_empties series)
   := by
+  apply perm n
+  exact perm_nonempty.of_removed_empties series
 
+
+theorem CoverDecomposes.no_empty (n : ∅ ∉ F) :
+  CoverDecomposes func F series → _root_.perm series (removed_empties series)
+  := by
   sorry
+
 
 -- todo: use ComposeCover_nonempty
 theorem CoverDecomposesIn_embedding {ι₂ : Type v'} (n : ∅ ∈ F) (e : ι ↪ ι₂)
   : CoverDecomposesIn func ι F → CoverDecomposesIn func ι₂ F
   := by
   classical
-  simp_rw [CoverDecomposesIn_def'']
+  simp_rw [CoverDecomposesIn.def'']
   intro ⟨series, rang, feq⟩
   rw [feq]
   have e':= Equiv.ofInjective e e.injective
@@ -529,7 +536,7 @@ theorem CoverDecomposesIn_equiv (e : ι ≃ ι')
   := by
   symm
   symm at e
-  simp_rw [CoverDecomposesIn_def]
+  simp_rw [CoverDecomposesIn.def]
   have t (series : ι → Set X)
     : (∀ (i : ι), series i ∈ F) ↔ (∀ (i : ι'), (series ∘ e) i ∈ F)
     := Equiv.forall_congr_right (q :=(series · ∈ F) ) e |>.symm
@@ -541,6 +548,18 @@ theorem CoverDecomposesIn_equiv (e : ι ≃ ι')
 
 def MultiCover (ι : Type v) (F : Set (Set X))
   := { f | CoverDecomposesIn f ι F}
+theorem MultiCover.def' (ι : Type v) (F : Set (Set X))
+  : MultiCover ι F = ComposeCover '' { series : ι → Set X | Set.range series ⊆ F}
+  := by
+  unfold MultiCover
+  simp_rw [CoverDecomposesIn.def'' _ ι F]
+  rw [Set.image]
+  simp only [Set.mem_setOf_eq]
+  congr! 5
+  exact eq_comm
+theorem MultiCover.def'' (ι : Type v) (F : Set (Set X))
+  : MultiCover ι F = ComposeCover '' ((fun a i ↦ a i) '' @Set.univ (ι → F))
+  := by sorry
 
 theorem MultiCover.ι_equiv (e : ι ≃ ι')
   : MultiCover ι F = MultiCover ι' F

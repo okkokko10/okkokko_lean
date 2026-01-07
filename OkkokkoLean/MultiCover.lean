@@ -23,6 +23,14 @@ theorem ComposeCover_def_comp (x : X)
   := by rfl
 def CoverDecomposes (func : X → ℕ∞) (F : Set (Set X)) (series: ι → Set X) : Prop
   := (∀i, series i ∈ F) ∧ func = ComposeCover series
+
+theorem CoverDecomposes.def' (func : X → ℕ∞) (F : Set (Set X)) (series: ι → Set X)
+  : CoverDecomposes func F series ↔ (Set.range series ⊆ F) ∧ func = ComposeCover series
+  := by
+  unfold CoverDecomposes
+  congr! 1
+  exact Iff.symm Set.range_subset_iff
+
 def CoverDecomposesIn (func : X → ℕ∞) (ι : Type v) (F : Set (Set X)) : Prop
   := ∃ series: ι → Set X, CoverDecomposes func F series
 theorem CoverDecomposesIn.def (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
@@ -520,21 +528,71 @@ theorem perm.restrict.with_extend {p : X → Prop} {b : ι' → X} (e : ι ↪ �
 --   := sorry
 
 
-theorem perm.restrict.inEmbedding {p : X → Prop} {a : ι → X} {i}
-  (e : ι ↪ ι') (h : ¬ p (a i))
-  : ∃(b : ι' → X), perm.restrict p a b
-  := by
-  refine ⟨_, with_extend (b := fun _ ↦ a i) e a ?_⟩
-  exact fun i ↦ h
+noncomputable def perm.restrict.embedding (a : ι → X) (e : ι ↪ ι') (default : X)
+  : ι' → X
+  := (extend (⇑e) a (const _ default))
 
-noncomputable def perm.restrict.inEmbedding_choose {p : X → Prop} {a : ι → X} {i}
-  (e : ι ↪ ι') (_h : ¬ p (a i))
-  := (extend (⇑e) a (const _ (a i)))
-@[simp]
-theorem perm.restrict.inEmbedding_choose_spec {p : X → Prop} {a : ι → X} {i}
-  (e : ι ↪ ι') (h : ¬ p (a i))
-  : perm.restrict p a (inEmbedding_choose e h)
+#check CanLift
+
+theorem perm.restrict.embedding_spec (a : ι → X) (e : ι ↪ ι') (x) (p : X → Prop) (h : ¬ p x)
+  : perm.restrict p a (embedding a e x)
   := with_extend e a fun _ ↦ h
+
+theorem extend_range (f : ι → ι') (g : ι → X) (j : ι' → X) : Set.range (extend f g j) ⊆ Set.range g ∪ Set.range j
+    := by
+    intro x
+    unfold extend
+    simp
+    intro x_2 h_1
+    subst h_1
+    split
+    next h_1 => simp_all only [exists_apply_eq_apply, true_or]
+    next h_1 => simp_all only [not_exists, exists_apply_eq_apply, or_true]
+
+
+theorem perm.restrict.embedding_range_higher (a : ι → X) (e : ι ↪ ι') (default : X)
+  : Set.range (embedding a e default) ⊆ insert default (Set.range a)
+  := by
+  unfold embedding
+  by_cases! hq : IsEmpty ι'
+  · rw [Set.range_eq_empty_iff.mpr hq]
+    exact Set.empty_subset _
+
+  -- #check Set.restrict_extend_range
+  have : insert default (Set.range a) = Set.range a ∪ {default} := by exact Eq.symm Set.union_singleton
+  have qq : {default} = Set.range (const ι' default) := by
+    ext x'
+    simp only [Set.mem_singleton_iff, Set.mem_range, const_apply, exists_const]
+    tauto
+  rw [this, qq]
+  exact extend_range (⇑e) a (const ι' default)
+theorem perm.restrict.embedding_range_lower (a : ι → X) (e : ι ↪ ι') (default : X)
+  : Set.range a ⊆ Set.range (embedding a e default)
+  := by
+  intro y
+  simp only [Set.mem_range, forall_exists_index]
+  intro i aiy
+  unfold embedding
+  use (⇑e i)
+  rw [←aiy]
+  exact e.injective.extend_apply a (const ι' default) i
+
+-- todo: if it's left, e is a bijection.
+theorem perm.restrict.embedding_range_either (a : ι → X) (e : ι ↪ ι') (default : X)
+  : Set.range (embedding a e default) = Set.range a ∨ Set.range (embedding a e default) = insert default (Set.range a)
+  := by
+  have lo := embedding_range_lower a e default
+  have hi := embedding_range_higher a e default
+  set s := Set.range a
+  set q := Set.range (embedding a e default)
+  by_cases h : default ∈ q
+  right
+  apply hi.antisymm
+  exact Set.insert_subset h lo
+  left
+  apply lo.antisymm'
+  exact (Set.subset_insert_iff_of_notMem h).mp hi
+
 
 end perm.restrict
 end perm
@@ -546,7 +604,7 @@ section perm_nonempty
 
 -- variable [EmptyCollection X]
 
-def perm_nonempty (a : ι → Set X) (b : ι' → Set X) : Prop
+abbrev perm_nonempty (a : ι → Set X) (b : ι' → Set X) : Prop
   := perm.restrict (Set.Nonempty) a b
 
 theorem perm_nonempty.of_removed_empties (a : ι → Set X)
@@ -554,6 +612,12 @@ theorem perm_nonempty.of_removed_empties (a : ι → Set X)
   := perm.restrict.with_restrict_range
 
 
+abbrev perm_nonempty.embedding (a : ι → Set X) (e : ι ↪ ι')
+  := perm.restrict.embedding a e ∅
+@[simp]
+theorem perm_nonempty.embedding_spec (a : ι → Set X) (e : ι ↪ ι')
+  : perm_nonempty a (perm_nonempty.embedding a e)
+  := perm.restrict.embedding_spec a e ∅ _ (Set.not_nonempty_empty)
 
 
 theorem perm.composeCover_eq (p : perm series series')
@@ -582,7 +646,7 @@ end perm_nonempty
 
 
 
-theorem CoverDecomposes.perm (n : ∅ ∈ F) (p : perm_nonempty series series') :
+theorem CoverDecomposes.from_perm (n : ∅ ∈ F) (p : perm_nonempty series series') :
   CoverDecomposes func F series ↔ CoverDecomposes func F series'
   := by
   constructor
@@ -617,7 +681,7 @@ theorem CoverDecomposes.perm (n : ∅ ∈ F) (p : perm_nonempty series series') 
 theorem CoverDecomposes.with_removed_empties (n : ∅ ∈ F) :
   CoverDecomposes func F series ↔ CoverDecomposes func F (removed_empties series)
   := by
-  apply perm n
+  apply CoverDecomposes.from_perm n
   exact perm_nonempty.of_removed_empties series
 
 
@@ -626,69 +690,34 @@ theorem CoverDecomposes.no_empty (n : ∅ ∉ F) :
   := by
   sorry
 
+-- open perm.restrict in perm_nonempty
+
+
 theorem CoverDecomposesIn.by_embedding (n : ∅ ∈ F) (e : ι ↪ ι')
   : CoverDecomposesIn func ι F → CoverDecomposesIn func ι' F
   := by
   simp_rw [def_CoverDecomposes]
   intro ⟨series, cd⟩
-  -- simp_rw [CoverDecomposesIn.def_image]
-
-  revert func
-
-
-  sorry
-
--- todo: use ComposeCover_nonempty
-theorem CoverDecomposesIn_embedding {ι₂ : Type v'} (n : ∅ ∈ F) (e : ι ↪ ι₂)
-  : CoverDecomposesIn func ι F → CoverDecomposesIn func ι₂ F
-  := by
-  classical
-  simp_rw [CoverDecomposesIn.def'']
-  intro ⟨series, rang, feq⟩
-  rw [feq]
-  have e':= Equiv.ofInjective e e.injective
-
-  let s2 : ι₂ → Set X := fun i ↦ if h : (i ∈ Set.range e) then series (e'.symm ⟨i,h⟩) else ∅
-  have requirement : Set.range s2 ⊆ (Set.range series ∪ {∅}) := by
-    unfold s2
-    simp only [Set.mem_range, Set.union_singleton]
-    intro q ⟨i,w⟩
-    simp only at w
-    split at w <;> rw [←w]
-    · simp only [Set.mem_insert_iff, Set.mem_range, exists_apply_eq_apply, or_true]
-    · simp only [Set.mem_insert_iff, Set.mem_range, true_or]
+  let em := perm_nonempty.embedding series e
+  use em
+  rw [CoverDecomposes.def'] at cd ⊢
+  refine ⟨?_,?_⟩
+  have wq : Set.range em = _ ∨ Set.range em = _ := perm.restrict.embedding_range_either series e ∅
+  cases wq with
+  | inl h =>
+    rw [h]
+    exact cd.left
+  | inr h =>
+    rw [h]
+    have : F = insert ∅ F := by exact Eq.symm (Set.insert_eq_of_mem n)
+    -- rw [this]
+    refine Set.insert_subset n cd.left
+  have qe := perm_nonempty.embedding_spec series e
+  rw [cd.right]
+  exact perm_nonempty.composeCover_eq qe
 
 
-
-  refine ⟨s2,?_,?_⟩
-  refine trans requirement ?_
-  have : {∅} ⊆ F := Set.singleton_subset_iff.mpr n
-  exact Set.union_subset rang this
-
-  unfold ComposeCover
-  funext x
-  unfold s2
-  simp only [Set.mem_range]
-  apply ENat.card_congr
-  simp_rw [apply_dite (x ∈ ·)]
-  simp only [Set.mem_empty_iff_false, dite_else_false]
-
-  suffices { i // x ∈ series i } ≃ { i : ι // ∃ (h : ∃ y, e y = e' i), x ∈ series (e'.symm ⟨e' i, h⟩) } by
-    apply this.trans
-    change
-      { i // (fun i' ↦ ∃ (h : ∃ y, e y = i'), x ∈ series (e'.symm ⟨i', h⟩)) (e' i) } ≃
-        { i // ∃ (h : ∃ y, e y = i), x ∈ series (e'.symm ⟨i, h⟩) }
-
-    sorry
-  simp
-
-  -- refine ComposeCover_equiv_comp ?_ ?_
-
-
-
-  sorry
-
-theorem CoverDecomposesIn_equiv (e : ι ≃ ι')
+theorem CoverDecomposesIn.by_equiv (e : ι ≃ ι')
   : CoverDecomposesIn func ι F ↔ CoverDecomposesIn func ι' F
   := by
   symm
@@ -716,9 +745,10 @@ theorem MultiCover.def'' (ι : Type v) (F : Set (Set X))
   : MultiCover ι F = ComposeCover '' ((fun a i ↦ a i) '' @Set.univ (ι → F))
   := by sorry
 
+
 theorem MultiCover.ι_equiv (e : ι ≃ ι')
   : MultiCover ι F = MultiCover ι' F
-  := by simp_rw [MultiCover, CoverDecomposesIn_equiv e]
+  := by simp_rw [MultiCover, CoverDecomposesIn.by_equiv e]
 
 open scoped Cardinal
 -- #check embeddingToCardinal
@@ -726,10 +756,23 @@ open scoped Cardinal
 -- ↪ is ≤
 
 theorem MultiCover.ι_less (n : ∅ ∈ F) (e : ι ↪ ι')
-  : MultiCover ι F ⊆ MultiCover ι' F := by
-  unfold MultiCover
-  simp only [Set.setOf_subset_setOf]
-  intro s
+  : MultiCover ι F ⊆ MultiCover ι' F := fun _ a_1 ↦ CoverDecomposesIn.by_embedding n e a_1
+
+
+instance type_size : Preorder (Type v) := Preorder.lift (#·)
+
+
+theorem CoverDecomposesIn.ι_monotone (n : ∅ ∈ F)
+  : Monotone (CoverDecomposesIn func · F)
+  := fun ⦃_ι _ι'⦄ em ↦ Nonempty.casesOn em (by_embedding n)
+
+theorem MultiCover.ι_monotone (n : ∅ ∈ F) : Monotone (MultiCover · F)
+  := fun ⦃_ι _ι'⦄ em ⦃_a⦄ ↦ CoverDecomposesIn.ι_monotone n em
+
+
+theorem CoverDecomposesIn.F_monotone
+  : Monotone (CoverDecomposesIn func ι ·)
+  := by
 
   sorry
 

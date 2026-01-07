@@ -39,10 +39,19 @@ theorem CoverDecomposesIn.def'' (func : X → ℕ∞) (ι : Type v) (F : Set (Se
   := by
   convert CoverDecomposesIn.def func ι F
   exact Set.range_subset_iff
-theorem CoverDecomposesIn.def''' (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
+theorem CoverDecomposesIn.def_CoverDecomposes (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
   : CoverDecomposesIn func ι F ↔
   ∃ series: ι → Set X, CoverDecomposes func F series
   := by rfl
+
+theorem CoverDecomposesIn.def_image (func : X → ℕ∞) (ι : Type v) (F : Set (Set X))
+  : CoverDecomposesIn func ι F = (func ∈ ComposeCover '' { series : ι → Set X | Set.range series ⊆ F})
+  := by
+  simp_rw [CoverDecomposesIn.def'' _ ι F]
+  rw [Set.image]
+  simp only [Set.mem_setOf_eq]
+  congr! 3
+  exact eq_comm
 
 section setlike
 variable {F' : Type*} [SetLike F' X]
@@ -183,6 +192,7 @@ section perm
 
 variable {a : ι → X} {b : ι' → X}
 
+-- todo: in Embedding.arrowCongrLeft the equals is flipped
 def perm (a : ι → X) (b : ι' → X) : Prop
   := ∃(e : _ ≃ _), a = b ∘ e
 
@@ -207,9 +217,7 @@ theorem perm.trans {ι'' : Type v''} {c : ι'' → X}
     simp_all only [Equiv.coe_trans]
     rfl
 
-#check Subtype.restrict
-
-theorem perm.range: perm a b ↔ ∀x, Nonempty <| {i // a i = x} ≃ {i // b i = x}
+theorem perm.range_iff: perm a b ↔ ∀x, Nonempty <| {i // a i = x} ≃ {i // b i = x}
   := by
   constructor
   {
@@ -228,8 +236,43 @@ theorem perm.range: perm a b ↔ ∀x, Nonempty <| {i // a i = x} ≃ {i // b i 
   symm
   apply Equiv.ofFiberEquiv_map
 
+
+set_option pp.proofs true in
+noncomputable def perm.range (h : perm a b)
+  : ∀x, {i // a i = x} ≃ {i // b i = x}
+  := fun x ↦ (perm.range_iff.mp h x).some
+  -- #help attr
+theorem perm.from_range
+  (h' : ∀x, {i // a i = x} ≃ {i // b i = x})
+  : perm a b
+  := perm.range_iff.mpr fun x ↦ Nonempty.intro (h' x)
+
+
+
+theorem perm.inEquiv (a : ι → X) (e : ι ≃ ι') : ∃(b : ι' → X), perm a b := by
+  unfold perm
+  refine ⟨a ∘ e.symm, e,?_⟩
+  exact (Equiv.comp_symm_eq e (a ∘ ⇑e.symm) a).mp rfl
+
+noncomputable def perm.inEquiv_choose (a : ι → X) (e : ι ≃ ι') := (perm.inEquiv a e).choose
+-- todo: add Equiv.perm
+
+@[simp]
+theorem perm.inEquiv_choose_spec (a : ι → X) (e : ι ≃ ι') :  perm a (perm.inEquiv_choose a e) := (perm.inEquiv a e).choose_spec
+
+
+section perm.restrict
+
+#check Subtype.restrict
+
 def perm.restrict (p : X → Prop) (a : ι → X) (b : ι' → X) : Prop
   := perm (restrict_range p a) (restrict_range p b)
+
+-- todo: do lemmas about perm get inherited by perm.restrict?
+--  if not automatically, can something resembling @[to_additive] be done?
+-- @[simps]
+-- #check tsum
+
 
 
 noncomputable def perm.extracted1  {p : X → Prop} (x : X)
@@ -266,23 +309,41 @@ noncomputable def perm.restrict.ofPerm.extracted
     exact extracted2 p x px
 
 -- if the functions are permutations, then their subcollections are too.
+@[simp]
 theorem perm.restrict.ofPerm (p : X → Prop) (h : perm a b)
   : perm.restrict p a b
   := by
     -- replace with anti_imp
     unfold restrict
-    rw [perm.range] at h ⊢
+    rw [perm.range_iff] at h ⊢
     simp only [restrict_range.apply]
     intro x
     obtain ⟨h⟩ := h x
     refine ⟨?_⟩
     exact ofPerm.extracted p x h
 
+
+abbrev perm.r (h : perm a b) (p : X → Prop) : perm.restrict p a b := restrict.ofPerm p h
+
+#check Equiv.asEmbedding
+
+
+theorem perm.restrict.inEquiv (p : X → Prop) (a : ι → X) (e : ι ≃ ι') : ∃(b : ι' → X), perm.restrict p a b :=
+  ⟨perm.inEquiv_choose a e,by simp only [inEquiv_choose_spec, ofPerm]⟩
+
+
+noncomputable def perm.restrict.inEquiv_choose (p : X → Prop)  (a : ι → X) (e : ι ≃ ι') := (perm.restrict.inEquiv p a e).choose
+
+@[simp]
+theorem perm.restrict.inEquiv_choose_spec (p : X → Prop)  (a : ι → X) (e : ι ≃ ι') :  perm.restrict p a (perm.restrict.inEquiv_choose p a e) := (perm.restrict.inEquiv p a e).choose_spec
+
+open Function
+
 theorem perm.restrict.anti_imp {p p' : X → Prop} (pp : ∀x, p x → p' x) (h : perm.restrict p' a b)
   : perm.restrict p a b
   := by
     unfold restrict at h ⊢
-    rw [perm.range] at h ⊢
+    rw [perm.range_iff] at h ⊢
     simp only [restrict_range.apply]
     intro x
     obtain ⟨h⟩ := h x
@@ -344,10 +405,10 @@ theorem perm.restrict.with_restrict_range {p : X → Prop}
     rfl
 
 
-theorem perm.restrict.range {p : X → Prop}: perm.restrict p a b ↔ ∀x, p x → Nonempty ({i // a i = x} ≃ {i // b i = x})
+theorem perm.restrict.range_iff {p : X → Prop}: perm.restrict p a b ↔ ∀x, p x → Nonempty ({i // a i = x} ≃ {i // b i = x})
   := by
   unfold restrict
-  rw [perm.range]
+  rw [perm.range_iff]
   simp only [restrict_range.apply]
   constructor
   {
@@ -366,10 +427,20 @@ theorem perm.restrict.range {p : X → Prop}: perm.restrict p a b ↔ ∀x, p x 
   exact ofPerm.extracted p x h
   exact ofPerm.extracted2 p x px
 
+-- set_option pp.proofs true in
+noncomputable def perm.restrict.range {p : X → Prop} (h : perm.restrict p a b)
+  : ∀x, p x → {i // a i = x} ≃ {i // b i = x}
+  := fun x px ↦ (perm.restrict.range_iff.mp h x px).some
+  -- #help attr
+theorem perm.restrict.from_range {p : X → Prop}
+  (h' : ∀x, p x → {i // a i = x} ≃ {i // b i = x})
+  : perm.restrict p a b
+  := perm.restrict.range_iff.mpr fun x a_1 ↦ Nonempty.intro (h' x a_1)
+
 
 -- todo: the above rhs with (p := Set.Nonempty) → ComposeCover =
 
-
+-- weaker. todo: rename range_iff
 theorem perm.restrict.range_eq {p : X → Prop}
   (h : perm.restrict p a b)
   : ∀x, (p x) → (x ∈ Set.range a ↔ x ∈ Set.range b)
@@ -391,6 +462,81 @@ theorem perm.restrict.range_eq {p : X → Prop}
   }
 
 
+
+-- #check Function.Embedding
+#check Embedding.arrowCongrLeft
+#check Embedding.arrowCongrLeft_apply
+#check extend -- interesting
+
+
+-- set_option pp.proofs true in
+theorem perm.restrict.with_extend {p : X → Prop} {b : ι' → X} (e : ι ↪ ι') (a : ι → X) (h : ∀ i, ¬ p (b i))
+  : perm.restrict p a (extend e a b)
+  := by
+  unfold restrict
+  -- this could be its own lemma
+  apply from_range
+  intro x px
+  have dd i : ¬ b i = x := fun w ↦ h i (w ▸ px)
+  open Classical in
+  have bb i:= extend_def e a b i
+  simp_rw [bb]
+  simp_rw [apply_dite (· = x)]
+  set s := (a · = x)
+  simp_rw [dd]
+  simp only [dite_else_false]
+  change { i // a i = x } ≃ { i' // ∃ (h : ∃ i, e i = i'), a (choose h) = x }
+  convert_to { i // a i = x } ≃ { i' // ∃i, (e i = i') ∧  a i = x }
+  {
+    congr! with i'
+    apply Iff.intro
+    · intro a_1
+      obtain ⟨w, h_1⟩ := a_1
+      obtain ⟨w, h_1⟩ := w
+      subst h_1 h_1
+      simp_all only [EmbeddingLike.apply_eq_iff_eq, choose_eq, exists_eq_left]
+    · intro a_1
+      obtain ⟨w, h_1⟩ := a_1
+      obtain ⟨left, right⟩ := h_1
+      subst left right
+      simp_all only [EmbeddingLike.apply_eq_iff_eq, choose_eq, exists_eq, exists_const]
+  }
+  have : { i' | ∃ i, e i = i' ∧ a i = x } = e '' {i | a i = x} := by
+    ext i' : 1
+    simp_all only [Set.mem_setOf_eq, Set.mem_image]
+    tauto
+  convert_to { i // a i = x } ≃ (⇑e '' {i | a i = x})
+  · exact congrArg Subtype this
+  change { i | a i = x } ≃ (⇑e '' {i | a i = x})
+  set S := { i | a i = x }
+  refine Equiv.Set.imageOfInjOn (⇑e) S ?_
+  simp only [EmbeddingLike.apply_eq_iff_eq, implies_true, Set.injOn_of_eq_iff_eq]
+
+
+
+
+-- theorem perm.restrict.extend {p : X → Prop} {a : ι → X} (e' : ι ↪ ι') {x : X} (h : ¬ p x)
+--   : perm.restrict p a (extend e' a (const _ x))
+--   := sorry
+
+
+theorem perm.restrict.inEmbedding {p : X → Prop} {a : ι → X} {i}
+  (e : ι ↪ ι') (h : ¬ p (a i))
+  : ∃(b : ι' → X), perm.restrict p a b
+  := by
+  refine ⟨_, with_extend (b := fun _ ↦ a i) e a ?_⟩
+  exact fun i ↦ h
+
+noncomputable def perm.restrict.inEmbedding_choose {p : X → Prop} {a : ι → X} {i}
+  (e : ι ↪ ι') (_h : ¬ p (a i))
+  := (extend (⇑e) a (const _ (a i)))
+@[simp]
+theorem perm.restrict.inEmbedding_choose_spec {p : X → Prop} {a : ι → X} {i}
+  (e : ι ↪ ι') (h : ¬ p (a i))
+  : perm.restrict p a (inEmbedding_choose e h)
+  := with_extend e a fun _ ↦ h
+
+end perm.restrict
 end perm
 
 section perm_nonempty
@@ -480,6 +626,17 @@ theorem CoverDecomposes.no_empty (n : ∅ ∉ F) :
   := by
   sorry
 
+theorem CoverDecomposesIn.by_embedding (n : ∅ ∈ F) (e : ι ↪ ι')
+  : CoverDecomposesIn func ι F → CoverDecomposesIn func ι' F
+  := by
+  simp_rw [def_CoverDecomposes]
+  intro ⟨series, cd⟩
+  -- simp_rw [CoverDecomposesIn.def_image]
+
+  revert func
+
+
+  sorry
 
 -- todo: use ComposeCover_nonempty
 theorem CoverDecomposesIn_embedding {ι₂ : Type v'} (n : ∅ ∈ F) (e : ι ↪ ι₂)
@@ -552,11 +709,9 @@ theorem MultiCover.def' (ι : Type v) (F : Set (Set X))
   : MultiCover ι F = ComposeCover '' { series : ι → Set X | Set.range series ⊆ F}
   := by
   unfold MultiCover
-  simp_rw [CoverDecomposesIn.def'' _ ι F]
-  rw [Set.image]
+  ext f
   simp only [Set.mem_setOf_eq]
-  congr! 5
-  exact eq_comm
+  rw [CoverDecomposesIn.def_image]
 theorem MultiCover.def'' (ι : Type v) (F : Set (Set X))
   : MultiCover ι F = ComposeCover '' ((fun a i ↦ a i) '' @Set.univ (ι → F))
   := by sorry

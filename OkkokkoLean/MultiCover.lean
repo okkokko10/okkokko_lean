@@ -771,10 +771,21 @@ theorem MultiCover.ι_monotone (n : ∅ ∈ F) : Monotone (MultiCover · F)
 
 
 theorem CoverDecomposesIn.F_monotone
-  : Monotone (CoverDecomposesIn func ι ·)
+  : Monotone (CoverDecomposesIn func ι)
   := by
+  change Monotone (CoverDecomposesIn func ι ·)
+  simp_rw [CoverDecomposesIn.def_image]
+  change Monotone fun x ↦ (func ∈ ·) <| Set.image ComposeCover (Set.range · ⊆ x)
+  change Monotone fun x ↦ ((func ∈ ·) ∘ Set.image ComposeCover) ((fun x a ↦ Set.range a ⊆ x) x)
+  change Monotone ((func ∈ ·) ∘ Set.image ComposeCover ∘ fun x a ↦ Set.range a ⊆ x)
+  apply Monotone.comp
+  tauto
+  apply Monotone.comp
+  exact Set.monotone_image
+  tauto
 
-  sorry
+theorem MultiCover.F_monotone : Monotone (MultiCover (X := X) ι)
+  := fun ⦃_ι _ι'⦄ em ⦃_a⦄ ↦ CoverDecomposesIn.F_monotone em
 
 instance [Infinite ι] : AddCommSemigroup <| MultiCover ι F where
   add a b := sorry

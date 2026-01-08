@@ -4,6 +4,13 @@ universe u v v' v''
 
 variable {X : Type u} {func : X → ℕ∞} {F : Set (Set X)} {ι : Type v} {ι' : Type v'} {series: ι → Set X} {series': ι' → Set X}
 
+
+@[simp]
+theorem ENat.card_false : ENat.card { _i : ι // False} = 0 := by
+  rw [ENat.card_eq_zero_iff_empty]
+  exact Subtype.isEmpty_false
+
+
 -- #check Set.range (_ : SetLike F X).coe
 
 -- def MultiCoverFree.coverSubtype (F : Set (Set X)) := Subtype (cover · F)
@@ -940,11 +947,7 @@ theorem CoverDecomposesIn.zero (n : ∅ ∈ F) : CoverDecomposesIn 0 ι F
   simp only [n, implies_true, true_and]
   unfold ComposeCover
   ext x
-  simp only [Pi.zero_apply, Set.mem_empty_iff_false]
-  symm
-  rw [ENat.card_eq_zero_iff_empty]
-  exact Subtype.isEmpty_false
-
+  simp only [Pi.zero_apply, Set.mem_empty_iff_false, ENat.card_false]
 
 
 def CoverDecomposesIn.submonoid (n : ∅ ∈ F) [Infinite ι] : AddSubmonoid (X → ℕ∞) where
@@ -987,18 +990,44 @@ theorem CoverDecomposesIn.mul {a b : X → ℕ∞}
   (Fh : ∀(f)(g), (f ∈ F) → (g ∈ F) → f ∩ g ∈ F)
   (ah : CoverDecomposesIn a ι F) (bh : CoverDecomposesIn b ι' F)
   : CoverDecomposesIn (a * b) (ι × ι') F
+
   := ⟨_, CoverDecomposes.mul Fh ah.choose_spec bh.choose_spec⟩
 
+open scoped Classical in
+theorem ComposeCover.singleton (s : Set X) (I : ι)
+  : (ComposeCover fun i ↦ if i = I then s else ∅) = s.indicator 1
+  := by
+  rw [ComposeCover.def]
+  simp only [Set.mem_ite_empty_right]
+  funext x
+  simp only [Set.indicator, Pi.one_apply]
+  split
+  simp_all only [and_true, ENat.card_eq_coe_fintype_card, Fintype.card_unique, Nat.cast_one]
+  simp_all only [and_false, ENat.card_false]
 
--- it is sufficient that a #ι subset of F can partition the space
-theorem CoverDecomposesIn.one (u : Set.univ ∈ F) (n : ∅ ∈ F) [inst : Nonempty ι] : CoverDecomposesIn 1 ι F
+open scoped Classical in
+theorem ComposeCover.of_finset (s : ι → Set X) (Is : Finset ι)
+  : (ComposeCover fun i ↦ if i ∈ Is then s i else ∅) = ∑i ∈ Is, (s i).indicator 1
+  := by sorry
+open scoped Classical in
+theorem ComposeCover.of_fintype [Fintype ι] (s : ι → Set X)
+  : (ComposeCover s) = ∑i, (s i).indicator 1
+  := by sorry
+
+
+-- todo: a coercion
+/-- the extension of a set: its indicator function -/
+theorem CoverDecomposesIn.indicator_mem (n : ∅ ∈ F) [inst : Nonempty ι] {s : Set X}
+  (hs : s ∈ F)
+  : CoverDecomposesIn (Set.indicator s 1) ι F
   := by
   unfold CoverDecomposesIn
   let I : ι := inst.some
   open scoped Classical in
-  use fun i ↦ if i = I then Set.univ else ∅
+  use fun i ↦ if i = I then s else ∅
   rw [CoverDecomposes.def']
   constructor
+  {
   intro x w
   simp_all only [Set.mem_range, I]
   obtain ⟨w, h⟩ := w
@@ -1008,11 +1037,17 @@ theorem CoverDecomposesIn.one (u : Set.univ ∈ F) (n : ∅ ∈ F) [inst : Nonem
     subst h
     simp_all only
   next h => simp_all only
-  rw [ComposeCover.def]
-  simp only [Set.mem_ite_empty_right, Set.mem_univ, and_true, ENat.card_eq_coe_fintype_card,
-    Fintype.card_unique, Nat.cast_one]
-  rfl
+  }
+  symm
+  exact ComposeCover.singleton _ _
 
+
+-- it is sufficient that a #ι subset of F can partition the space
+theorem CoverDecomposesIn.one_mem (u : Set.univ ∈ F) (n : ∅ ∈ F) [inst : Nonempty ι] : CoverDecomposesIn 1 ι F
+  := by
+  have : (1 : X → ℕ∞) = Set.univ.indicator 1 := by simp only [Set.indicator_univ]
+  rw [this]
+  exact indicator_mem n u
 
 def CoverDecomposesIn.subsemiring (u : Set.univ ∈ F) (n : ∅ ∈ F) [Infinite ι]
   (Fh : ∀(f)(g), (f ∈ F) → (g ∈ F) → f ∩ g ∈ F)
@@ -1027,7 +1062,7 @@ def CoverDecomposesIn.subsemiring (u : Set.univ ∈ F) (n : ∅ ∈ F) [Infinite
     apply by_equiv instEquivProdInfinite |>.mp
 
     apply mul Fh ha hb
-  one_mem' := one u n
+  one_mem' := one_mem u n
 
 
 example : Semigroup (Set X) where
@@ -1036,13 +1071,55 @@ example : Semigroup (Set X) where
     change a ∩ b ∩ c = a ∩ (b ∩ c)
     exact Set.inter_assoc a b c
 
+#check ENat.instWellFoundedRelation
+#check WellFoundedRelation
+
+
 -- ∑ and ∏ are very simple for ℕ∞
 noncomputable def func_sum (al : ι → X → ℕ∞) : X → ℕ∞ :=
   open scoped Classical in
   fun x ↦ if h : (Function.support (al · x)).Finite then  ∑ i ∈ h.toFinset, (al i x) else ⊤
 noncomputable def func_prod (al : ι → X → ℕ∞) : X → ℕ∞ :=
   open scoped Classical in
-  fun x ↦ if ∃i, al i x = 0 then 0 else if h : (Function.support (al · x)).Finite then ∏ i ∈ h.toFinset, (al i x) else ⊤
+  fun x ↦ if ∃i, al i x = 0 then 0 else if h : (Function.mulSupport (al · x)).Finite then ∏ i ∈ h.toFinset, (al i x) else ⊤
+
+theorem func_sum.perm_eq  (al : ι → X → ℕ∞) (bl : ι' → X → ℕ∞)
+  (h : perm.restrict (· ≠ 0) al bl)
+  : func_sum al = func_sum bl
+  := by sorry
+
+
+theorem func_sum.add  (al : ι → X → ℕ∞) (bl : ι' → X → ℕ∞)
+  : func_sum al + func_sum bl = func_sum (Sum.elim al bl)
+  := by
+  sorry
+
+#check LinearMap
+
+-- instance instCombined [Semiring X] : Semiring ((ι : Type v) × (ι → X)) where
+--   add a b := ⟨a.1 ⊕ b.1, Sum.elim a.2 b.2⟩
+--   add_assoc := sorry
+--   zero := sorry
+--   zero_add := sorry
+--   add_zero := sorry
+--   nsmul := sorry
+--   add_comm := sorry
+--   mul a b := ⟨a.1 × b.1, (fun m ↦ (a.2 m.1) * (b.2 m.2))⟩
+--   left_distrib := sorry
+--   right_distrib := sorry
+--   zero_mul := sorry
+--   mul_zero := sorry
+--   mul_assoc := sorry
+--   one := sorry
+--   one_mul := sorry
+--   mul_one := sorry
+
+
+-- instance : LinearMap func_sum
+
+theorem func_sum.add_comm  (al : ι → X → ℕ∞) (bl : ι' → X → ℕ∞)
+  :  func_sum (Sum.elim al bl) = func_sum (Sum.elim bl al)
+  := by sorry -- by perm_eq
 
 theorem func_sum.monotone : Monotone (@func_sum X ι) := by
   sorry
@@ -1060,8 +1137,9 @@ theorem func_sum.support_card_le_ub (al : ι → X → ℕ∞) x (t) (h : ∀i, 
 theorem func_sum.sum_sum (all : ι → ι' → X → ℕ∞)
   : func_sum (fun i ↦ func_sum (all i)) = func_sum (fun m : ι × ι' ↦ all m.1 m.2)
   := by
-
+  funext x
   apply le_antisymm
+
   sorry
 
 
@@ -1092,11 +1170,16 @@ theorem func_sum.sum_sum (all : ι → ι' → X → ℕ∞)
   sorry
 
 
+
 #check tsum
 
-theorem CoverDecomposes.sum {al : ι → X → ℕ∞} {sl : ι → ι' → _}
+theorem CoverDecomposes.sum_eq {al : ι → X → ℕ∞} {sl : ι → ι' → _}
   (lh : ∀i, CoverDecomposes (al i) F (sl i))
   : CoverDecomposes (func_sum al) F (fun w : ι × ι' ↦ sl w.1 w.2)
+  := by sorry
+
+theorem ComposeCover.sum_singletons {a : X → ℕ∞} {series : ι → Set X}
+  : ComposeCover series = func_sum (series · |>.indicator 1)
   := by sorry
 
 

@@ -32,3 +32,15 @@ theorem ComposeCover.with_removed_empties
   subst P Q
   intro i pi
   exact Set.nonempty_of_mem pi
+
+theorem CoverDecomposes.from_series (series: ι → Set X)
+  : CoverDecomposes (ComposeCover series) (Set.range series) series
+  := by
+  rw [CoverDecomposes.def']
+  simp only [subset_refl, and_self]
+
+theorem CoverDecomposes.F_range {func : X → ℕ∞} {F : Set (Set X)} {series: ι → Set X}
+  (cd : CoverDecomposes func F series) : CoverDecomposes func (Set.range series) series
+  := by
+  convert from_series _
+  exact eq cd

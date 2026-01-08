@@ -28,7 +28,7 @@ theorem exists_ge (p : ℕ → Prop) (m : ℕ) : (∃n ≥ m, p n) ↔ ∃n, p (
 @[simp]
 theorem eventually_ge (p : ℕ → Prop) : (∃m, ∀n ≥ m, p n) ↔ ∃m, ∀n, p (n + m) := by
   rw [← @not_iff_not]
-  simp only [ge_iff_le, not_exists, not_forall, Classical.not_imp]
+  simp only [ge_iff_le, not_exists, not_forall]
   simp only [exists_prop, exists_ge]
 
 

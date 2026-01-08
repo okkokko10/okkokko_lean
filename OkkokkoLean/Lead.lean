@@ -1,5 +1,7 @@
 import Mathlib.tactic
 import OkkokkoLean.Basic
+
+set_option linter.unusedSimpArgs false
 section lead
 
 variable {X : Type}
@@ -242,7 +244,7 @@ theorem leads_preserves  {f : X → X} {a b : X} {p : X → Prop} (hp : ∀x, p 
   intro pa
   simp_rw [leads_def,sequence_leading_apply f a] at l
   obtain ⟨n, w⟩ := l
-  have := Function.Iterate.rec p hp pa n
+  have := Function.Iterate.rec p pa hp n
   simp [w] at this
   exact this
 
@@ -958,7 +960,7 @@ theorem leads_frequently_induction {X} {f : X → X} (p : X → Prop) (a : X)
 
   sorry
 
-  exact ha
+  admit -- exact ha
 
 
 

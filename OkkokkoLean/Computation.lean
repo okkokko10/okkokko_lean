@@ -3,6 +3,7 @@ import OkkokkoLean.Lead
 import OkkokkoLean.AutomatonConfiguration
 import OkkokkoLean.StateAutomaton
 
+set_option linter.unusedSimpArgs false
 section ComputationOkko
 
 
@@ -144,7 +145,7 @@ def Tape.update (t : Tape G) (i : ℕ) (h : i ≠ 0) (hn : i ≤ t.edge) (a : G)
 
 theorem Tape.unupdated_edge {t : Tape G} {a : G} (i : ℕ) (h : i ≠ 0) (hn : i < t.edge) : (t.update i h (hn.le) a).edge = t.edge := by
   set f :=  (t.update i h (hn.le) a)
-  have (j) : f j = rightChar ↔ t j = rightChar := by
+  have this (j) : f j = rightChar ↔ t j = rightChar := by
     change (if j = i then tapeAlpha a else toFun t j) = _ ↔ _
     split
     · simp only [tapeAlpha_not_char, false_iff]

@@ -1,6 +1,8 @@
 import Mathlib
 import OkkokkoLean.Basic
 import OkkokkoLean.Lead
+
+set_option linter.unusedSimpArgs false
 section automatonConfiguration
 
 -- Todo: should I hardcode exclusive_rejects_accepts_immediate?
@@ -466,7 +468,7 @@ theorem LeadHom.simulated_leads {A B : Type}
       apply leads_pred_trans _ _ q _ lbq
       exact hs _ _ rxq
     intro w
-    have (a b) := w a b (ac.yield a)
+    have this (a b) := w a b (ac.yield a)
     unfold AutomatonConfiguration.leads' at this
     simp only [leads_succ, forall_const] at this
     exact this
@@ -528,7 +530,7 @@ theorem LeadHom.simulated2_leads {A B : Type}
       exact leads_pred_of_leads_pred_pos (hs x q rxq)
     intro w
 
-    have (a b) := w a b (ac.yield a)
+    have this (a b) := w a b (ac.yield a)
     unfold AutomatonConfiguration.leads_pos at this
     simp_rw [leads_pos_def'] at this
     simp only [leads_self, forall_const] at this
@@ -545,7 +547,7 @@ theorem AutomatonConfiguration.accepts_leads_pos {H} {ac : AutomatonConfiguratio
   have true1: ac.accepts a := by
     refine ⟨a,h,?_⟩
     rw [leads']
-    exact leads_self ac.yield a
+    -- exact leads_self ac.yield a
   simp only [true1, true_iff]
 
 
@@ -612,7 +614,7 @@ theorem LeadHom.simulated2_loop {A B : Type}
     : leads_eventually ac.yield a (fun y ↦ bc.leads_pred' x (r y))
     := by
   rw [simulated2_leads] at hs
-  have  (u):= hs a b u rab
+  have this (u):= hs a b u rab
   have key : leads_pred ac.yield a (fun y ↦ bc.leads_pred' x (r y)) := by
     rw [leads_pred_def']
     have : leads_frequently bc.yield b (fun b' ↦ ∃y, leads ac.yield a y ∧ r y b') := by

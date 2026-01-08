@@ -13,3 +13,6 @@ scope = "leanprover-community"
 
 [[lean_lib]]
 name = "OkkokkoLean"
+
+[[lean_lib]]
+name = "OkkokkoLeanTwo"

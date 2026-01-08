@@ -30,6 +30,20 @@ theorem CoverDecomposes.def' (func : X → ℕ∞) (F : Set (Set X)) (series: ι
   unfold CoverDecomposes
   congr! 1
   exact Iff.symm Set.range_subset_iff
+@[inline]
+abbrev CoverDecomposes.f {func : X → ℕ∞} {F : Set (Set X)} {series: ι → Set X}
+  (_cd : CoverDecomposes func F series) := func
+@[inline]
+noncomputable abbrev CoverDecomposes.cover {func : X → ℕ∞} {F : Set (Set X)} {series: ι → Set X}
+  (_cd : CoverDecomposes func F series) := ComposeCover series
+theorem CoverDecomposes.eq (cd : CoverDecomposes func F series ) : func = ComposeCover series := cd.right
+@[inline]
+abbrev CoverDecomposes.range {func : X → ℕ∞} {F : Set (Set X)} {series: ι → Set X}
+  (_cd : CoverDecomposes func F series) := Set.range series
+theorem CoverDecomposes.range_subset {func : X → ℕ∞} {F : Set (Set X)} {series: ι → Set X}
+  (cd : CoverDecomposes func F series) : Set.range series ⊆ F
+  := ((def' func F series).mp cd).left
+
 
 def CoverDecomposesIn (func : X → ℕ∞) (ι : Type v) (F : Set (Set X)) : Prop
   := ∃ series: ι → Set X, CoverDecomposes func F series
@@ -103,7 +117,7 @@ theorem CoverDecomposesIn'_isom {F' : Type*} [SetLike F' X] {F : Set (Set X)}
 end setlike
 
 @[simp]
-theorem ComposeCover_equiv_comp {ι₂ : Type v'} (e : ι₂ ≃ ι)
+theorem ComposeCover.equiv_comp {ι₂ : Type v'} (e : ι₂ ≃ ι)
   : ComposeCover (series ∘ e) = ComposeCover series := by
   unfold ComposeCover
   funext x
@@ -435,6 +449,9 @@ theorem perm.restrict.range_iff {p : X → Prop}: perm.restrict p a b ↔ ∀x, 
   exact ofPerm.extracted p x h
   exact ofPerm.extracted2 p x px
 
+
+-- #check Equiv.prodCongrRight
+-- todo: rename to preimage_equiv
 -- set_option pp.proofs true in
 noncomputable def perm.restrict.range {p : X → Prop} (h : perm.restrict p a b)
   : ∀x, p x → {i // a i = x} ≃ {i // b i = x}
@@ -595,6 +612,12 @@ theorem perm.restrict.embedding_range_either (a : ι → X) (e : ι ↪ ι') (de
 
 
 end perm.restrict
+
+
+-- todo: ι ⊕ ι'
+-- theorem perm.sum : perm
+--   := by sorry
+
 end perm
 
 section perm_nonempty
@@ -646,6 +669,7 @@ end perm_nonempty
 
 
 
+
 theorem CoverDecomposes.from_perm (n : ∅ ∈ F) (p : perm_nonempty series series') :
   CoverDecomposes func F series ↔ CoverDecomposes func F series'
   := by
@@ -692,14 +716,12 @@ theorem CoverDecomposes.no_empty (n : ∅ ∉ F) :
 
 -- open perm.restrict in perm_nonempty
 
-
-theorem CoverDecomposesIn.by_embedding (n : ∅ ∈ F) (e : ι ↪ ι')
-  : CoverDecomposesIn func ι F → CoverDecomposesIn func ι' F
+theorem CoverDecomposes.by_embedding (n : ∅ ∈ F) (e : ι ↪ ι')
+  : CoverDecomposes func F series → CoverDecomposes func F (perm_nonempty.embedding series e)
   := by
-  simp_rw [def_CoverDecomposes]
-  intro ⟨series, cd⟩
-  let em := perm_nonempty.embedding series e
-  use em
+  intro cd
+  set em := perm_nonempty.embedding series e
+  -- use em
   rw [CoverDecomposes.def'] at cd ⊢
   refine ⟨?_,?_⟩
   have wq : Set.range em = _ ∨ Set.range em = _ := perm.restrict.embedding_range_either series e ∅
@@ -717,6 +739,15 @@ theorem CoverDecomposesIn.by_embedding (n : ∅ ∈ F) (e : ι ↪ ι')
   exact perm_nonempty.composeCover_eq qe
 
 
+
+theorem CoverDecomposesIn.by_embedding (n : ∅ ∈ F) (e : ι ↪ ι')
+  : CoverDecomposesIn func ι F → CoverDecomposesIn func ι' F
+  := by
+  simp_rw [def_CoverDecomposes]
+  intro ⟨series, cd⟩
+  refine ⟨_, CoverDecomposes.by_embedding n e cd⟩
+
+
 theorem CoverDecomposesIn.by_equiv (e : ι ≃ ι')
   : CoverDecomposesIn func ι F ↔ CoverDecomposesIn func ι' F
   := by
@@ -727,7 +758,7 @@ theorem CoverDecomposesIn.by_equiv (e : ι ≃ ι')
     : (∀ (i : ι), series i ∈ F) ↔ (∀ (i : ι'), (series ∘ e) i ∈ F)
     := Equiv.forall_congr_right (q :=(series · ∈ F) ) e |>.symm
   simp_rw [t]
-  simp_rw [←ComposeCover_equiv_comp e]
+  simp_rw [←ComposeCover.equiv_comp e]
   refine Function.Surjective.exists ?_
   refine Function.Injective.surjective_comp_right ?_
   exact Equiv.injective e
@@ -738,13 +769,16 @@ theorem MultiCover.def' (ι : Type v) (F : Set (Set X))
   : MultiCover ι F = ComposeCover '' { series : ι → Set X | Set.range series ⊆ F}
   := by
   unfold MultiCover
+  congr
   ext f
-  simp only [Set.mem_setOf_eq]
-  rw [CoverDecomposesIn.def_image]
+  simp only [CoverDecomposesIn.def_image, Set.mem_image, Set.mem_setOf_eq]
+
 theorem MultiCover.def'' (ι : Type v) (F : Set (Set X))
   : MultiCover ι F = ComposeCover '' ((fun a i ↦ a i) '' @Set.univ (ι → F))
   := by sorry
 
+theorem MultiCover.mem (ι : Type v) (F : Set (Set X)) f :
+  f ∈ MultiCover ι F ↔ CoverDecomposesIn f ι F := by rfl
 
 theorem MultiCover.ι_equiv (e : ι ≃ ι')
   : MultiCover ι F = MultiCover ι' F
@@ -754,6 +788,7 @@ open scoped Cardinal
 -- #check embeddingToCardinal
 #check Cardinal.le_def
 -- ↪ is ≤
+section monotone
 
 theorem MultiCover.ι_less (n : ∅ ∈ F) (e : ι ↪ ι')
   : MultiCover ι F ⊆ MultiCover ι' F := fun _ a_1 ↦ CoverDecomposesIn.by_embedding n e a_1
@@ -761,7 +796,7 @@ theorem MultiCover.ι_less (n : ∅ ∈ F) (e : ι ↪ ι')
 
 instance type_size : Preorder (Type v) := Preorder.lift (#·)
 
-
+-- todo: this requires ι ι' are in the same universe. nevermind, by_embedding already handles that
 theorem CoverDecomposesIn.ι_monotone (n : ∅ ∈ F)
   : Monotone (CoverDecomposesIn func · F)
   := fun ⦃_ι _ι'⦄ em ↦ Nonempty.casesOn em (by_embedding n)
@@ -770,9 +805,10 @@ theorem MultiCover.ι_monotone (n : ∅ ∈ F) : Monotone (MultiCover · F)
   := fun ⦃_ι _ι'⦄ em ⦃_a⦄ ↦ CoverDecomposesIn.ι_monotone n em
 
 
-theorem CoverDecomposesIn.F_monotone
-  : Monotone (CoverDecomposesIn func ι)
+theorem CoverDecomposesIn.F_monotone {F' : Set (Set X)} (l : F ⊆ F')
+  : (CoverDecomposesIn func ι F) → (CoverDecomposesIn func ι F')
   := by
+  revert l F F'
   change Monotone (CoverDecomposesIn func ι ·)
   simp_rw [CoverDecomposesIn.def_image]
   change Monotone fun x ↦ (func ∈ ·) <| Set.image ComposeCover (Set.range · ⊆ x)
@@ -783,15 +819,304 @@ theorem CoverDecomposesIn.F_monotone
   apply Monotone.comp
   exact Set.monotone_image
   tauto
+theorem CoverDecomposesIn.F_monotone'
+  : Monotone (CoverDecomposesIn func ι)
+  := fun _ _ ↦ F_monotone
 
 theorem MultiCover.F_monotone : Monotone (MultiCover (X := X) ι)
   := fun ⦃_ι _ι'⦄ em ⦃_a⦄ ↦ CoverDecomposesIn.F_monotone em
 
-instance [Infinite ι] : AddCommSemigroup <| MultiCover ι F where
-  add a b := sorry
-  add_assoc := sorry
-  add_comm := sorry
+theorem CoverDecomposes.F_monotone {F' : Set (Set X)} (l : F ⊆ F')
+  : (CoverDecomposes func F series) → (CoverDecomposes func F' series)
+  := by
+  simp_rw [CoverDecomposes.def']
+  tauto
+theorem CoverDecomposes.F_monotone_union_left {F' : Set (Set X)}
+  : (CoverDecomposes func F series) → (CoverDecomposes func (F ∪ F') series)
+  := F_monotone Set.subset_union_left
+theorem CoverDecomposes.F_monotone_union_right {F' : Set (Set X)}
+  : (CoverDecomposes func F series) → (CoverDecomposes func (F' ∪ F) series)
+  := F_monotone Set.subset_union_right
+
+
+end monotone
+section addition
+@[simp]
+theorem ComposeCover.add (sa : ι → Set X) (sb : ι' → Set X)
+  : ComposeCover sa + ComposeCover sb = ComposeCover (Sum.elim sa sb) := by
+  unfold ComposeCover
+  funext x
+  simp only [Pi.add_apply]
+  rw [←ENat.card_sum]
+  apply ENat.card_congr
+  symm
+  exact Equiv.subtypeSum
+
+
+theorem CoverDecomposes.from_series (series: ι → Set X)
+  : CoverDecomposes (ComposeCover series) (Set.range series) series
+  := by
+  rw [CoverDecomposes.def']
+  simp only [subset_refl, and_self]
+
+theorem CoverDecomposes.F_range {func : X → ℕ∞} {F : Set (Set X)} {series: ι → Set X}
+  (cd : CoverDecomposes func F series) : CoverDecomposes func (Set.range series) series
+  := by
+  convert from_series _
+  exact eq cd
+
+theorem CoverDecomposes.add {a b : X → ℕ∞} {sa : ι → _} {sb : ι' → _}
+  (ah : CoverDecomposes a F sa) (bh : CoverDecomposes b F sb)
+  : CoverDecomposes (a + b) F (Sum.elim sa sb)
+  := by
+  rw [CoverDecomposes.def'] at *
+  refine ⟨?_,?_⟩
+  · simp only [Set.Sum.elim_range, Set.union_subset_iff, ah.left, bh.left, and_self]
+  rw [bh.right, ah.right]
+  clear * -
+  exact ComposeCover.add sa sb
+
+-- hm, this has three different senses of addition pointwise, union, ⊕
+theorem CoverDecomposes.add.union {F' : Set (Set X)} {a b : X → ℕ∞} {sa : ι → _} {sb : ι' → _}
+  (ah : CoverDecomposes a F sa) (bh : CoverDecomposes b F' sb)
+  : CoverDecomposes (a + b) (F ∪ F') (Sum.elim sa sb)
+  := by
+  apply add
+  apply ah.F_monotone_union_left
+  apply bh.F_monotone_union_right
+
+-- this might be unnecessary, since using Set.Sum.elim_range and F_range get the same result
+theorem CoverDecomposes.add.minimal {F' : Set (Set X)} {a b : X → ℕ∞} {sa : ι → _} {sb : ι' → _}
+  (ah : CoverDecomposes a F sa) (bh : CoverDecomposes b F' sb)
+  : CoverDecomposes (a + b) (ah.range ∪ bh.range) (Sum.elim sa sb)
+  := by
+  -- alternate:
+  -- apply add
+  -- apply F_monotone Set.subset_union_left ah.F_range
+  -- apply F_monotone Set.subset_union_right bh.F_range
+  rw [←Set.Sum.elim_range]
+  apply F_range
+  apply add.union ah bh
+
+-- todo: CoverDecomposes structure, to give additivity.
+
+theorem CoverDecomposesIn.add {a b : X → ℕ∞}
+  (ah : CoverDecomposesIn a ι F) (bh : CoverDecomposesIn b ι' F)
+  : CoverDecomposesIn (a + b) (ι ⊕ ι') F
+  := ⟨_, CoverDecomposes.add ah.choose_spec bh.choose_spec⟩
+theorem CoverDecomposesIn.add.union {F' : Set (Set X)} {a b : X → ℕ∞}
+  (ah : CoverDecomposesIn a ι F) (bh : CoverDecomposesIn b ι' F')
+  : CoverDecomposesIn (a + b) (ι ⊕ ι') (F ∪ F')
+  := ⟨_, CoverDecomposes.add (ah.choose_spec.F_monotone_union_left) (bh.choose_spec.F_monotone_union_right)⟩
+
+
+noncomputable instance instEquivPairInfinite [Infinite ι] : (ι ⊕ ι) ≃ ι := by
+  apply Nonempty.some
+  apply Cardinal.eq.mp
+  simp only [Cardinal.mk_sum, Cardinal.lift_id, Cardinal.add_mk_eq_max, max_self]
+noncomputable instance instEquivProdInfinite [Infinite ι] : (ι × ι) ≃ ι := by
+  apply Nonempty.some
+  apply Cardinal.eq.mp
+  simp only [Cardinal.mk_prod, Cardinal.lift_id, Cardinal.mul_mk_eq_max, max_self]
+
+-- theorem MultiCover.coe_CoverDecomposesIn (a : MultiCover ι F)
+
+
+-- #check HAdd -- try for different ι
+#check AddSubsemigroup
+#check AddSubmonoid
+
+def CoverDecomposesIn.subsemigroup (ι : Type v) (F : Set (Set X)) [Infinite ι] : AddSubsemigroup (X → ℕ∞) where
+  carrier := MultiCover ι F
+  add_mem' {a b} ha hb := by
+    apply by_equiv (instEquivPairInfinite) |>.mp
+    apply add ha hb
+
+theorem CoverDecomposesIn.zero (n : ∅ ∈ F) : CoverDecomposesIn 0 ι F
+  := by
+  unfold CoverDecomposesIn
+  use fun _ ↦ ∅
+  unfold CoverDecomposes
+  simp only [n, implies_true, true_and]
+  unfold ComposeCover
+  ext x
+  simp only [Pi.zero_apply, Set.mem_empty_iff_false]
+  symm
+  rw [ENat.card_eq_zero_iff_empty]
+  exact Subtype.isEmpty_false
+
+
+
+def CoverDecomposesIn.submonoid (n : ∅ ∈ F) [Infinite ι] : AddSubmonoid (X → ℕ∞) where
+  carrier := MultiCover ι F
+  add_mem' {a b} ha hb := by
+    apply by_equiv (instEquivPairInfinite) |>.mp
+    apply add ha hb
+  zero_mem' := zero n
+
+theorem CoverDecomposes.mul {a b : X → ℕ∞} {sa : ι → _} {sb : ι' → _}
+  (Fh : ∀(f)(g), (f ∈ F) → (g ∈ F) → f ∩ g ∈ F)
+  (ah : CoverDecomposes a F sa) (bh : CoverDecomposes b F sb)
+  : CoverDecomposes (a * b) F ((fun (ii' : ι × ι') ↦ sa ii'.1 ∩ sb ii'.2))
+  := by -- multiplication of two sets is their union, and multiplication is bilinear.
+
+  rw [CoverDecomposes.def'] at *
+  constructor
+  intro f w
+  simp only [Set.mem_range, Prod.exists] at w
+  obtain ⟨i, i', w⟩ := w
+
+  have sai: sa i ∈ F := by simp only [Set.mem_range, exists_apply_eq_apply, ah.left _]
+  have sbi: sb i' ∈ F := by simp only [Set.mem_range, exists_apply_eq_apply, bh.left _]
+  exact Set.mem_of_eq_of_mem (id (Eq.symm w)) (Fh (sa i) (sb i') sai sbi)
+  rw [bh.right, ah.right]
+  clear ah bh
+  unfold ComposeCover
+  simp only [Set.mem_inter_iff]
+  funext x
+  simp only [Pi.mul_apply]
+  rw [←ENat.card_prod _ _]
+  apply ENat.card_congr
+  symm
+  let P i := x ∈ sa i
+  let Q i := x ∈ sb i
+  change { i : ι × ι' // P i.1 ∧ Q i.2 } ≃ Subtype P × Subtype Q
+  apply Equiv.subtypeProdEquivProd
+
+theorem CoverDecomposesIn.mul {a b : X → ℕ∞}
+  (Fh : ∀(f)(g), (f ∈ F) → (g ∈ F) → f ∩ g ∈ F)
+  (ah : CoverDecomposesIn a ι F) (bh : CoverDecomposesIn b ι' F)
+  : CoverDecomposesIn (a * b) (ι × ι') F
+  := ⟨_, CoverDecomposes.mul Fh ah.choose_spec bh.choose_spec⟩
+
+
+-- it is sufficient that a #ι subset of F can partition the space
+theorem CoverDecomposesIn.one (u : Set.univ ∈ F) (n : ∅ ∈ F) [inst : Nonempty ι] : CoverDecomposesIn 1 ι F
+  := by
+  unfold CoverDecomposesIn
+  let I : ι := inst.some
+  open scoped Classical in
+  use fun i ↦ if i = I then Set.univ else ∅
+  rw [CoverDecomposes.def']
+  constructor
+  intro x w
+  simp_all only [Set.mem_range, I]
+  obtain ⟨w, h⟩ := w
+  subst h
+  split
+  next h =>
+    subst h
+    simp_all only
+  next h => simp_all only
+  rw [ComposeCover.def]
+  simp only [Set.mem_ite_empty_right, Set.mem_univ, and_true, ENat.card_eq_coe_fintype_card,
+    Fintype.card_unique, Nat.cast_one]
+  rfl
+
+
+def CoverDecomposesIn.subsemiring (u : Set.univ ∈ F) (n : ∅ ∈ F) [Infinite ι]
+  (Fh : ∀(f)(g), (f ∈ F) → (g ∈ F) → f ∩ g ∈ F)
+  : Subsemiring (X → ℕ∞) where
+  carrier := MultiCover ι F
+  add_mem' {a b} ha hb := by
+    apply by_equiv instEquivPairInfinite |>.mp
+    apply add ha hb
+  zero_mem' := zero n
+  mul_mem' {a b} ha hb := by
+
+    apply by_equiv instEquivProdInfinite |>.mp
+
+    apply mul Fh ha hb
+  one_mem' := one u n
+
+
+example : Semigroup (Set X) where
+  mul a b := a ∩ b
+  mul_assoc a b c := by
+    change a ∩ b ∩ c = a ∩ (b ∩ c)
+    exact Set.inter_assoc a b c
+
+-- ∑ and ∏ are very simple for ℕ∞
+noncomputable def func_sum (al : ι → X → ℕ∞) : X → ℕ∞ :=
+  open scoped Classical in
+  fun x ↦ if h : (Function.support (al · x)).Finite then  ∑ i ∈ h.toFinset, (al i x) else ⊤
+noncomputable def func_prod (al : ι → X → ℕ∞) : X → ℕ∞ :=
+  open scoped Classical in
+  fun x ↦ if ∃i, al i x = 0 then 0 else if h : (Function.support (al · x)).Finite then ∏ i ∈ h.toFinset, (al i x) else ⊤
+
+theorem func_sum.monotone : Monotone (@func_sum X ι) := by
+  sorry
+
+theorem func_sum.support_card_lb (al : ι → X → ℕ∞) x :
+  ENat.card (Function.support (al · x)) ≤ func_sum al x
+  := by
+  sorry
+theorem func_sum.support_card_le_ub (al : ι → X → ℕ∞) x (t) (h : ∀i, al i x ≤ t) :
+  func_sum al x ≤ ENat.card (Function.support (al · x)) * t
+  := by
+  sorry
+
+
+theorem func_sum.sum_sum (all : ι → ι' → X → ℕ∞)
+  : func_sum (fun i ↦ func_sum (all i)) = func_sum (fun m : ι × ι' ↦ all m.1 m.2)
+  := by
+
+  apply le_antisymm
+  sorry
+
+
+
+  -- funext x
+
+
+
+  -- by_cases! oo : (∀i, (Function.support (all i · x)).Finite) ∧ ∀i', (Function.support (all · i' x)).Finite
+  -- {
+  --   -- no, that's wrong. a diagonal won't be detected.
+  --   obtain ⟨l,r⟩ := oo
+  --   unfold func_sum
+  --   simp [l]
+
+  --   sorry
+  -- }
+
+  -- unfold func_sum
+  -- simp only
+  -- split
+  -- split
+  -- have h_prod i : (Function.support fun i' ↦ all i i' x).Finite := by
+
+  --   sorry
+  -- refine Finset.sum_equiv ?_ (fun i ↦ ?_) ?_
+
+  sorry
+
+
+#check tsum
+
+theorem CoverDecomposes.sum {al : ι → X → ℕ∞} {sl : ι → ι' → _}
+  (lh : ∀i, CoverDecomposes (al i) F (sl i))
+  : CoverDecomposes (func_sum al) F (fun w : ι × ι' ↦ sl w.1 w.2)
+  := by sorry
+
 
 open scoped MeasureTheory
-
+open MeasureTheory
 -- instance [S : MeasurableSpace X] : Semiring <| MultiCover ℕ (MeasurableSet[S]) where
+
+def CoverDecomposesIn.measurex [S : MeasurableSpace X] : Subsemiring (X → ℕ∞) where
+  carrier := MultiCover ℕ (MeasurableSet[S])
+  add_mem' {a b} ha hb := by
+    apply by_equiv (?_) |>.mp
+    apply add ha hb
+    exact instEquivPairInfinite
+  zero_mem' := zero MeasurableSet.empty
+  mul_mem' {a b} ha hb := by
+
+    sorry
+  one_mem' := sorry
+
+
+
+
+end addition

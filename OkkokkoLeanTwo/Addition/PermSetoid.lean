@@ -1,5 +1,5 @@
 import OkkokkoLeanTwo.Perm
-
+import Mathlib
 
 universe u v v' v''
 
@@ -22,13 +22,159 @@ instance perm.restrict.setoid (p : X → Prop) : Setoid ((ι : Type v) × (ι �
     symm := perm.symm
     trans := perm.trans
   }
-#check Quotient perm.setoid
-#check Quotient.map₂
+-- #check Quotient perm.setoid
+-- #check Quotient.map₂
 -- #check Cardinal
 
 --todo: idea: perm.restrict is "don't care about 0" quotients with perm
 
-noncomputable def perm.get_equiv {a : ι → X} {b : ι' → X} (p : perm a b) : ι ≃ ι' := p.choose
+-- set_option pp.universes true
+
+@[pp_with_univ]
+def perm.quotient (X : Type u) := Quotient (@perm.setoid.{u, v} X)
+def perm.restrict.quotient (p : X → Prop) := Quotient (perm.restrict.setoid p)
+open scoped Cardinal
+
+-- the cardinal's universe must be as high as X
+def perm.quotient.mk_range (r : X → Cardinal.{v}) : perm.quotient.{u, max u v} X :=
+  ⟦⟨Sigma (r · |>.out),Sigma.fst⟩⟧
+def perm.quotient.range (q : perm.quotient.{u, v} X) (x : X) : Cardinal.{v} :=
+  q.liftOn (fun s ↦ #{i : s.1 // s.2 i = x}) <|
+  by
+  simp only
+  intro a b ⟨e,w⟩
+  refine Cardinal.mk_congr ?_
+  apply Equiv.subtypeEquiv e
+  exact fun a_2 ↦ Eq.congr (congrFun w a_2) rfl
+def perm.quotient.range_out (q : perm.quotient.{u, v} X) (x : X)
+  :range q x = #{i : q.out.1 // q.out.2 i = x} := by
+  unfold range
+  set r := (fun s : (ι : Type v) × (ι → X) ↦ #{ i // s.snd i = x })
+  change Quotient.liftOn q r _ = r (Quotient.out q)
+  nth_rw 1 [←Quotient.out_eq q]
+  exact rfl
+
+
+theorem perm.quotient.mk_range_range (r : X → Cardinal.{max u v}) :
+  (mk_range r).range = r := by
+  unfold mk_range range
+  simp only [Quotient.lift_mk]
+  funext x
+  rw [show (r x) = #((r x).out) by exact Eq.symm (Cardinal.mk_out (r x))]
+  refine Cardinal.mk_congr ?_
+  exact Equiv.sigmaSubtype x
+theorem perm.quotient.mk_range.card_lift (r : X → Cardinal.{v}) :
+  mk_range r = mk_range (Cardinal.lift.{u, v} ∘ r) := by
+  unfold mk_range
+  simp only [Function.comp_apply]
+  apply Quotient.eq.mpr
+  unfold setoid
+  simp only
+  unfold perm
+  refine ⟨?_,?_⟩
+  apply Equiv.sigmaCongrRight
+  intro a
+  symm
+  exact (Cardinal.out_lift_equiv _).some
+  simp_rw [funext_iff]
+  simp only [Function.comp_apply, Equiv.sigmaCongrRight_apply, implies_true]
+theorem perm.quotient.mk_range_range' (r : X → Cardinal.{v}) :
+  (mk_range r).range = Cardinal.lift ∘ r := by
+  rw [mk_range.card_lift]
+  exact mk_range_range (Cardinal.lift.{u, v} ∘ r)
+
+-- theorem perm.quotient.range_invertw : Function.Bijective (quotient.range (X := X)) := by
+
+--   sorry
+theorem perm.quotient.range_mk_range (q : quotient.{u, max u v} X) :
+  mk_range q.range = q := by
+  have tq q' : ∃(r : X → Cardinal.{max u v}), mk_range r = q' := by
+    refine ⟨?_,?_⟩
+
+
+    #check range_out
+    apply fun x ↦  #{ i // (Quotient.out q).snd i = x }
+    -- sorry
+    unfold mk_range
+    simp only
+
+    sorry
+  specialize tq q
+  obtain ⟨r, w⟩ := tq
+  rw [←w, mk_range_range', ←mk_range.card_lift]
+
+
+
+theorem perm.quotient.mk_range_s (r : X → Cardinal.{v}) (s : X → (Type v)) (h : ∀i, #(s i) = r i) :
+  mk_range (r) = ⟦⟨Sigma s,Sigma.fst⟩⟧ := by
+
+
+  sorry
+
+theorem perm.quotient.range_mk_range' (q : quotient.{u, max u v} X) :
+  mk_range q.range = q := by
+
+
+  -- have tq q' : ∃(r : X → Cardinal), mk_range r = q' := by sorry
+
+  unfold mk_range --range
+
+
+
+  -- obtain ⟨ι, q'⟩ := q
+
+  rw [Quotient.mk_eq_iff_out]
+  rewrite [← show ⟦q.out⟧ = q by exact Quotient.out_eq _]
+
+
+  refine ⟨?_,?_⟩
+  {
+  simp only
+
+  -- #check Quotient.liftOn_mk
+  trans
+  {
+    -- simp_rw [Quotient.liftOn_mk _ _ _]
+
+    have tt x :Quotient.out #{ i // (Quotient.out q).snd i = x } ≃ { i // (Quotient.out q).snd i = x } := Cardinal.outMkEquiv
+    exact Equiv.sigmaCongrRight tt
+  }
+  simp only [Quotient.out_eq]
+
+  exact Equiv.sigmaFiberEquiv (Quotient.out q).snd
+
+  }
+  funext x
+  have : ⟦Quotient.out q⟧ = q := by exact Quotient.out_eq q
+  -- what is happening?
+  simp only [Quotient.lift_mk, eq_mpr_eq_cast, id_eq, Equiv.coe_trans, Function.comp_apply,
+    Equiv.sigmaCongrRight_apply]
+
+
+  -- change x.fst = Sigma.snd (⟦q.out⟧.out) _
+
+
+  sorry
+
+-- todo: this range is a homomorphism
+
+theorem perm.quotient.range_inverse : Function.LeftInverse (quotient.range (X := X)) quotient.mk_range := mk_range_range
+theorem perm.quotient.mk_range_invese : Function.RightInverse (quotient.range (X := X)) quotient.mk_range := range_mk_range
+
+
+theorem perm.quotient.range_bijective : Function.Bijective (mk_range.{u,max u v} (X := X)) := by
+  refine Function.bijective_iff_has_inverse.mpr ?_
+
+  use range
+  constructor
+  exact range_inverse
+  exact mk_range_invese
+
+noncomputable def perm.quotient.range_equiv := Equiv.ofBijective (mk_range.{u,max u v} (X := X)) range_bijective
+
+-- #check LinearEquiv
+
+#check Quotient.lift
 
 -- note : Empty.elim is what I was looking for.
 

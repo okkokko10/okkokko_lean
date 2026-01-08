@@ -36,6 +36,9 @@ theorem perm.trans {ι'' : Type v''} {c : ι'' → X}
     simp_all only [Equiv.coe_trans]
     rfl
 
+
+noncomputable def perm.get_equiv {a : ι → X} {b : ι' → X} (p : perm a b) : ι ≃ ι' := p.choose
+
 theorem perm.range_iff: perm a b ↔ ∀x, Nonempty <| {i // a i = x} ≃ {i // b i = x}
   := by
   constructor

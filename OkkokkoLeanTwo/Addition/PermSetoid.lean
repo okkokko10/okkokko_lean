@@ -8,8 +8,10 @@ variable {X : Type u} {func : X → ℕ∞} {F : Set (Set X)} {ι : Type v} {ι'
 
 #check LinearMap
 
+abbrev perm.dep (a b : (ι : Type v) × (ι → X)) := perm a.snd b.snd
+
 instance perm.setoid : Setoid ((ι : Type v) × (ι → X)) where
-  r a b := perm a.snd b.snd
+  r := perm.dep
   iseqv := {
     refl x := perm.refl x.snd
     symm := perm.symm
@@ -170,6 +172,7 @@ theorem perm.quotient.range_bijective : Function.Bijective (mk_range.{u,max u v}
   exact range_inverse
   exact mk_range_invese
 
+-- uses sorry
 noncomputable def perm.quotient.range_equiv := Equiv.ofBijective (mk_range.{u,max u v} (X := X)) range_bijective
 
 -- #check LinearEquiv
@@ -178,11 +181,19 @@ noncomputable def perm.quotient.range_equiv := Equiv.ofBijective (mk_range.{u,ma
 
 -- note : Empty.elim is what I was looking for.
 
-noncomputable instance perm.instZero : Zero (Quotient (@perm.setoid X)) where
-  zero := ⟦⟨Empty, Empty.elim⟩⟧
-noncomputable instance perm.instAdd : Add (Quotient (@perm.setoid X)) where
-  add := Quotient.map₂ (fun a b ↦ ⟨a.1 ⊕ b.1, Sum.elim a.2 b.2⟩) (by
-    simp only
+noncomputable instance perm.instZero : Zero (perm.quotient.{u,v} X) where
+  zero := ⟦⟨ULift Empty,fun w ↦ w.down.elim⟩⟧
+
+abbrev perm.quotient.add'_op := (fun (a₁ b₁ : (ι : Type v) × (ι → X)) ↦ (⟨a₁.fst ⊕ b₁.fst, Sum.elim a₁.snd b₁.snd⟩ : (ι : Type v) × (ι → X)))
+
+theorem perm.quotient.add'_proof {X : Type u} :
+∀ ⦃a₁ a₂ : (ι : Type v) × (ι → X)⦄,
+  a₁ ≈ a₂ →
+    ∀ ⦃b₁ b₂ : (ι : Type v) × (ι → X)⦄,
+      b₁ ≈ b₂ →
+  add'_op a₁ b₁
+  ≈ add'_op a₂ b₂ := by
+    -- simp only
     intro a1 a2 ⟨ae,ac⟩ b1 b2 ⟨be,bc⟩
     change perm _ _
     refine ⟨?_,?_⟩
@@ -200,11 +211,58 @@ noncomputable instance perm.instAdd : Add (Quotient (@perm.setoid X)) where
     cases x with
     | inl val => simp_all only [Sum.elim_inl, Function.comp_apply, Sum.map_inl]
     | inr val_1 => simp_all only [Sum.elim_inr, Function.comp_apply, Sum.map_inr]
-    )
 
-noncomputable def perm.instAddCommMonoid : AddCommMonoid (Quotient (@perm.setoid X)) where
+theorem perm.quotient.add'.extracted_1' {X : Type u} {a₁ a₂ : (ι : Type v) × (ι → X)}
+  (ha : a₁ ≈ a₂) {b₁ b₂ : (ι : Type v) × (ι → X)} (hb : b₁ ≈ b₂ )
+  : (⟨a₁.fst ⊕ b₁.fst, Sum.elim a₁.snd b₁.snd⟩ : (ι : Type v) × (ι → X)) ≈ ⟨a₂.fst ⊕ b₂.fst, Sum.elim a₂.snd b₂.snd⟩
+  := add'_proof ha hb
 
-  add_assoc := sorry
+def perm.quotient.add' (a b : quotient.{u,v} X) : quotient.{u,v} X
+  := Quotient.map₂ add'_op (add'_proof) a b
+
+noncomputable instance perm.instAdd : Add (perm.quotient.{u,v} X) where
+  add := quotient.add'
+
+theorem perm.quotient.add_def (a b : perm.quotient.{u,v} X)
+  : add' a b = ⟦add'_op a.out b.out⟧
+  := by
+  change add' _ _ = _
+  unfold add'
+  nth_rw 1 [← Quotient.out_eq a]
+  nth_rw 1 [← Quotient.out_eq b]
+  rfl
+
+theorem perm.quotient.add_assoc' (a b c : (ι : Type v) × (ι → X) )
+  : dep (add'_op (add'_op a b) c) (add'_op a (add'_op b c)) := by
+  unfold add'_op
+  simp only
+
+  sorry
+
+noncomputable instance perm.instAddCommMonoid : AddCommMonoid (perm.quotient.{u, v} X) where
+
+  add_assoc a b c :=
+    by
+    -- let w : perm.quotient.{u,v} X :=
+    --   (Quotient.map₂ (sc := perm.setoid.{u,v}) (fun (a b : ((ι : Type v) × (ι → X))) ↦ (⟨a.1 ⊕ b.1, Sum.elim a.2 b.2⟩ : ((ι : Type v) × (ι → X)))) sorry a b)
+
+    -- simp_rw [quotient.add_def _ _]
+    -- apply Quotient.eq.mpr
+    -- change perm _ _
+    -- simp only
+
+    change (a.add' b).add' c = a.add' (b.add' c)
+    nth_rewrite 2 [quotient.add_def _ _]
+
+    unfold quotient.add'
+
+    -- apply Quotient.map₂_mk
+
+
+
+
+
+    sorry
 
   zero_add := sorry
   add_zero := sorry
@@ -215,7 +273,7 @@ noncomputable def perm.instAddCommMonoid : AddCommMonoid (Quotient (@perm.setoid
 -- #check Sigma.map
 
 
-instance perm.instMonoid [Monoid X] : Monoid (Quotient (@perm.setoid X)) where
+instance perm.instMonoid [Monoid X] : Monoid (perm.quotient X) where
   -- mul := Quotient.map₂ (fun a b ↦ ⟨a.1 × b.1, (Function.uncurry <| (a.2 · * b.2 ·))⟩) (by
   mul := Quotient.map₂ (fun a b ↦ ⟨a.1 × b.1, (fun m ↦ (a.2 m.1) * (b.2 m.2))⟩) (by
 

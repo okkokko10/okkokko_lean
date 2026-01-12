@@ -72,7 +72,7 @@ theorem perm.quotient.mk_range.card_lift (r : X → Cardinal.{v}) :
   apply Quotient.eq.mpr
   unfold setoid
   simp only
-  unfold perm
+  -- unfold perm
   refine ⟨?_,?_⟩
   apply Equiv.sigmaCongrRight
   intro a
@@ -119,38 +119,43 @@ theorem perm.quotient.range_mk_range' (q : quotient.{u, max u v} X) :
 
   -- have tq q' : ∃(r : X → Cardinal), mk_range r = q' := by sorry
 
-  unfold mk_range --range
-
+  unfold mk_range range
 
 
   -- obtain ⟨ι, q'⟩ := q
+  cases q using Quotient.ind
+  rename_i a
+  simp only [Quotient.lift_mk]
+  apply Quotient.sound
+  simp [· ≈ ·, Setoid.r,dep,perm]
 
-  rw [Quotient.mk_eq_iff_out]
-  rewrite [← show ⟦q.out⟧ = q by exact Quotient.out_eq _]
 
 
   refine ⟨?_,?_⟩
   {
-  simp only
-
+  -- simp only
+  -- apply Equiv.sigmaFiberEquiv
   -- #check Quotient.liftOn_mk
   trans
   {
     -- simp_rw [Quotient.liftOn_mk _ _ _]
-
-    have tt x :Quotient.out #{ i // (Quotient.out q).snd i = x } ≃ { i // (Quotient.out q).snd i = x } := Cardinal.outMkEquiv
+    have tt x :Quotient.out #{ i // a.snd i = x } ≃ { i // a.snd i = x } := Cardinal.outMkEquiv
     exact Equiv.sigmaCongrRight tt
   }
-  simp only [Quotient.out_eq]
-
-  exact Equiv.sigmaFiberEquiv (Quotient.out q).snd
-
+  -- simp only [Quotient.out_eq]
+  exact Equiv.sigmaFiberEquiv a.snd
   }
+  simp only [Equiv.coe_trans]
   funext x
-  have : ⟦Quotient.out q⟧ = q := by exact Quotient.out_eq q
+  -- have : ⟦Quotient.out q⟧ = q := by exact Quotient.out_eq q
   -- what is happening?
-  simp only [Quotient.lift_mk, eq_mpr_eq_cast, id_eq, Equiv.coe_trans, Function.comp_apply,
-    Equiv.sigmaCongrRight_apply]
+  simp only [Function.comp_apply, Equiv.sigmaCongrRight_apply, Equiv.sigmaFiberEquiv_apply]
+
+
+  #check Cardinal
+  -- simp only [eq_mpr_eq_cast, id_eq, Equiv.coe_trans, Function.comp_apply,
+  --   Equiv.sigmaCongrRight_apply]
+  -- simp_all only [Quotient.out_eq]
 
 
   -- change x.fst = Sigma.snd (⟦q.out⟧.out) _

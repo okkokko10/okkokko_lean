@@ -133,14 +133,89 @@ def basic.ofSet (s : Set X) : IndexedFamily X := ⟨Subtype s, Subtype.val⟩
 -- theorem basic.univ_ofSet : univ X ≈ ofSet (Set.univ) := by
 --   sorry
 
+
+theorem elemCard_iff_elementwise_equiv (f g : IndexedFamily X)
+  : f.elemCard = g.elemCard ↔ Nonempty (∀(x : Set X), ↑(f.snd ⁻¹' x) ≃ ↑(g.snd ⁻¹' x))
+  := by
+
+  simp only [← elemCard_preimageCard_iff]
+  simp only [funext_iff]
+  unfold preimageCard
+  constructor
+  {
+    exact fun fg ↦ ⟨fun x ↦ (Cardinal.eq.mp (fg x)).some⟩
+  }
+  intro ⟨ee⟩ x
+  apply Cardinal.eq.mpr ⟨ee x⟩
+
+theorem elemCard_iff_elementwise_equiv_fiber (f g : IndexedFamily X)
+  : f.elemCard = g.elemCard ↔ Nonempty (∀(x : X), {i // f.snd i = x} ≃ {i // g.snd i = x})
+  := by
+    rw [elemCard_iff_elementwise_equiv]
+
+    constructor
+    {
+      intro ⟨ee⟩
+      refine ⟨?_⟩
+      intro x
+      specialize ee {x}
+      unfold Set.preimage at ee
+      simp only [Set.mem_singleton_iff, Set.coe_setOf] at ee
+      exact ee
+    }
+    intro ⟨ee⟩
+    refine ⟨?_⟩
+    intro x
+
+    -- apply Equiv.ofPreimageEquiv
+
+    sorry
+
+theorem elemCard_iff_equiv (f g : IndexedFamily X)
+  : f.elemCard = g.elemCard ↔ ∃e : _ ≃ _, g.snd ∘ e = f.snd
+  := by
+  rw [elemCard_iff_elementwise_equiv]
+  constructor
+  {
+    intro ⟨ee⟩
+    refine ⟨?_,?_⟩
+    -- apply Equiv.ofFiberEquiv (γ := X)
+    apply {
+      toFun x := by
+        let q := f.snd x
+        let t := ee {q}
+        exact (t ⟨x,rfl⟩).val
+      invFun := sorry
+      left_inv := sorry
+      right_inv := by
+        unfold Function.RightInverse Function.LeftInverse
+        sorry
+      : _ ≃ _}
+
+    sorry
+  }
+
+  sorry
+
+
+-- ∑x ∈ univ, (ec x) • {x}
 def basic.ofElemCard (ec : X → Cardinal.{v}) : IndexedFamily X := multiImage (fun x ↦ mulCard (singleton x) (ec x)) univ
 
 theorem basic.ofElemCard_elemCard (ec : X → Cardinal.{v}) : (ofElemCard ec).elemCard = Cardinal.lift ∘ ec
   := by
   funext x
   simp only [Function.comp_apply]
-  unfold ofElemCard elemCard
+  unfold ofElemCard elemCard  preimageCard -- multiImage nestSum image
+
+  -- simp only [Function.comp_apply]
+  -- todo: mulCard's preimageCard is multiplied
+
+
   sorry
+
+-- this is trivial from the earlier.
+theorem basic.elemCard_ofElemCard (f : IndexedFamily.{u,v} X) : (ofElemCard f.elemCard).elemCard = Cardinal.lift ∘ f.elemCard := ofElemCard_elemCard f.elemCard
+
 
 -- X * Y = ∑x : X, x * Y = ∑x : X, (x * ·) '' Y
 def basic.mul {Y Z : Type*} (m : X → Y → Z) (f : IndexedFamily X) (g : IndexedFamily Y) : IndexedFamily Z

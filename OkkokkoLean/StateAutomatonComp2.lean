@@ -436,6 +436,31 @@ theorem StateAutomaton.comp.accepts_comp {X : Type} {A : StateAutomaton I X} {B 
   sorry
 
 
+def StateAutomaton.models_function_accept_may (f : I → Prop) : Prop := ∀t : I, f t → accepts M t
+def StateAutomaton.models_function_may (f : I → Option O) : Prop :=
+    ∀t : I,
+    match (f t) with
+    | some w => ∃e : accepts M t, result M t e = w
+    | none => True
+
+
+theorem StateAutomaton.comp.spec_may {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {fa : I → Option X} {fb : X → Option O}
+  (ma : models_function_may A fa) (mb : models_function_may B fb) :
+  models_function_may (comp A B) (fun t ↦ Option.bind (fa t) fb) := by
+  intro t
+  simp only
+  split
+  rotate_left
+  trivial
+  have e : (comp A B).accepts t := by sorry
+  use e
+  rename_i _ w wx
+  -- unfold Option.bind at wx
+  obtain ⟨fa_t,fa_t_eq,fb_fa_t_eq_w⟩:= Option.bind_eq_some_iff.mp wx
+
+
+
+  sorry
 
 theorem StateAutomaton.comp.spec {X : Type} {A : StateAutomaton I X} {B : StateAutomaton X O} {fa : I → Option X} {fb : X → Option O}
   (ma : models_function A fa) (mb : models_function B fb) :

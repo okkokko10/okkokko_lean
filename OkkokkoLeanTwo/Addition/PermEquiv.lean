@@ -5,6 +5,52 @@ universe u v v' v''
 
 variable {X : Type u}
 
+section func_lift_eq
+variable {X : Sort*}
+variable (f : X → Cardinal.{v}) (g : X → Cardinal.{v'}) (h : X → Cardinal.{v''})
+
+
+abbrev _root_.func_lift_eq : Prop := Cardinal.lift.{v'} ∘ f = Cardinal.lift.{v} ∘ g
+-- same priority as Equiv
+/-- same function to Cardinal in different universes.
+
+Cardinal.lift.{v'} ∘ f = Cardinal.lift.{v} ∘ g -/
+infixl:25 " =cl " => func_lift_eq
+
+@[simp↓]
+theorem _root_.func_lift_eq.same {f g : X → Cardinal.{v}} : f =cl g ↔ f = g := by
+  unfold func_lift_eq
+  refine ⟨?_,?_⟩
+  simp_all only [funext_iff, Function.comp_apply, Cardinal.lift_id, implies_true]
+  intro a
+  subst a
+  rfl
+--@[simps]
+
+
+variable {f g h}
+@[refl]
+theorem _root_.func_lift_eq.refl : f =cl f := by rfl
+
+@[symm]
+theorem _root_.func_lift_eq.symm  : f =cl g ↔ g =cl f :=
+  { mp := fun a ↦ (Eq.symm a), mpr := fun a ↦ (Eq.symm a) }
+
+@[trans]
+theorem _root_.func_lift_eq.trans  : f =cl g → g =cl h → f =cl h := by
+  unfold func_lift_eq
+  intro a b
+  simp_all only [funext_iff, Function.comp_apply]
+  simp_all only [← Cardinal.lift_umax_eq.{_, _, max v v' v''}, implies_true]
+
+
+theorem _root_.func_lift_eq.funext_iff  : f =cl g ↔ ∀x, Cardinal.lift.{v'} (f x) = Cardinal.lift.{v} (g x) := by
+  unfold func_lift_eq
+  simp only [_root_.funext_iff, Function.comp_apply]
+
+theorem _root_.func_lift_eq.funext  : (∀x, Cardinal.lift.{v'} (f x) = Cardinal.lift.{v} (g x)) → f =cl g := funext_iff.mpr
+
+end func_lift_eq
 
 
 #check MulEquiv
@@ -63,20 +109,20 @@ def elemCard (f : IndexedFamily X) (x : X) : Cardinal.{v} := preimageCard f {x}
 def elemCard_restrict (p : Set X) (f : IndexedFamily X) (x : X) : Cardinal.{v} := preimageCard_restrict p f {x}
 
 theorem elemCard_preimageCard_iff (f g : IndexedFamily X)
-  : f.preimageCard = g.preimageCard ↔ f.elemCard = g.elemCard
+  : f.preimageCard =cl g.preimageCard ↔ f.elemCard =cl g.elemCard
   := by
     unfold elemCard preimageCard
     refine ⟨?_,?_⟩
     {
-      repeat rw [funext_iff]
+      rw [func_lift_eq.funext_iff]
+      rw [func_lift_eq.funext_iff]
       intro w x
       exact (w {x})
     }
-    repeat rw [funext_iff]
+    rw [func_lift_eq.funext_iff]
+    rw [func_lift_eq.funext_iff]
     intro w s
-
-
-    simp_rw [Cardinal.eq] at w ⊢
+    simp_rw [Cardinal.lift_mk_eq'] at w ⊢
     refine ⟨?_⟩
     change {i // f.snd i ∈ s} ≃ {i // g.snd i ∈ s}
 
@@ -129,33 +175,36 @@ section preimageCard_elemCard_equiv_iff
 
 
 lemma preimageCard_iff_elementwise_equiv_sets (f g : IndexedFamily X)
-  : f.preimageCard = g.preimageCard ↔ Nonempty (∀(x : Set X), ↑(f.snd ⁻¹' x) ≃ ↑(g.snd ⁻¹' x))
+  : f.preimageCard =cl g.preimageCard ↔ Nonempty (∀(x : Set X), ↑(f.snd ⁻¹' x) ≃ ↑(g.snd ⁻¹' x))
   := by
   simp only [funext_iff]
   unfold preimageCard
   constructor
   {
-    exact fun fg ↦ ⟨fun x ↦ (Cardinal.eq.mp (fg x)).some⟩
+    exact fun fg ↦ ⟨fun x ↦ (Cardinal.lift_mk_eq'.mp (fg x)).some⟩
   }
   intro ⟨ee⟩ x
-  apply Cardinal.eq.mpr ⟨ee x⟩
+  apply Cardinal.lift_mk_eq'.mpr ⟨ee x⟩
 
-
-theorem elemCard_iff_elementwise_equiv (f g : IndexedFamily X)
-  : f.elemCard = g.elemCard ↔ Nonempty (∀(x : X), ↑(f.snd ⁻¹' {x}) ≃ ↑(g.snd ⁻¹' {x}))
+theorem elemCard_iff_elementwise_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+  : f.elemCard =cl g.elemCard ↔ Nonempty (∀(x : X), ↑(f.snd ⁻¹' {x}) ≃ ↑(g.snd ⁻¹' {x}))
   := by
   simp only [funext_iff]
   unfold elemCard preimageCard
+  simp only [Function.comp_apply]
   constructor
   {
-    exact fun fg ↦ ⟨fun x ↦ (Cardinal.eq.mp (fg x)).some⟩
+    intro fg
+    refine ⟨?_⟩
+    intro x
+    exact (Cardinal.lift_mk_eq'.mp (fg x)).some
   }
   intro ⟨ee⟩ x
-  apply Cardinal.eq.mpr ⟨ee x⟩
+  apply Cardinal.lift_mk_eq'.mpr ⟨ee x⟩
 
 
-theorem elemCard_iff_elementwise_equiv_fiber (f g : IndexedFamily X)
-  : f.elemCard = g.elemCard ↔ Nonempty (∀(x : X), {i // f.snd i = x} ≃ {i // g.snd i = x})
+theorem elemCard_iff_elementwise_equiv_fiber (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+  : f.elemCard =cl g.elemCard ↔ Nonempty (∀(x : X), {i // f.snd i = x} ≃ {i // g.snd i = x})
   := by
     rw [elemCard_iff_elementwise_equiv]
     obtain ⟨fst, snd⟩ := f
@@ -163,18 +212,18 @@ theorem elemCard_iff_elementwise_equiv_fiber (f g : IndexedFamily X)
     simp_all only
     rfl
 
-theorem elemCard_iff_equiv (f g : IndexedFamily X)
-  : f.elemCard = g.elemCard ↔ ∃e : _ ≃ _, g.snd ∘ e = f.snd
+open scoped Function
+
+theorem elemCard_iff_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+  : f.elemCard =cl g.elemCard ↔ ∃e : _ ≃ _, g.snd ∘ e = f.snd
   := by
   rw [elemCard_iff_elementwise_equiv_fiber]
   constructor
   {
     intro ⟨ee⟩
     refine ⟨?_,?_⟩
-    have := Equiv.ofFiberEquiv (γ := X) (g := g.snd) (f := f.snd) ee
-    apply this
+    apply Equiv.ofFiberEquiv (γ := X) (g := g.snd) (f := f.snd) ee
     funext x
-
     simp only [Function.comp_apply]
     exact Equiv.ofFiberEquiv_map _ _
   }
@@ -231,7 +280,7 @@ def basic.ofSet (s : Set X) : IndexedFamily X := ⟨Subtype s, Subtype.val⟩
 -- ∑x ∈ univ, (ec x) • {x}
 def basic.ofElemCard (ec : X → Cardinal.{v}) : IndexedFamily X := multiImage (fun x ↦ mulCard (singleton x) (ec x)) univ
 
-theorem basic.ofElemCard_elemCard (ec : X → Cardinal.{v}) : (ofElemCard ec).elemCard = Cardinal.lift ∘ ec
+theorem basic.ofElemCard_elemCard (ec : X → Cardinal.{v}) : (ofElemCard ec).elemCard =cl ec
   := by
   funext x
   simp only [Function.comp_apply]
@@ -244,7 +293,7 @@ theorem basic.ofElemCard_elemCard (ec : X → Cardinal.{v}) : (ofElemCard ec).el
   sorry
 
 -- this is trivial from the earlier.
-theorem basic.elemCard_ofElemCard (f : IndexedFamily.{u,v} X) : (ofElemCard f.elemCard).elemCard = Cardinal.lift ∘ f.elemCard := ofElemCard_elemCard f.elemCard
+theorem basic.elemCard_ofElemCard (f : IndexedFamily.{u,v} X) : (ofElemCard f.elemCard).elemCard =cl f.elemCard := ofElemCard_elemCard f.elemCard
 
 
 -- X * Y = ∑x : X, x * Y = ∑x : X, (x * ·) '' Y

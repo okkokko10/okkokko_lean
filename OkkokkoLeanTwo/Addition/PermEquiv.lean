@@ -64,7 +64,39 @@ def elemCard_restrict (p : Set X) (f : IndexedFamily X) (x : X) : Cardinal.{v} :
 
 theorem elemCard_preimageCard_iff (f g : IndexedFamily X)
   : f.preimageCard = g.preimageCard ↔ f.elemCard = g.elemCard
-  := by sorry
+  := by
+    unfold elemCard preimageCard
+    refine ⟨?_,?_⟩
+    {
+      repeat rw [funext_iff]
+      intro w x
+      exact (w {x})
+    }
+    repeat rw [funext_iff]
+    intro w s
+
+
+    simp_rw [Cardinal.eq] at w ⊢
+    refine ⟨?_⟩
+    change {i // f.snd i ∈ s} ≃ {i // g.snd i ∈ s}
+
+    have tf: { i // f.snd i ∈ s } ≃ Σ (x : s), { i // f.snd i = x } := by
+      refine (Equiv.sigmaSubtypeFiberEquivSubtype f.snd ?_).symm
+      simp only [implies_true]
+    have tg: { i // g.snd i ∈ s } ≃ Σ (x : s), { i // g.snd i = x } := by
+      refine (Equiv.sigmaSubtypeFiberEquivSubtype g.snd ?_).symm
+      simp only [implies_true]
+    apply Equiv.trans tf
+    symm
+    apply Equiv.trans tg
+    symm
+    refine Equiv.sigmaCongr ?_ fun a ↦ ?_
+    exact Equiv.refl _
+    simp only [Equiv.refl_apply]
+    apply (w a).some
+
+
+
 
 theorem elemCard_preimageCard_iff_restrict (p : Set X) (f g : IndexedFamily X)
   : f.preimageCard_restrict p = g.preimageCard_restrict p ↔ f.elemCard_restrict p = g.elemCard_restrict p
@@ -134,11 +166,9 @@ def basic.ofSet (s : Set X) : IndexedFamily X := ⟨Subtype s, Subtype.val⟩
 --   sorry
 
 
-theorem elemCard_iff_elementwise_equiv (f g : IndexedFamily X)
-  : f.elemCard = g.elemCard ↔ Nonempty (∀(x : Set X), ↑(f.snd ⁻¹' x) ≃ ↑(g.snd ⁻¹' x))
+theorem preimageCard_iff_elementwise_equiv_sets (f g : IndexedFamily X)
+  : f.preimageCard = g.preimageCard ↔ Nonempty (∀(x : Set X), ↑(f.snd ⁻¹' x) ≃ ↑(g.snd ⁻¹' x))
   := by
-
-  simp only [← elemCard_preimageCard_iff]
   simp only [funext_iff]
   unfold preimageCard
   constructor
@@ -148,54 +178,49 @@ theorem elemCard_iff_elementwise_equiv (f g : IndexedFamily X)
   intro ⟨ee⟩ x
   apply Cardinal.eq.mpr ⟨ee x⟩
 
+
+theorem elemCard_iff_elementwise_equiv (f g : IndexedFamily X)
+  : f.elemCard = g.elemCard ↔ Nonempty (∀(x : X), ↑(f.snd ⁻¹' {x}) ≃ ↑(g.snd ⁻¹' {x}))
+  := by
+  simp only [funext_iff]
+  unfold elemCard preimageCard
+  constructor
+  {
+    exact fun fg ↦ ⟨fun x ↦ (Cardinal.eq.mp (fg x)).some⟩
+  }
+  intro ⟨ee⟩ x
+  apply Cardinal.eq.mpr ⟨ee x⟩
+
+
 theorem elemCard_iff_elementwise_equiv_fiber (f g : IndexedFamily X)
   : f.elemCard = g.elemCard ↔ Nonempty (∀(x : X), {i // f.snd i = x} ≃ {i // g.snd i = x})
   := by
     rw [elemCard_iff_elementwise_equiv]
-
-    constructor
-    {
-      intro ⟨ee⟩
-      refine ⟨?_⟩
-      intro x
-      specialize ee {x}
-      unfold Set.preimage at ee
-      simp only [Set.mem_singleton_iff, Set.coe_setOf] at ee
-      exact ee
-    }
-    intro ⟨ee⟩
-    refine ⟨?_⟩
-    intro x
-
-    -- apply Equiv.ofPreimageEquiv
-
-    sorry
+    obtain ⟨fst, snd⟩ := f
+    obtain ⟨fst_1, snd_1⟩ := g
+    simp_all only
+    rfl
 
 theorem elemCard_iff_equiv (f g : IndexedFamily X)
   : f.elemCard = g.elemCard ↔ ∃e : _ ≃ _, g.snd ∘ e = f.snd
   := by
-  rw [elemCard_iff_elementwise_equiv]
+  rw [elemCard_iff_elementwise_equiv_fiber]
   constructor
   {
     intro ⟨ee⟩
     refine ⟨?_,?_⟩
-    -- apply Equiv.ofFiberEquiv (γ := X)
-    apply {
-      toFun x := by
-        let q := f.snd x
-        let t := ee {q}
-        exact (t ⟨x,rfl⟩).val
-      invFun := sorry
-      left_inv := sorry
-      right_inv := by
-        unfold Function.RightInverse Function.LeftInverse
-        sorry
-      : _ ≃ _}
+    have := Equiv.ofFiberEquiv (γ := X) (g := g.snd) (f := f.snd) ee
+    apply this
+    funext x
 
-    sorry
+    simp only [Function.comp_apply]
+    exact Equiv.ofFiberEquiv_map _ _
   }
-
-  sorry
+  intro ⟨e,e_p⟩
+  refine ⟨?_⟩
+  intro x
+  apply Equiv.subtypeEquiv e
+  exact fun a ↦ Eq.congr (congrFun (id (Eq.symm e_p)) a) rfl
 
 
 -- ∑x ∈ univ, (ec x) • {x}
@@ -324,5 +349,6 @@ instance elemCard.addMonoidHom : AddMonoidHom (IndexedFamily.{u,v} X) (X→ Card
 
 
 end basic
+
 
 end IndexedFamily

@@ -92,23 +92,20 @@ namespace IndexedFamily
 def preimageCard (f : IndexedFamily.{u,v} X) (x : Set X) : Cardinal.{v}
   := Cardinal.mk (f.snd ⁻¹' x)
 
--- noncomputable def IndexedFamily.preimage_card.restrict (p : Set X → Prop) (f : IndexedFamily X) : Set X → Cardinal.{v}
---   := Set.indicator p f.preimage_card
-  -- := open scoped Classical in if p x then preimage_card f x else 0
-
-
-def preimageCard_restrict (p : Set X) (f : IndexedFamily.{u,v} X) (x : Set X) : Cardinal.{v}
-  := preimageCard f (p ∩ x)
-
--- theorem preimage_card.restrict.as
-
 
 #check Setoid.ker
 
 def elemCard (f : IndexedFamily X) (x : X) : Cardinal.{v} := preimageCard f {x}
-def elemCard_restrict (p : Set X) (f : IndexedFamily X) (x : X) : Cardinal.{v} := preimageCard_restrict p f {x}
 
-theorem elemCard_preimageCard_iff (f g : IndexedFamily X)
+
+irreducible_def equivalence (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X) : Prop
+  := f.elemCard =cl g.elemCard
+
+infixl:25 " ≃' " => equivalence
+theorem equivalence.elemCard_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+  : f ≃' g ↔ f.elemCard =cl g.elemCard := by simp only [equivalence_def]
+
+lemma elemCard_preimageCard_iff (f g : IndexedFamily X)
   : f.preimageCard =cl g.preimageCard ↔ f.elemCard =cl g.elemCard
   := by
     unfold elemCard preimageCard
@@ -142,14 +139,29 @@ theorem elemCard_preimageCard_iff (f g : IndexedFamily X)
     apply (w a).some
 
 
+theorem equivalence.preimageCard_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+  : f ≃' g ↔ f.preimageCard =cl g.preimageCard := by rw [equivalence.elemCard_iff,elemCard_preimageCard_iff f g]
 
+
+section restrict
+-- noncomputable def IndexedFamily.preimage_card.restrict (p : Set X → Prop) (f : IndexedFamily X) : Set X → Cardinal.{v}
+--   := Set.indicator p f.preimage_card
+  -- := open scoped Classical in if p x then preimage_card f x else 0
+
+
+def preimageCard_restrict (p : Set X) (f : IndexedFamily.{u,v} X) (x : Set X) : Cardinal.{v}
+  := preimageCard f (p ∩ x)
+
+-- theorem preimage_card.restrict.as
+
+def elemCard_restrict (p : Set X) (f : IndexedFamily X) (x : X) : Cardinal.{v} := preimageCard_restrict p f {x}
 
 theorem elemCard_preimageCard_iff_restrict (p : Set X) (f g : IndexedFamily X)
   : f.preimageCard_restrict p = g.preimageCard_restrict p ↔ f.elemCard_restrict p = g.elemCard_restrict p
   := by sorry
 
 def restrict (p : Set X) (f : IndexedFamily X) : IndexedFamily X := ⟨_, restrict_range p f.snd⟩
-
+end restrict
 -- #check fun p ↦ (· = ·) on (preimage_card_restrict p)
 
 def setoid {X : Type u} : Setoid (IndexedFamily X) :=
@@ -171,12 +183,13 @@ def quotient  := Quotient (setoid (X := X))
 
 -- #check Equiv
 
-section preimageCard_elemCard_equiv_iff
+section equivalence_iffs
 
 
-lemma preimageCard_iff_elementwise_equiv_sets (f g : IndexedFamily X)
-  : f.preimageCard =cl g.preimageCard ↔ Nonempty (∀(x : Set X), ↑(f.snd ⁻¹' x) ≃ ↑(g.snd ⁻¹' x))
+lemma equivalence.iff_elementwise_equiv_sets (f g : IndexedFamily X)
+  : f ≃' g ↔ Nonempty (∀(x : Set X), ↑(f.snd ⁻¹' x) ≃ ↑(g.snd ⁻¹' x))
   := by
+  rw [equivalence.preimageCard_iff]
   simp only [funext_iff]
   unfold preimageCard
   constructor
@@ -186,9 +199,10 @@ lemma preimageCard_iff_elementwise_equiv_sets (f g : IndexedFamily X)
   intro ⟨ee⟩ x
   apply Cardinal.lift_mk_eq'.mpr ⟨ee x⟩
 
-theorem elemCard_iff_elementwise_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
-  : f.elemCard =cl g.elemCard ↔ Nonempty (∀(x : X), ↑(f.snd ⁻¹' {x}) ≃ ↑(g.snd ⁻¹' {x}))
+theorem equivalence.iff_elementwise_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+  : f ≃' g ↔ Nonempty (∀(x : X), ↑(f.snd ⁻¹' {x}) ≃ ↑(g.snd ⁻¹' {x}))
   := by
+  rw [equivalence.elemCard_iff]
   simp only [funext_iff]
   unfold elemCard preimageCard
   simp only [Function.comp_apply]
@@ -203,10 +217,10 @@ theorem elemCard_iff_elementwise_equiv (f : IndexedFamily.{u,v} X) (g : IndexedF
   apply Cardinal.lift_mk_eq'.mpr ⟨ee x⟩
 
 
-theorem elemCard_iff_elementwise_equiv_fiber (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
-  : f.elemCard =cl g.elemCard ↔ Nonempty (∀(x : X), {i // f.snd i = x} ≃ {i // g.snd i = x})
+lemma equivalence.iff_elementwise_equiv_fiber (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+  :  f ≃' g ↔ Nonempty (∀(x : X), {i // f.snd i = x} ≃ {i // g.snd i = x})
   := by
-    rw [elemCard_iff_elementwise_equiv]
+    rw [equivalence.iff_elementwise_equiv]
     obtain ⟨fst, snd⟩ := f
     obtain ⟨fst_1, snd_1⟩ := g
     simp_all only
@@ -214,10 +228,10 @@ theorem elemCard_iff_elementwise_equiv_fiber (f : IndexedFamily.{u,v} X) (g : In
 
 open scoped Function
 
-theorem elemCard_iff_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
-  : f.elemCard =cl g.elemCard ↔ ∃e : _ ≃ _, g.snd ∘ e = f.snd
+theorem equivalence.iff_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+  :  f ≃' g ↔ ∃e : _ ≃ _, g.snd ∘ e = f.snd
   := by
-  rw [elemCard_iff_elementwise_equiv_fiber]
+  rw [equivalence.iff_elementwise_equiv_fiber]
   constructor
   {
     intro ⟨ee⟩
@@ -233,8 +247,30 @@ theorem elemCard_iff_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'}
   apply Equiv.subtypeEquiv e
   exact fun a ↦ Eq.congr (congrFun (id (Eq.symm e_p)) a) rfl
 
+#check Equiv.ofFiberEquiv_apply
 
-end preimageCard_elemCard_equiv_iff
+-- structure EquivF (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X) extends (f.fst ≃ g.fst) where
+--   isComp' : g.snd ∘ toFun = f.snd
+-- instance (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X) : EquivLike (EquivF f g) f.fst g.fst :=
+
+-- theorem equivalence.iff_equiva (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+--   :  f ≃' g ↔ Nonempty ({e : f.fst ≃ g.fst // g.snd ∘ e = f.snd}) := by sorry
+
+noncomputable def equivalence.equiv {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+  (e' : f ≃' g) : f.fst ≃ g.fst := iff_equiv f g |>.mp e' |>.choose
+
+theorem equivalence.equiv_map {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+  (e' : f ≃' g) : g.snd ∘ e'.equiv = f.snd := iff_equiv f g |>.mp e' |>.choose_spec
+
+-- I wonder, is it possible to use coe to automatically convert propositions
+
+theorem equivalence.ofEquiv {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+  (e : f.fst ≃ g.fst) (h : g.snd ∘ e = f.snd) : f ≃' g := iff_equiv f g |>.mpr ⟨e,h⟩
+
+
+
+
+end equivalence_iffs
 section basic
 
 def basic.zero : IndexedFamily.{u,v} X := ⟨ULift Empty,Empty.elim ∘ ULift.down⟩

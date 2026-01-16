@@ -253,19 +253,50 @@ theorem equivalence.iff_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,
 --   isComp' : g.snd ∘ toFun = f.snd
 -- instance (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X) : EquivLike (EquivF f g) f.fst g.fst :=
 
--- theorem equivalence.iff_equiva (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
---   :  f ≃' g ↔ Nonempty ({e : f.fst ≃ g.fst // g.snd ∘ e = f.snd}) := by sorry
+def equivalence.asSubtype (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+  :=  {e : f.fst ≃ g.fst // g.snd ∘ e = f.snd}
+
+infixl:25 " ≃ " => equivalence.asSubtype
+theorem equivalence.subtype_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+  :  f ≃' g ↔ Nonempty (f ≃ g) := Trans.simple (iff_equiv f g) (Iff.symm nonempty_subtype)
+
+
 
 noncomputable def equivalence.equiv {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
-  (e' : f ≃' g) : f.fst ≃ g.fst := iff_equiv f g |>.mp e' |>.choose
+  (e' : f ≃' g) : f.fst ≃ g.fst := Equiv.ofFiberEquiv (equivalence.iff_elementwise_equiv_fiber _ _ |>.mp e').some
 
 theorem equivalence.equiv_map {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
-  (e' : f ≃' g) : g.snd ∘ e'.equiv = f.snd := iff_equiv f g |>.mp e' |>.choose_spec
+  (e' : f ≃' g) : g.snd ∘ e'.equiv = f.snd := by
+  funext x
+  simp only [Function.comp_apply]
+  exact Equiv.ofFiberEquiv_map _ x
 
 -- I wonder, is it possible to use coe to automatically convert propositions
 
 theorem equivalence.ofEquiv {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
   (e : f.fst ≃ g.fst) (h : g.snd ∘ e = f.snd) : f ≃' g := iff_equiv f g |>.mpr ⟨e,h⟩
+
+variable {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X} {h : IndexedFamily.{u,v''} X}
+
+@[refl]
+theorem equivalence.refl : f ≃' f := by
+  apply ofEquiv (Equiv.refl _) rfl
+
+@[symm]
+theorem equivalence.symm  : f ≃' g → g ≃' f := by
+  intro w
+  refine ofEquiv w.equiv.symm ?_
+  have := equiv_map w
+  exact (Equiv.comp_symm_eq w.equiv g.snd f.snd).mpr (id (Eq.symm this))
+
+@[trans]
+theorem equivalence.trans  : f ≃' g → g ≃' h → f ≃' h := by
+  intro fg gh
+  have := fg.equiv.trans gh.equiv
+  refine ofEquiv (fg.equiv.trans gh.equiv) ?_
+  rw [←fg.equiv_map, ← gh.equiv_map]
+  rfl
+
 
 
 

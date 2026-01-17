@@ -559,6 +559,37 @@ noncomputable instance _root_.Cardinal.one_unique : Unique (Quotient.out (1 : Ca
       simp only [Cardinal.mk_out, Cardinal.mk_fintype, Fintype.card_unique, Nat.cast_one]
     apply Equiv.unique this
 
+
+def quotient.elemCard_lift (f : @quotient.{u,v} X) (x : X) : Cardinal.{v} := f.lift (elemCard_addMonoidHom · x) <| by
+  intro a b ab
+  simp
+  simp only [equ', equivalence.elemCard_iff, ↓func_lift_eq.same] at ab
+  exact congrFun ab x
+
+instance quotient.elemCard_addMonoidHom' : AddMonoidHom (@quotient.{u,v} X) (X → Cardinal) where
+  toFun := elemCard_lift
+  map_zero' := elemCard.zeroHom.map_zero
+  map_add' := by
+    apply Quotient.ind₂
+    intro x y
+    unfold elemCard_lift
+    ext w
+    simp only [Quotient.lift_mk, Pi.add_apply]
+    change Quotient.lift (fun x ↦ elemCard_addMonoidHom x w) _ (instAddZeroClass.add ⟦x⟧ ⟦y⟧) = x.elemCard w + y.elemCard w
+    simp only [add_apply, Quotient.lift_mk]
+    simp only [map_add, Pi.add_apply]
+    tauto
+
+
+theorem quotient.elemCard_lift_iff {f g : @quotient.{u,v} X} : f = g ↔ f.elemCard_addMonoidHom' = g.elemCard_addMonoidHom' := by
+  cases f,g using Quotient.ind₂
+  rename_i a b
+  unfold elemCard_addMonoidHom'
+  simp only [AddMonoidHom.coe_mk, ZeroHom.coe_mk]
+  rw [equ]
+  simp only [equivalence.elemCard_iff, ↓func_lift_eq.same]
+  rfl
+
 open Cardinal in
 
 instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{u,v} X) where
@@ -577,6 +608,11 @@ instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{u,v} X) where
     simp only [Function.comp_apply, Prod.map_snd]
     simp [funext_iff] at this
     simp_all only
+
+lemma quotient.smul_elemCard {c : Cardinal.{v}} {f : @quotient.{u,v} X} : elemCard_addMonoidHom' (c • f) = c • elemCard_addMonoidHom' f
+  := by
+
+  sorry
 
 instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
 
@@ -647,11 +683,12 @@ instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
   smul_add := by
     intro c a b
     -- change c • (a + b) = c • a + c • b
+    apply quotient.elemCard_lift_iff.mpr
     cases a,b using Quotient.ind₂
     rename_i a b
     -- change SMul.smul c (Add.add ⟦a⟧ ⟦b⟧ : quotient) = Add.add (SMul.smul c ⟦a⟧ : quotient) (SMul.smul c ⟦b⟧ : quotient)
     simp only [HSMul.hSMul, SMul.smul, HAdd.hAdd, Add.add, Quotient.map₂_mk, Quotient.map_mk]
-    apply equ.mpr
+    -- apply equ.mpr
     -- todo: do this with elemCard
 
 

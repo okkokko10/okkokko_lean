@@ -477,11 +477,19 @@ instance setoid {X : Type u} : Setoid (IndexedFamily X) where
 
 theorem setoid.equ {f g : IndexedFamily X} : setoid f g ↔ f ≃' g := by rfl
 
-def quotient  := Quotient (setoid (X := X))
+def quotient := Quotient (setoid (X := X))
 
-@[simp]
+abbrev quotient.mk (f : IndexedFamily.{u,v} X) : @quotient.{u,v} X := Quotient.mk setoid f
+
+notation3:arg "⟦" a "⟧'" => quotient.mk a
+
+@[simp high]
 lemma quotient.equ {f g : IndexedFamily.{u,v} X} : (⟦f⟧ : quotient) = ⟦g⟧ ↔ f ≃' g := by
-  simp only [Quotient.eq, ← setoid.equ]
+  simp only [← setoid.equ]
+  simp only [Quotient.eq]
+
+
+
 
 @[simp]
 lemma quotient.equ' {f g : IndexedFamily.{u,v} X} : f ≈ g ↔ f ≃' g := by
@@ -492,26 +500,23 @@ lemma quotient.equ' {f g : IndexedFamily.{u,v} X} : f ≈ g ↔ f ≃' g := by
 
 
 instance quotient.instAddZeroClass: AddZeroClass (@quotient.{u,v} X) where
-  add := Quotient.lift₂ (fun a b ↦ ⟦a + b⟧) <| by
-    simp only
-    intro a1 b1 a2 b2 ae be
-    apply equ.mpr
-    simp only [equ'] at ae be
-    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same, map_add] at *
+  add := Quotient.map₂ (fun a b ↦ a + b) <| by
+    intros
+    simp only [equ', equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same, map_add] at *
     simp_all only
   zero := ⟦0⟧
   zero_add := by
     apply Quotient.ind
     intro a
-    change Quotient.lift₂ (fun a b ↦ ⟦a + b⟧) _ ⟦0⟧ ⟦a⟧ = ⟦a⟧
-    simp only [Quotient.lift_mk, quotient.equ]
+    change Quotient.map₂ (fun a b ↦ a + b) _ ⟦0⟧ ⟦a⟧ = ⟦a⟧
+    simp only [Quotient.map₂_mk, equ]
     simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
     simp only [map_add, map_zero, zero_add]
   add_zero := by
     apply Quotient.ind
     intro a
-    change Quotient.lift₂ (fun a b ↦ ⟦a + b⟧) _ ⟦a⟧ ⟦0⟧ = ⟦a⟧
-    simp only [Quotient.lift_mk, quotient.equ]
+    change Quotient.map₂ (fun a b ↦ a + b) _ ⟦a⟧ ⟦0⟧ = ⟦a⟧
+    simp only [Quotient.map₂_mk, quotient.equ]
     simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
     simp only [map_add, map_zero, add_zero]
 instance quotient.instAddCommMonoid: AddCommMonoid (@quotient.{u,v} X) where
@@ -537,6 +542,10 @@ instance quotient.instAddCommMonoid: AddCommMonoid (@quotient.{u,v} X) where
     group
   nsmul := nsmulRec
 
+
+theorem quotient.add_apply {a b : IndexedFamily.{u,v} X} : instAddZeroClass.add ⟦a⟧ ⟦b⟧ = ⟦a + b⟧
+  := by simp only [Add.add, Quotient.map₂_mk]
+
 instance basic.smul : SMul Cardinal (IndexedFamily X) where
   smul := basic.mulCard
 -- lemma basic.smul.def (c : Cardinal.{v}) (f : IndexedFamily.{u,v} X)
@@ -551,7 +560,8 @@ noncomputable instance _root_.Cardinal.one_unique : Unique (Quotient.out (1 : Ca
     apply Equiv.unique this
 
 open Cardinal in
-instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
+
+instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{u,v} X) where
   smul c := Quotient.map (basic.mulCard c) <| by
     intro a b ab
     simp only [quotient.equ'] at *
@@ -567,6 +577,8 @@ instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
     simp only [Function.comp_apply, Prod.map_snd]
     simp [funext_iff] at this
     simp_all only
+
+instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
 
   one_smul := by
     apply Quotient.ind
@@ -632,10 +644,21 @@ instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
     have fwd : Empty := x.down
     have fwd_1 : False := Aesop.BuiltinRules.empty_false fwd
     simp_all only
-  smul_add := sorry
+  smul_add := by
+    intro c a b
+    -- change c • (a + b) = c • a + c • b
+    cases a,b using Quotient.ind₂
+    rename_i a b
+    -- change SMul.smul c (Add.add ⟦a⟧ ⟦b⟧ : quotient) = Add.add (SMul.smul c ⟦a⟧ : quotient) (SMul.smul c ⟦b⟧ : quotient)
+    simp only [HSMul.hSMul, SMul.smul, HAdd.hAdd, Add.add, Quotient.map₂_mk, Quotient.map_mk]
+    apply equ.mpr
+    -- todo: do this with elemCard
+
+
+
+    sorry
   add_smul := sorry
   zero_smul := sorry
-
 
 
 -- X * Y = ∑x : X, x * Y = ∑x : X, (x * ·) '' Y

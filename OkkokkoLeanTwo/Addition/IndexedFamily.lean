@@ -580,7 +580,7 @@ instance quotient.elemCard_addMonoidHom' : AddMonoidHom (@quotient.{u,v} X) (X �
     simp only [map_add, Pi.add_apply]
     tauto
 
-
+@[aesop norm]
 theorem quotient.elemCard_lift_iff {f g : @quotient.{u,v} X} : f = g ↔ f.elemCard_addMonoidHom' = g.elemCard_addMonoidHom' := by
   cases f,g using Quotient.ind₂
   rename_i a b
@@ -609,93 +609,48 @@ instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{u,v} X) where
     simp [funext_iff] at this
     simp_all only
 
+@[simp]
 lemma quotient.smul_elemCard {c : Cardinal.{v}} {f : @quotient.{u,v} X} : elemCard_addMonoidHom' (c • f) = c • elemCard_addMonoidHom' f
   := by
+  ext x
+  simp only [Pi.smul_apply, smul_eq_mul]
+  cases f using Quotient.ind
+  simp only [elemCard_addMonoidHom', AddMonoidHom.coe_mk, ZeroHom.coe_mk, elemCard_lift,
+    Quotient.lift_mk]
+  rename_i f
+  simp only [HSMul.hSMul, SMul.smul, Quotient.map_mk, Quotient.lift_mk]
+
+  -- todo: should be its own lemma
+
+
 
   sorry
 
 instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
-
   one_smul := by
-    apply Quotient.ind
-    intro a
-    simp only [HSMul.hSMul, Quotient.map_mk]
-    apply equ.mpr
-    unfold basic.mulCard
-    refine equivalence.ofEquiv ?_ ?_
-    simp only
-    exact Equiv.uniqueProd a.fst _
-    funext x
-    simp only [id_eq, Equiv.coe_uniqueProd, Function.comp_apply]
+    intro b
+    simp_all only [elemCard_lift_iff, smul_elemCard, one_smul]
   mul_smul x y := by
-    apply Quotient.ind
-    intro a
-    cases x using Quotient.ind
-    cases y using Quotient.ind
-    rename_i x y
-    simp only [HSMul.hSMul, Quotient.map_mk]
-    apply equ.mpr
-    unfold basic.mulCard
-    simp only
-    refine equivalence.ofEquiv ?_ ?_
-    simp only
-    simp [· * ·,Mul.mul,Cardinal.map₂]
-    have txy: (⟦x × y⟧ : Cardinal).out ≃ x × y := by
-      apply Cardinal.outMkEquiv
-    have tx: x ≃ (⟦x⟧ : Cardinal).out := by
-      apply Cardinal.outMkEquiv.symm
-    have ty: y ≃ (⟦y⟧ : Cardinal).out := by
-      apply Cardinal.outMkEquiv.symm
-    have t1: (⟦x × y⟧ : Cardinal).out × a.fst ≃ x × y × a.fst  := by
-      trans
-      exact Equiv.prodCongrLeft fun a ↦ txy
-      exact Equiv.prodAssoc x y a.fst
-    trans
-    exact t1
-    have t2 : y × a.fst ≃ (⟦y⟧ : Cardinal).out × a.fst := Equiv.prodCongrLeft fun a ↦ ty
-    exact Equiv.prodCongr tx t2
-    simp only [id_eq, Equiv.coe_trans, Equiv.prodCongr_apply]
-    ext x
-    simp only [Function.comp_apply, Equiv.prodAssoc_apply, Prod.map_apply,
-      Equiv.prodCongrLeft_apply]
-    congr
+    intro b
+    simp_all only [elemCard_lift_iff, smul_elemCard]
+    funext w
+    simp only [Pi.smul_apply, smul_eq_mul]
+    group
   smul_zero := by
-    -- apply Quotient.ind
-    intro c
-    simp only [HSMul.hSMul]
-    apply equ.mpr
-    unfold basic.mulCard
-    symm
-    refine equivalence.ofEquiv ?_ ?_
-    -- todo: an element is in 0 iff its domain is 0
-    simp only
-    symm
-    refine (fun w ↦ @Equiv.equivOfIsEmpty _ _ (by simp only [isEmpty_prod, w, or_true]) w) ?_
-    reduce
-    simp only [isEmpty_ulift]
-    exact Empty.instIsEmpty
-    funext x
-    reduce at x
-    simp_all only [id_eq, Function.comp_apply]
-    have fwd : Empty := x.down
-    have fwd_1 : False := Aesop.BuiltinRules.empty_false fwd
-    simp_all only
+    intro a
+    simp_all only [elemCard_lift_iff, smul_elemCard, map_zero, smul_zero]
   smul_add := by
-    intro c a b
-    -- change c • (a + b) = c • a + c • b
-    apply quotient.elemCard_lift_iff.mpr
-    cases a,b using Quotient.ind₂
-    rename_i a b
-    -- change SMul.smul c (Add.add ⟦a⟧ ⟦b⟧ : quotient) = Add.add (SMul.smul c ⟦a⟧ : quotient) (SMul.smul c ⟦b⟧ : quotient)
-    simp only [HSMul.hSMul, SMul.smul, HAdd.hAdd, Add.add, Quotient.map₂_mk, Quotient.map_mk]
-    -- apply equ.mpr
-    -- todo: do this with elemCard
-
-
-
-    sorry
-  add_smul := sorry
-  zero_smul := sorry
+    intro a x y
+    simp_all only [elemCard_lift_iff, smul_elemCard, map_add, smul_add]
+  add_smul := by
+    intro r s x
+    simp_all only [elemCard_lift_iff, smul_elemCard, map_add]
+    ext x_1 : 1
+    simp_all only [Pi.smul_apply, smul_eq_mul, Pi.add_apply]
+    apply add_mul
+  zero_smul := by
+    intro x
+    simp_all only [elemCard_lift_iff, smul_elemCard, zero_smul, map_zero]
 
 
 -- X * Y = ∑x : X, x * Y = ∑x : X, (x * ·) '' Y

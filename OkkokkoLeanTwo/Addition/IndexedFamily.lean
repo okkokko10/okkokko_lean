@@ -1,5 +1,4 @@
-import OkkokkoLeanTwo.Addition.PermSetoid
-
+import Mathlib
 
 universe u v v' v''
 
@@ -160,15 +159,9 @@ theorem elemCard_preimageCard_iff_restrict (p : Set X) (f g : IndexedFamily X)
   : f.preimageCard_restrict p = g.preimageCard_restrict p ↔ f.elemCard_restrict p = g.elemCard_restrict p
   := by sorry
 
-def restrict (p : Set X) (f : IndexedFamily X) : IndexedFamily X := ⟨_, restrict_range p f.snd⟩
+-- def restrict (p : Set X) (f : IndexedFamily X) : IndexedFamily X := ⟨_, restrict_range p f.snd⟩
 end restrict
 -- #check fun p ↦ (· = ·) on (preimage_card_restrict p)
-
-def setoid {X : Type u} : Setoid (IndexedFamily X) :=
-  Setoid.ker (preimageCard)
-
-
-def quotient  := Quotient (setoid (X := X))
 
 -- todo: further quotients where IndexedFamilies are given equivalences, like disjoint union additivity
 -- restriction could just be that f is equated with restrict p f.
@@ -256,9 +249,9 @@ theorem equivalence.iff_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,
 def equivalence.asSubtype (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
   :=  {e : f.fst ≃ g.fst // g.snd ∘ e = f.snd}
 
-infixl:25 " ≃ " => equivalence.asSubtype
-theorem equivalence.subtype_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
-  :  f ≃' g ↔ Nonempty (f ≃ g) := Trans.simple (iff_equiv f g) (Iff.symm nonempty_subtype)
+-- infixl:25 " ≃ " => equivalence.asSubtype
+-- theorem equivalence.subtype_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+--   :  f ≃' g ↔ Nonempty (f ≃ g) := Trans.simple (iff_equiv f g) (Iff.symm nonempty_subtype)
 
 
 
@@ -279,7 +272,7 @@ theorem equivalence.ofEquiv {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'
 variable {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X} {h : IndexedFamily.{u,v''} X}
 
 @[refl]
-theorem equivalence.refl : f ≃' f := by
+theorem equivalence.refl (f : IndexedFamily.{u,v} X) : f ≃' f := by
   apply ofEquiv (Equiv.refl _) rfl
 
 @[symm]
@@ -318,9 +311,9 @@ def basic.nestSum  (f : IndexedFamily.{_, v'} (IndexedFamily.{_, v} X)) : Indexe
 
 -- todo: equivalence over two nested IF, with their nesting levels provided
 
-def basic.mulCard (f : IndexedFamily.{u,v} X) (c : Cardinal.{v'}) : IndexedFamily X
-  := ⟨f.fst × c.out, fun m ↦ f.snd m.1⟩
-def basic.mulCard' (f : IndexedFamily.{u,v} X) (t : Type v') : IndexedFamily X
+def basic.mulCard (c : Cardinal.{v'})  (f : IndexedFamily.{u,v} X) : IndexedFamily X
+  := ⟨c.out × f.fst, fun m ↦ f.snd m.2⟩
+def basic.mulCard' (t : Type v')  (f : IndexedFamily.{u,v} X) : IndexedFamily X
   := ⟨f.fst × t, fun m ↦ f.snd m.1⟩
 
 def basic.image {Y : Type*} (func : X → Y) (f : IndexedFamily.{u,v} X) : IndexedFamily.{_, v} Y :=
@@ -345,7 +338,7 @@ def basic.ofSet (s : Set X) : IndexedFamily X := ⟨Subtype s, Subtype.val⟩
 
 
 -- ∑x ∈ univ, (ec x) • {x}
-def basic.ofElemCard (ec : X → Cardinal.{v}) : IndexedFamily X := multiImage (fun x ↦ mulCard (singleton x) (ec x)) univ
+def basic.ofElemCard (ec : X → Cardinal.{v}) : IndexedFamily X := multiImage (fun x ↦ mulCard (ec x) (singleton x) ) univ
 
 theorem basic.ofElemCard_elemCard (ec : X → Cardinal.{v}) : (ofElemCard ec).elemCard =cl ec
   := by
@@ -361,11 +354,6 @@ theorem basic.ofElemCard_elemCard (ec : X → Cardinal.{v}) : (ofElemCard ec).el
 
 -- this is trivial from the earlier.
 theorem basic.elemCard_ofElemCard (f : IndexedFamily.{u,v} X) : (ofElemCard f.elemCard).elemCard =cl f.elemCard := ofElemCard_elemCard f.elemCard
-
-
--- X * Y = ∑x : X, x * Y = ∑x : X, (x * ·) '' Y
-def basic.mul {Y Z : Type*} (m : X → Y → Z) (f : IndexedFamily X) (g : IndexedFamily Y) : IndexedFamily Z
-  := multiImage (fun x ↦ image (m x) g) f
 
 
 -- todo: [X * Y] : IndexedFamily X * IndexedFamily Y
@@ -460,16 +448,206 @@ instance preimageCard.addMonoidHom : AddMonoidHom (IndexedFamily.{u,v} X) (Set X
   map_add' := addHom.map_add
 
 
-instance elemCard.addMonoidHom : AddMonoidHom (IndexedFamily.{u,v} X) (X→ Cardinal) where
+instance elemCard_addMonoidHom : AddMonoidHom (IndexedFamily.{u,v} X) (X → Cardinal) where
   toFun := IndexedFamily.elemCard
-  map_zero' := zeroHom.map_zero
-  map_add' := addHom.map_add
+  map_zero' := elemCard.zeroHom.map_zero
+  map_add' := elemCard.addHom.map_add
 
-
-
+theorem equivalence.elemCard_addMonoid_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+  : f ≃' g ↔ elemCard_addMonoidHom f =cl elemCard_addMonoidHom g := by simp only [equivalence_def,
+    elemCard_addMonoidHom, AddMonoidHom.coe_mk, ZeroHom.coe_mk]
 
 
 end basic
 
+section quotient
+
+#check Equiv.symm
+
+instance setoid {X : Type u} : Setoid (IndexedFamily X) where
+  r := equivalence
+  iseqv := {
+    refl := equivalence.refl
+    symm := equivalence.symm
+    trans := equivalence.trans
+  }
+
+-- def setoid {X : Type u} : Setoid (IndexedFamily X) :=
+--   Setoid.ker (preimageCard)
+
+theorem setoid.equ {f g : IndexedFamily X} : setoid f g ↔ f ≃' g := by rfl
+
+def quotient  := Quotient (setoid (X := X))
+
+@[simp]
+lemma quotient.equ {f g : IndexedFamily.{u,v} X} : (⟦f⟧ : quotient) = ⟦g⟧ ↔ f ≃' g := by
+  simp only [Quotient.eq, ← setoid.equ]
+
+@[simp]
+lemma quotient.equ' {f g : IndexedFamily.{u,v} X} : f ≈ g ↔ f ≃' g := by
+  simp only [← setoid.equ]
+  simp only [HasEquiv.Equiv]
+
+-- theorem basic.equivalence.add (f : IndexedFamily.{u,v} X) ( g : IndexedFamily.{u,v'} X) : basic.add f g
+
+
+instance quotient.instAddZeroClass: AddZeroClass (@quotient.{u,v} X) where
+  add := Quotient.lift₂ (fun a b ↦ ⟦a + b⟧) <| by
+    simp only
+    intro a1 b1 a2 b2 ae be
+    apply equ.mpr
+    simp only [equ'] at ae be
+    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same, map_add] at *
+    simp_all only
+  zero := ⟦0⟧
+  zero_add := by
+    apply Quotient.ind
+    intro a
+    change Quotient.lift₂ (fun a b ↦ ⟦a + b⟧) _ ⟦0⟧ ⟦a⟧ = ⟦a⟧
+    simp only [Quotient.lift_mk, quotient.equ]
+    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
+    simp only [map_add, map_zero, zero_add]
+  add_zero := by
+    apply Quotient.ind
+    intro a
+    change Quotient.lift₂ (fun a b ↦ ⟦a + b⟧) _ ⟦a⟧ ⟦0⟧ = ⟦a⟧
+    simp only [Quotient.lift_mk, quotient.equ]
+    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
+    simp only [map_add, map_zero, add_zero]
+instance quotient.instAddCommMonoid: AddCommMonoid (@quotient.{u,v} X) where
+  add_assoc := by
+    intro a b c
+    cases a using Quotient.ind
+    cases b using Quotient.ind
+    cases c using Quotient.ind
+    rename_i a b c
+    -- simp [· + ·,Add.add]
+    apply equ.mpr
+    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
+    simp only [map_add]
+    group
+  add_comm a b := by
+    cases a using Quotient.ind
+    cases b using Quotient.ind
+    rename_i a b
+    change ⟦a + b⟧ = ⟦b + a⟧
+    simp only [quotient.equ]
+    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
+    simp only [map_add]
+    group
+  nsmul := nsmulRec
+
+instance basic.smul : SMul Cardinal (IndexedFamily X) where
+  smul := basic.mulCard
+-- lemma basic.smul.def (c : Cardinal.{v}) (f : IndexedFamily.{u,v} X)
+--   : c • f = ⟨f.fst × c.out, fun m ↦ f.snd m.1⟩ := by rfl
+
+/-- it's weird that this didn't exist -/
+noncomputable instance _root_.Cardinal.one_unique : Unique (Quotient.out (1 : Cardinal.{v})) := by
+    have : (1 : Cardinal.{v}).out ≃ PUnit.{v+1} := by
+      change (1 : Cardinal.{v}).out ≃ PUnit.{v + 1}
+      refine Cardinal.eq.mp ?_ |>.some
+      simp only [Cardinal.mk_out, Cardinal.mk_fintype, Fintype.card_unique, Nat.cast_one]
+    apply Equiv.unique this
+
+open Cardinal in
+instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
+  smul c := Quotient.map (basic.mulCard c) <| by
+    intro a b ab
+    simp only [quotient.equ'] at *
+    -- change basic.mulCard c a ≃' basic.mulCard c b
+    unfold basic.mulCard
+    refine equivalence.ofEquiv ?_ ?_
+    simp only
+    exact Equiv.prodCongr (Equiv.refl _) ab.equiv
+    simp only [id_eq]
+    have := ab.equiv_map
+    simp only [Equiv.prodCongr_apply, Equiv.coe_refl]
+    funext x
+    simp only [Function.comp_apply, Prod.map_snd]
+    simp [funext_iff] at this
+    simp_all only
+
+  one_smul := by
+    apply Quotient.ind
+    intro a
+    simp only [HSMul.hSMul, Quotient.map_mk]
+    apply equ.mpr
+    unfold basic.mulCard
+    refine equivalence.ofEquiv ?_ ?_
+    simp only
+    exact Equiv.uniqueProd a.fst _
+    funext x
+    simp only [id_eq, Equiv.coe_uniqueProd, Function.comp_apply]
+  mul_smul x y := by
+    apply Quotient.ind
+    intro a
+    cases x using Quotient.ind
+    cases y using Quotient.ind
+    rename_i x y
+    simp only [HSMul.hSMul, Quotient.map_mk]
+    apply equ.mpr
+    unfold basic.mulCard
+    simp only
+    refine equivalence.ofEquiv ?_ ?_
+    simp only
+    simp [· * ·,Mul.mul,Cardinal.map₂]
+    have txy: (⟦x × y⟧ : Cardinal).out ≃ x × y := by
+      apply Cardinal.outMkEquiv
+    have tx: x ≃ (⟦x⟧ : Cardinal).out := by
+      apply Cardinal.outMkEquiv.symm
+    have ty: y ≃ (⟦y⟧ : Cardinal).out := by
+      apply Cardinal.outMkEquiv.symm
+    have t1: (⟦x × y⟧ : Cardinal).out × a.fst ≃ x × y × a.fst  := by
+      trans
+      exact Equiv.prodCongrLeft fun a ↦ txy
+      exact Equiv.prodAssoc x y a.fst
+    trans
+    exact t1
+    have t2 : y × a.fst ≃ (⟦y⟧ : Cardinal).out × a.fst := Equiv.prodCongrLeft fun a ↦ ty
+    exact Equiv.prodCongr tx t2
+    simp only [id_eq, Equiv.coe_trans, Equiv.prodCongr_apply]
+    ext x
+    simp only [Function.comp_apply, Equiv.prodAssoc_apply, Prod.map_apply,
+      Equiv.prodCongrLeft_apply]
+    congr
+  smul_zero := by
+    -- apply Quotient.ind
+    intro c
+    simp only [HSMul.hSMul]
+    apply equ.mpr
+    unfold basic.mulCard
+    symm
+    refine equivalence.ofEquiv ?_ ?_
+    -- todo: an element is in 0 iff its domain is 0
+    simp only
+    symm
+    refine (fun w ↦ @Equiv.equivOfIsEmpty _ _ (by simp only [isEmpty_prod, w, or_true]) w) ?_
+    reduce
+    simp only [isEmpty_ulift]
+    exact Empty.instIsEmpty
+    funext x
+    reduce at x
+    simp_all only [id_eq, Function.comp_apply]
+    have fwd : Empty := x.down
+    have fwd_1 : False := Aesop.BuiltinRules.empty_false fwd
+    simp_all only
+  smul_add := sorry
+  add_smul := sorry
+  zero_smul := sorry
+
+
+
+-- X * Y = ∑x : X, x * Y = ∑x : X, (x * ·) '' Y
+def basic.mul {Y Z : Type*} (m : X → Y → Z) (f : IndexedFamily X) (g : IndexedFamily Y) : IndexedFamily Z
+  := multiImage (fun x ↦ image (m x) g) f
+
+-- todo: mul where x * x = x, x * y = 0
+
+
+#check LinearMap
+-- theorem basic.mul_linear
+
+end quotient
 
 end IndexedFamily

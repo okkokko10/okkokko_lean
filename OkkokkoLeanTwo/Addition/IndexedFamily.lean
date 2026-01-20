@@ -258,11 +258,17 @@ def equivalence.asSubtype (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} 
 noncomputable def equivalence.equiv {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
   (e' : f ≃' g) : f.fst ≃ g.fst := Equiv.ofFiberEquiv (equivalence.iff_elementwise_equiv_fiber _ _ |>.mp e').some
 
+
+theorem equivalence.equiv_map' {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+  (e' : f ≃' g) (x) : g.snd (e'.equiv x) = f.snd x := by
+  exact Equiv.ofFiberEquiv_map _ x
+
 theorem equivalence.equiv_map {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
   (e' : f ≃' g) : g.snd ∘ e'.equiv = f.snd := by
   funext x
   simp only [Function.comp_apply]
   exact Equiv.ofFiberEquiv_map _ x
+
 
 -- I wonder, is it possible to use coe to automatically convert propositions
 
@@ -592,6 +598,8 @@ theorem quotient.elemCard_lift_iff {f g : @quotient.{u,v} X} : f = g ↔ f.elemC
 
 open Cardinal in
 
+
+
 instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{u,v} X) where
   smul c := Quotient.map (basic.mulCard c) <| by
     intro a b ab
@@ -609,7 +617,27 @@ instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{u,v} X) where
     simp [funext_iff] at this
     simp_all only
 
-@[simp]
+#check SMulCon
+#check ModuleCon
+
+instance quotient.instModuleCon : ModuleCon (Cardinal.{v}) (IndexedFamily.{u,v} X) where
+  add' := by
+    intros
+    simp only [setoid.equ, equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same, map_add] at *
+    simp_all only
+  smul := by
+    simp only [setoid.equ]
+    intro c x y xy
+    have := equivalence.equiv_map xy
+    apply equivalence.ofEquiv ?_ ?_
+    -- simp only [HSMul.hSMul, SMul.smul, basic.mulCard]
+    refine Equiv.prodCongr (Equiv.refl _) (xy.equiv)
+    funext w
+    exact equivalence.equiv_map' xy w.2
+
+-- #check MulActionHom
+
+-- @[simp]
 lemma quotient.smul_elemCard {c : Cardinal.{v}} {f : @quotient.{u,v} X} : elemCard_addMonoidHom' (c • f) = c • elemCard_addMonoidHom' f
   := by
   ext x
@@ -654,11 +682,13 @@ instance quotient.instModule : Module Cardinal.{v} (@quotient.{u,v} X) where
 
 
 -- X * Y = ∑x : X, x * Y = ∑x : X, (x * ·) '' Y
-def basic.mul {Y Z : Type*} (m : X → Y → Z) (f : IndexedFamily X) (g : IndexedFamily Y) : IndexedFamily Z
+def basic.hmul {Y Z : Type*} (m : X → Y → Z) (f : IndexedFamily X) (g : IndexedFamily Y) : IndexedFamily Z
   := multiImage (fun x ↦ image (m x) g) f
 
--- todo: mul where x * x = x, x * y = 0
+-- todo: mul where x * x = x, x * y = 0. univ is one
 
+def basic.mul (f : IndexedFamily X) (g : IndexedFamily X) : IndexedFamily X
+  := ⟨{w : f.fst × g.fst // f.snd w.1 = g.snd w.2},fun w ↦ f.snd w.val.1⟩
 
 #check LinearMap
 -- theorem basic.mul_linear

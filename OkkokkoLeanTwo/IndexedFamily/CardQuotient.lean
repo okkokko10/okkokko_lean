@@ -26,26 +26,47 @@ instance setoid {X : Type u} : Setoid (IndexedFamily X) where
 
 theorem setoid.equ {f g : IndexedFamily X} : setoid f g ↔ f ≃' g := by rfl
 
+-- theorem basic.equivalence.add (f : IndexedFamily.{u,v} X) ( g : IndexedFamily.{u,v'} X) : basic.add f g
+
+instance basic.smul : SMul Cardinal (IndexedFamily X) where
+  smul := basic.mulCard
+
+#check ModuleCon
+
+instance setoid.instAddCon : AddCon (IndexedFamily.{u,v} X) where
+  add' := by
+    intros
+    simp only [setoid.equ, equivalence.elemCard_addMonoid_iff, ↓CardinalLiftFunEq.same, map_add] at *
+    simp_all only
+
+instance setoid.instModuleCon : ModuleCon (Cardinal.{v}) (IndexedFamily.{u,v} X) where
+  add' := setoid.instAddCon.add'
+  smul := by
+    simp only [setoid.equ]
+    intro c x y xy
+    have := equivalence.equiv_map xy
+    apply equivalence.ofEquiv ?_ ?_
+    refine Equiv.prodCongr (Equiv.refl _) (xy.equiv)
+    funext w
+    exact equivalence.equiv_map' xy w.2
+
+
 def quotient := Quotient (setoid (X := X))
+lemma quotient.is_module :  quotient.{u,v} (X:=X) = (setoid.instModuleCon.{u,v} (X:=X)).Quotient := rfl
+
 
 abbrev quotient.mk (f : IndexedFamily.{u,v} X) : @quotient.{u,v} X := Quotient.mk setoid f
 
-notation3:arg "⟦" a "⟧'" => quotient.mk a
 
 @[simp high]
 lemma quotient.equ {f g : IndexedFamily.{u,v} X} : (⟦f⟧ : quotient) = ⟦g⟧ ↔ f ≃' g := by
   simp only [← setoid.equ]
   simp only [Quotient.eq]
 
-
-
-
 @[simp]
 lemma quotient.equ' {f g : IndexedFamily.{u,v} X} : f ≈ g ↔ f ≃' g := by
   simp only [← setoid.equ]
   simp only [HasEquiv.Equiv]
-
--- theorem basic.equivalence.add (f : IndexedFamily.{u,v} X) ( g : IndexedFamily.{u,v'} X) : basic.add f g
 
 
 instance quotient.instAddZeroClass: AddZeroClass (@quotient.{u,v} X) where
@@ -95,8 +116,6 @@ instance quotient.instAddCommMonoid: AddCommMonoid (@quotient.{u,v} X) where
 theorem quotient.add_apply {a b : IndexedFamily.{u,v} X} : instAddZeroClass.add ⟦a⟧ ⟦b⟧ = ⟦a + b⟧
   := by simp only [Add.add, Quotient.map₂_mk]
 
-instance basic.smul : SMul Cardinal (IndexedFamily X) where
-  smul := basic.mulCard
 -- lemma basic.smul.def (c : Cardinal.{v}) (f : IndexedFamily.{u,v} X)
 --   : c • f = ⟨f.fst × c.out, fun m ↦ f.snd m.1⟩ := by rfl
 
@@ -160,23 +179,6 @@ instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{u,v} X) where
     simp [funext_iff] at this
     simp_all only
 
-#check SMulCon
-#check ModuleCon
-
-instance quotient.instModuleCon : ModuleCon (Cardinal.{v}) (IndexedFamily.{u,v} X) where
-  add' := by
-    intros
-    simp only [setoid.equ, equivalence.elemCard_addMonoid_iff, ↓CardinalLiftFunEq.same, map_add] at *
-    simp_all only
-  smul := by
-    simp only [setoid.equ]
-    intro c x y xy
-    have := equivalence.equiv_map xy
-    apply equivalence.ofEquiv ?_ ?_
-    -- simp only [HSMul.hSMul, SMul.smul, basic.mulCard]
-    refine Equiv.prodCongr (Equiv.refl _) (xy.equiv)
-    funext w
-    exact equivalence.equiv_map' xy w.2
 
 -- #check MulActionHom
 
@@ -232,6 +234,17 @@ def basic.hmul {Y Z : Type*} (m : X → Y → Z) (f : IndexedFamily X) (g : Inde
 
 def basic.mul (f : IndexedFamily X) (g : IndexedFamily X) : IndexedFamily X
   := ⟨{w : f.fst × g.fst // f.snd w.1 = g.snd w.2},fun w ↦ f.snd w.val.1⟩
+
+def quotient.mul : CommMonoid (IndexedFamily.{u,v} X) where
+  mul := sorry
+  mul_assoc := sorry
+  one := sorry
+  one_mul := sorry
+  mul_one := sorry
+  npow_zero := sorry
+  npow_succ := sorry
+  mul_comm := sorry
+
 
 #check LinearMap
 -- theorem basic.mul_linear

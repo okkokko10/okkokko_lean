@@ -1,5 +1,6 @@
 import OkkokkoLeanTwo.IndexedFamily.Basic
 import OkkokkoLeanTwo.IndexedFamily.BasicDefs
+import OkkokkoLeanTwo.IndexedFamily.Hom
 import OkkokkoLeanTwo.IndexedFamily.Equivalence
 namespace IndexedFamily
 

@@ -1,55 +1,12 @@
 import Mathlib
+import OkkokkoLeanTwo.IndexedFamily.CardinalLiftFunEq
 
 universe u v v' v''
 
 variable {X : Type u}
 
-section func_lift_eq
-variable {X : Sort*}
-variable (f : X → Cardinal.{v}) (g : X → Cardinal.{v'}) (h : X → Cardinal.{v''})
+open scoped CardinalLiftFunEq
 
-
-abbrev _root_.func_lift_eq : Prop := Cardinal.lift.{v'} ∘ f = Cardinal.lift.{v} ∘ g
--- same priority as Equiv
-/-- same function to Cardinal in different universes.
-
-Cardinal.lift.{v'} ∘ f = Cardinal.lift.{v} ∘ g -/
-infixl:25 " =cl " => func_lift_eq
-
-@[simp↓]
-theorem _root_.func_lift_eq.same {f g : X → Cardinal.{v}} : f =cl g ↔ f = g := by
-  unfold func_lift_eq
-  refine ⟨?_,?_⟩
-  simp_all only [funext_iff, Function.comp_apply, Cardinal.lift_id, implies_true]
-  intro a
-  subst a
-  rfl
---@[simps]
-
-
-variable {f g h}
-@[refl]
-theorem _root_.func_lift_eq.refl : f =cl f := by rfl
-
-@[symm]
-theorem _root_.func_lift_eq.symm  : f =cl g ↔ g =cl f :=
-  { mp := fun a ↦ (Eq.symm a), mpr := fun a ↦ (Eq.symm a) }
-
-@[trans]
-theorem _root_.func_lift_eq.trans  : f =cl g → g =cl h → f =cl h := by
-  unfold func_lift_eq
-  intro a b
-  simp_all only [funext_iff, Function.comp_apply]
-  simp_all only [← Cardinal.lift_umax_eq.{_, _, max v v' v''}, implies_true]
-
-
-theorem _root_.func_lift_eq.funext_iff  : f =cl g ↔ ∀x, Cardinal.lift.{v'} (f x) = Cardinal.lift.{v} (g x) := by
-  unfold func_lift_eq
-  simp only [_root_.funext_iff, Function.comp_apply]
-
-theorem _root_.func_lift_eq.funext  : (∀x, Cardinal.lift.{v'} (f x) = Cardinal.lift.{v} (g x)) → f =cl g := funext_iff.mpr
-
-end func_lift_eq
 
 
 #check MulEquiv
@@ -110,13 +67,13 @@ lemma elemCard_preimageCard_iff (f g : IndexedFamily X)
     unfold elemCard preimageCard
     refine ⟨?_,?_⟩
     {
-      rw [func_lift_eq.funext_iff]
-      rw [func_lift_eq.funext_iff]
+      rw [CardinalLiftFunEq.funext_iff]
+      rw [CardinalLiftFunEq.funext_iff]
       intro w x
       exact (w {x})
     }
-    rw [func_lift_eq.funext_iff]
-    rw [func_lift_eq.funext_iff]
+    rw [CardinalLiftFunEq.funext_iff]
+    rw [CardinalLiftFunEq.funext_iff]
     intro w s
     simp_rw [Cardinal.lift_mk_eq'] at w ⊢
     refine ⟨?_⟩
@@ -508,7 +465,7 @@ lemma quotient.equ' {f g : IndexedFamily.{u,v} X} : f ≈ g ↔ f ≃' g := by
 instance quotient.instAddZeroClass: AddZeroClass (@quotient.{u,v} X) where
   add := Quotient.map₂ (fun a b ↦ a + b) <| by
     intros
-    simp only [equ', equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same, map_add] at *
+    simp only [equ', equivalence.elemCard_addMonoid_iff, ↓CardinalLiftFunEq.same, map_add] at *
     simp_all only
   zero := ⟦0⟧
   zero_add := by
@@ -516,14 +473,14 @@ instance quotient.instAddZeroClass: AddZeroClass (@quotient.{u,v} X) where
     intro a
     change Quotient.map₂ (fun a b ↦ a + b) _ ⟦0⟧ ⟦a⟧ = ⟦a⟧
     simp only [Quotient.map₂_mk, equ]
-    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
+    simp only [equivalence.elemCard_addMonoid_iff, ↓CardinalLiftFunEq.same]
     simp only [map_add, map_zero, zero_add]
   add_zero := by
     apply Quotient.ind
     intro a
     change Quotient.map₂ (fun a b ↦ a + b) _ ⟦a⟧ ⟦0⟧ = ⟦a⟧
     simp only [Quotient.map₂_mk, quotient.equ]
-    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
+    simp only [equivalence.elemCard_addMonoid_iff, ↓CardinalLiftFunEq.same]
     simp only [map_add, map_zero, add_zero]
 instance quotient.instAddCommMonoid: AddCommMonoid (@quotient.{u,v} X) where
   add_assoc := by
@@ -534,7 +491,7 @@ instance quotient.instAddCommMonoid: AddCommMonoid (@quotient.{u,v} X) where
     rename_i a b c
     -- simp [· + ·,Add.add]
     apply equ.mpr
-    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
+    simp only [equivalence.elemCard_addMonoid_iff, ↓CardinalLiftFunEq.same]
     simp only [map_add]
     group
   add_comm a b := by
@@ -543,7 +500,7 @@ instance quotient.instAddCommMonoid: AddCommMonoid (@quotient.{u,v} X) where
     rename_i a b
     change ⟦a + b⟧ = ⟦b + a⟧
     simp only [quotient.equ]
-    simp only [equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same]
+    simp only [equivalence.elemCard_addMonoid_iff, ↓CardinalLiftFunEq.same]
     simp only [map_add]
     group
   nsmul := nsmulRec
@@ -569,7 +526,7 @@ noncomputable instance _root_.Cardinal.one_unique : Unique (Quotient.out (1 : Ca
 def quotient.elemCard_lift (f : @quotient.{u,v} X) (x : X) : Cardinal.{v} := f.lift (elemCard_addMonoidHom · x) <| by
   intro a b ab
   simp
-  simp only [equ', equivalence.elemCard_iff, ↓func_lift_eq.same] at ab
+  simp only [equ', equivalence.elemCard_iff, ↓CardinalLiftFunEq.same] at ab
   exact congrFun ab x
 
 instance quotient.elemCard_addMonoidHom' : AddMonoidHom (@quotient.{u,v} X) (X → Cardinal) where
@@ -593,7 +550,7 @@ theorem quotient.elemCard_lift_iff {f g : @quotient.{u,v} X} : f = g ↔ f.elemC
   unfold elemCard_addMonoidHom'
   simp only [AddMonoidHom.coe_mk, ZeroHom.coe_mk]
   rw [equ]
-  simp only [equivalence.elemCard_iff, ↓func_lift_eq.same]
+  simp only [equivalence.elemCard_iff, ↓CardinalLiftFunEq.same]
   rfl
 
 open Cardinal in
@@ -623,7 +580,7 @@ instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{u,v} X) where
 instance quotient.instModuleCon : ModuleCon (Cardinal.{v}) (IndexedFamily.{u,v} X) where
   add' := by
     intros
-    simp only [setoid.equ, equivalence.elemCard_addMonoid_iff, ↓func_lift_eq.same, map_add] at *
+    simp only [setoid.equ, equivalence.elemCard_addMonoid_iff, ↓CardinalLiftFunEq.same, map_add] at *
     simp_all only
   smul := by
     simp only [setoid.equ]

@@ -378,4 +378,38 @@ def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.
 -- theorem basic.mul_linear
 
 end quotient
+
+
+namespace category
+open CategoryTheory
+#check Category
+
+-- #check Grp
+
+#check equivalence.equiv_map
+
+instance instCategory : Category (IndexedFamily X) where
+  Hom A B := {e : A.fst → B.fst // B.snd ∘ e = A.snd}
+  id A := ⟨Equiv.refl A.fst,rfl⟩
+  comp ab bc := ⟨bc.val ∘ ab.val, by
+    have t1:= ab.property
+    have t2:= bc.property
+    simp only [← t1, ← t2]
+    rfl
+    ⟩
+  id_comp := fun {X_2 Y} f ↦ rfl
+  comp_id := fun {X_2 Y} f ↦ rfl
+  assoc {A B C D} ab bc cd := rfl
+#check equivalence.asSubtype
+
+noncomputable example (A B : IndexedFamily X) (h : A ≃' B) : (A ≅ B) where
+  hom := ⟨h.equiv,h.equiv_map⟩
+  inv := ⟨h.symm.equiv,h.symm.equiv_map⟩
+  hom_inv_id := sorry
+  inv_hom_id := sorry
+
+
+
+
+end category
 end IndexedFamily

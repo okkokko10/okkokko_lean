@@ -276,18 +276,54 @@ theorem setoid.mulCon {a a' b b' : IndexedFamily X} (sa : a ≃' a') (sb : b ≃
 instance setoid.instCon : Con (IndexedFamily.{v} X) where
   mul' := fun {_ _ _ _} sa sb ↦ mulCon sa sb
 
-def quotient.mul : CommMonoid (@quotient.{v} X) where
+def basic.univ'' {X_down : Type v} (up : X_down ≃ X) : IndexedFamily.{v} X := ⟨X_down, up⟩
+
+def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.{v} X) where
   mul := Quotient.map₂ (fun a b ↦ a * b) <| fun ⦃a a'⦄ sa ⦃b b'⦄ sb ↦ setoid.mulCon sa sb
   mul_assoc a b c := by
     cases a using Quotient.ind
     cases b using Quotient.ind
     cases c using Quotient.ind
+    rename_i A B C
     simp only [HMul.hMul, Quotient.map₂_mk]
     apply equ.mpr
+    simp only [Mul.mul, basic.mul]
+    apply equivalence.ofEquiv ?_ ?_
+    exact {
+      toFun := fun ⟨⟨⟨⟨a,b⟩,q⟩,c⟩,p⟩ ↦ ⟨⟨a,⟨⟨b,c⟩,by simp_all only⟩⟩,q⟩
+      invFun := fun  ⟨⟨a,⟨⟨b,c⟩,p⟩⟩,q⟩ ↦  ⟨⟨⟨⟨a,b⟩,q⟩,c⟩,by simp_all only⟩
+      left_inv := congrFun rfl
+      right_inv := congrFun rfl
+    }
+    apply congrFun rfl
+  one := ⟦basic.univ'' up⟧
+  one_mul := by
+    apply Quotient.ind
+    intro A
 
-    sorry
-  one := sorry
-  one_mul := sorry
+    -- simp only [HMul.hMul]
+    change Quotient.map₂ (fun a b ↦ Mul.mul a b) _ ⟦basic.univ'' up⟧ ⟦A⟧ = ⟦A⟧
+    simp only [Quotient.map₂_mk, equ]
+    simp only [Mul.mul, basic.mul, basic.univ'']
+    apply equivalence.ofEquiv ?_ ?_
+    simp only
+    have ewe x y : up x = A.snd y ↔ (up.symm ∘ A.snd) y = x := by
+      simp [Equiv.symm_apply_eq up, eq_comm]
+    -- simp only [ewe, Function.comp_apply]
+    -- apply Equiv.subtypeFi
+    exact {
+      toFun := fun ⟨⟨d,a⟩,p⟩ ↦ a
+      invFun := fun a ↦ ⟨⟨up.symm (A.snd a),a⟩,by simp only [Equiv.apply_symm_apply]⟩
+      left_inv := by
+        unfold Function.LeftInverse
+        simp only [Subtype.forall, Subtype.mk.injEq, Prod.forall, Prod.mk.injEq,
+          Equiv.symm_apply_eq, and_true]
+        tauto
+      right_inv := by tauto
+    }
+    simp only [id_eq, Equiv.coe_fn_mk]
+    funext w
+    simp only [Function.comp_apply, w.property]
   mul_one := sorry
   npow_zero := sorry
   npow_succ := sorry

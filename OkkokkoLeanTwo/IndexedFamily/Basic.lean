@@ -1,7 +1,7 @@
 import Mathlib
 import OkkokkoLeanTwo.IndexedFamily.CardinalLiftFunEq
 
-universe u v v' v''
+universe v v' v'' u
 
 variable {X : Type u}
 
@@ -45,7 +45,7 @@ namespace IndexedFamily
 
 -- variable (f : IndexedFamily X)
 
-def preimageCard (f : IndexedFamily.{u,v} X) (x : Set X) : Cardinal.{v}
+def preimageCard (f : IndexedFamily.{v} X) (x : Set X) : Cardinal.{v}
   := Cardinal.mk (f.snd ⁻¹' x)
 
 
@@ -54,11 +54,11 @@ def preimageCard (f : IndexedFamily.{u,v} X) (x : Set X) : Cardinal.{v}
 def elemCard (f : IndexedFamily X) (x : X) : Cardinal.{v} := preimageCard f {x}
 
 
-irreducible_def equivalence (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X) : Prop
+irreducible_def equivalence (f : IndexedFamily.{v} X) (g : IndexedFamily.{v'} X) : Prop
   := f.elemCard =cl g.elemCard
 
 infixl:25 " ≃' " => equivalence
-theorem equivalence.elemCard_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+theorem equivalence.elemCard_iff {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
   : f ≃' g ↔ f.elemCard =cl g.elemCard := by simp only [equivalence_def]
 
 

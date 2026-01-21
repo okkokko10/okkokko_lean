@@ -2,7 +2,7 @@ import OkkokkoLeanTwo.IndexedFamily.Basic
 
 namespace IndexedFamily
 
-universe u v v' v''
+universe  v v' v'' u
 
 variable {X : Type u}
 
@@ -41,7 +41,7 @@ lemma elemCard_preimageCard_iff (f g : IndexedFamily X)
     apply (w a).some
 
 
-theorem equivalence.preimageCard_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+theorem equivalence.preimageCard_iff {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
   : f ≃' g ↔ f.preimageCard =cl g.preimageCard := by rw [equivalence.elemCard_iff,elemCard_preimageCard_iff f g]
 
 
@@ -51,7 +51,7 @@ theorem equivalence.preimageCard_iff {f : IndexedFamily.{u,v} X} {g : IndexedFam
 --   -- := open scoped Classical in if p x then preimage_card f x else 0
 
 
--- def preimageCard_restrict (p : Set X) (f : IndexedFamily.{u,v} X) (x : Set X) : Cardinal.{v}
+-- def preimageCard_restrict (p : Set X) (f : IndexedFamily.{v} X) (x : Set X) : Cardinal.{v}
 --   := preimageCard f (p ∩ x)
 
 -- -- theorem preimage_card.restrict.as
@@ -95,7 +95,7 @@ lemma equivalence.iff_elementwise_equiv_sets (f g : IndexedFamily X)
   intro ⟨ee⟩ x
   apply Cardinal.lift_mk_eq'.mpr ⟨ee x⟩
 
-theorem equivalence.iff_elementwise_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+theorem equivalence.iff_elementwise_equiv (f : IndexedFamily.{v} X) (g : IndexedFamily.{v'} X)
   : f ≃' g ↔ Nonempty (∀(x : X), ↑(f.snd ⁻¹' {x}) ≃ ↑(g.snd ⁻¹' {x}))
   := by
   rw [equivalence.elemCard_iff]
@@ -113,7 +113,7 @@ theorem equivalence.iff_elementwise_equiv (f : IndexedFamily.{u,v} X) (g : Index
   apply Cardinal.lift_mk_eq'.mpr ⟨ee x⟩
 
 
-lemma equivalence.iff_elementwise_equiv_fiber (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+lemma equivalence.iff_elementwise_equiv_fiber (f : IndexedFamily.{v} X) (g : IndexedFamily.{v'} X)
   :  f ≃' g ↔ Nonempty (∀(x : X), {i // f.snd i = x} ≃ {i // g.snd i = x})
   := by
     rw [equivalence.iff_elementwise_equiv]
@@ -124,7 +124,7 @@ lemma equivalence.iff_elementwise_equiv_fiber (f : IndexedFamily.{u,v} X) (g : I
 
 open scoped Function
 
-theorem equivalence.iff_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+theorem equivalence.iff_equiv (f : IndexedFamily.{v} X) (g : IndexedFamily.{v'} X)
   :  f ≃' g ↔ ∃e : _ ≃ _, g.snd ∘ e = f.snd
   := by
   rw [equivalence.iff_elementwise_equiv_fiber]
@@ -145,28 +145,28 @@ theorem equivalence.iff_equiv (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,
 
 #check Equiv.ofFiberEquiv_apply
 
--- structure EquivF (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X) extends (f.fst ≃ g.fst) where
+-- structure EquivF (f : IndexedFamily.{v} X) (g : IndexedFamily.{v'} X) extends (f.fst ≃ g.fst) where
 --   isComp' : g.snd ∘ toFun = f.snd
--- instance (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X) : EquivLike (EquivF f g) f.fst g.fst :=
+-- instance (f : IndexedFamily.{v} X) (g : IndexedFamily.{v'} X) : EquivLike (EquivF f g) f.fst g.fst :=
 
-def equivalence.asSubtype (f : IndexedFamily.{u,v} X) (g : IndexedFamily.{u,v'} X)
+def equivalence.asSubtype (f : IndexedFamily.{v} X) (g : IndexedFamily.{v'} X)
   :=  {e : f.fst ≃ g.fst // g.snd ∘ e = f.snd}
 
 -- infixl:25 " ≃ " => equivalence.asSubtype
--- theorem equivalence.subtype_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+-- theorem equivalence.subtype_iff {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
 --   :  f ≃' g ↔ Nonempty (f ≃ g) := Trans.simple (iff_equiv f g) (Iff.symm nonempty_subtype)
 
 
 
-noncomputable def equivalence.equiv {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+noncomputable def equivalence.equiv {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
   (e' : f ≃' g) : f.fst ≃ g.fst := Equiv.ofFiberEquiv (equivalence.iff_elementwise_equiv_fiber _ _ |>.mp e').some
 
 
-theorem equivalence.equiv_map' {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+theorem equivalence.equiv_map' {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
   (e' : f ≃' g) (x) : g.snd (e'.equiv x) = f.snd x := by
   exact Equiv.ofFiberEquiv_map _ x
 
-theorem equivalence.equiv_map {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+theorem equivalence.equiv_map {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
   (e' : f ≃' g) : g.snd ∘ e'.equiv = f.snd := by
   funext x
   simp only [Function.comp_apply]
@@ -175,13 +175,13 @@ theorem equivalence.equiv_map {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,
 
 -- I wonder, is it possible to use coe to automatically convert propositions
 
-theorem equivalence.ofEquiv {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+theorem equivalence.ofEquiv {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
   (e : f.fst ≃ g.fst) (h : g.snd ∘ e = f.snd) : f ≃' g := iff_equiv f g |>.mpr ⟨e,h⟩
 
-variable {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X} {h : IndexedFamily.{u,v''} X}
+variable {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X} {h : IndexedFamily.{v''} X}
 
 @[refl]
-theorem equivalence.refl (f : IndexedFamily.{u,v} X) : f ≃' f := by
+theorem equivalence.refl (f : IndexedFamily.{v} X) : f ≃' f := by
   apply ofEquiv (Equiv.refl _) rfl
 
 @[symm]

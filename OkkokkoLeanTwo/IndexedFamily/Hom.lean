@@ -2,7 +2,7 @@ import OkkokkoLeanTwo.IndexedFamily.BasicDefs
 
 namespace IndexedFamily
 
-universe u v v' v''
+universe v v' v'' u
 
 variable {X : Type u}
 
@@ -36,7 +36,7 @@ theorem Sum_elim_preimage_equiv.vals {α β : Type*} {X : Type u} (a : α → X)
   | inr bf => simp only [Sum.map_inr, Sum.elim_inr]
 
 
-def preimageCard.addHom : AddHom (IndexedFamily.{u,v} X) (Set X → Cardinal) where
+def preimageCard.addHom : AddHom (IndexedFamily.{v} X) (Set X → Cardinal) where
   toFun := IndexedFamily.preimageCard
   map_add' a b := by
     unfold preimageCard
@@ -50,7 +50,7 @@ def preimageCard.addHom : AddHom (IndexedFamily.{u,v} X) (Set X → Cardinal) wh
 
 
 
-def elemCard.addHom : AddHom (IndexedFamily.{u,v} X) (X → Cardinal) where
+def elemCard.addHom : AddHom (IndexedFamily.{v} X) (X → Cardinal) where
   toFun := IndexedFamily.elemCard
   map_add' a b := by
     unfold elemCard
@@ -62,7 +62,7 @@ def elemCard.addHom : AddHom (IndexedFamily.{u,v} X) (X → Cardinal) where
 
 
 
-def preimageCard.zeroHom : ZeroHom (IndexedFamily.{u,v} X) (Set X → Cardinal) where
+def preimageCard.zeroHom : ZeroHom (IndexedFamily.{v} X) (Set X → Cardinal) where
   toFun := IndexedFamily.preimageCard
   map_zero' := by
     unfold preimageCard
@@ -73,7 +73,7 @@ def preimageCard.zeroHom : ZeroHom (IndexedFamily.{u,v} X) (Set X → Cardinal) 
     apply q.down.elim
 
 
-def elemCard.zeroHom : ZeroHom (IndexedFamily.{u,v} X) (X → Cardinal) where
+def elemCard.zeroHom : ZeroHom (IndexedFamily.{v} X) (X → Cardinal) where
   toFun := IndexedFamily.elemCard
   map_zero' := by
     unfold elemCard
@@ -83,17 +83,17 @@ def elemCard.zeroHom : ZeroHom (IndexedFamily.{u,v} X) (X → Cardinal) where
     ext q
     apply q.down.elim
 
-instance preimageCard.addMonoidHom : AddMonoidHom (IndexedFamily.{u,v} X) (Set X → Cardinal) where
+instance preimageCard.addMonoidHom : AddMonoidHom (IndexedFamily.{v} X) (Set X → Cardinal) where
   toFun := IndexedFamily.preimageCard
   map_zero' := zeroHom.map_zero
   map_add' := addHom.map_add
 
 
-instance elemCard_addMonoidHom : AddMonoidHom (IndexedFamily.{u,v} X) (X → Cardinal) where
+instance elemCard_addMonoidHom : AddMonoidHom (IndexedFamily.{v} X) (X → Cardinal) where
   toFun := IndexedFamily.elemCard
   map_zero' := elemCard.zeroHom.map_zero
   map_add' := elemCard.addHom.map_add
 
-theorem equivalence.elemCard_addMonoid_iff {f : IndexedFamily.{u,v} X} {g : IndexedFamily.{u,v'} X}
+theorem equivalence.elemCard_addMonoid_iff {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
   : f ≃' g ↔ elemCard_addMonoidHom f =cl elemCard_addMonoidHom g := by simp only [equivalence_def,
     elemCard_addMonoidHom, AddMonoidHom.coe_mk, ZeroHom.coe_mk]

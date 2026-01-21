@@ -226,18 +226,66 @@ instance quotient.instModule : Module Cardinal.{v} (@quotient.{v} X) where
     simp_all only [elemCard_lift_iff, smul_elemCard, zero_smul, map_zero]
 
 
+-- actually does not express mul. for that Z has to be IndexedFamily X, and a flatten at the end
 -- X * Y = ∑x : X, x * Y = ∑x : X, (x * ·) '' Y
 def basic.hmul {Y Z : Type*} (m : X → Y → Z) (f : IndexedFamily X) (g : IndexedFamily Y) : IndexedFamily Z
   := multiImage (fun x ↦ image (m x) g) f
 
 -- todo: mul where x * x = x, x * y = 0. univ is one
+set_option linter.unusedVariables false in
+def both {X : Sort*} (a b : X) (h : a = b) : X := a
 
+theorem both.lhs {X : Sort*} {a b : X} {h : a = b} : both a b h = a := rfl
+theorem both.rhs {X : Sort*} {a b : X} {h : a = b} : both a b h = b := h
+
+
+-- todo: show this is equivalent to if it had fun w ↦ g.snd w.val.2
 def basic.mul (f : IndexedFamily X) (g : IndexedFamily X) : IndexedFamily X
   := ⟨{w : f.fst × g.fst // f.snd w.1 = g.snd w.2},fun w ↦ f.snd w.val.1⟩
 
-def quotient.mul : CommMonoid (IndexedFamily.{v} X) where
-  mul := sorry
-  mul_assoc := sorry
+
+def basic.mul.both' (f : IndexedFamily X) (g : IndexedFamily X) : IndexedFamily X
+  := ⟨{w : f.fst × g.fst // f.snd w.1 = g.snd w.2},fun w ↦ both (f.snd w.val.1) (g.snd w.val.2) (w.property)⟩
+
+-- theorem basic.mul.right (f : IndexedFamily X) (g : IndexedFamily X)
+--   : basic.mul f g = ⟨{w : f.fst × g.fst // f.snd w.1 = g.snd w.2},fun w ↦ g.snd w.val.2⟩ := by
+
+--   sorry
+
+
+instance basic.instMul : Mul (IndexedFamily X) where
+  mul := basic.mul
+def basic.instHMul : HMul (IndexedFamily.{v} X) (IndexedFamily.{v'} X) (IndexedFamily.{max v v'} X) where
+  hMul := basic.mul
+
+
+#check Con
+
+theorem setoid.mulCon {a a' b b' : IndexedFamily X} (sa : a ≃' a') (sb : b ≃' b') : (basic.mul a b) ≃' (basic.mul a' b') := by
+  simp only [basic.mul]
+  apply equivalence.ofEquiv ?_ ?_
+  -- #check Equiv.prodShear
+  refine Equiv.subtypeEquiv (Equiv.prodCongr sa.equiv sb.equiv) ?_
+  · simp only [Equiv.prodCongr_apply, Prod.map_fst, equivalence.equiv_map', Prod.map_snd,
+      implies_true]
+  funext w'
+  simp only [Function.comp_apply, Equiv.subtypeEquiv_apply, Equiv.prodCongr_apply, Prod.map_fst]
+  exact equivalence.equiv_map' sa (w'.val).1
+
+
+instance setoid.instCon : Con (IndexedFamily.{v} X) where
+  mul' := fun {_ _ _ _} sa sb ↦ mulCon sa sb
+
+def quotient.mul : CommMonoid (@quotient.{v} X) where
+  mul := Quotient.map₂ (fun a b ↦ a * b) <| fun ⦃a a'⦄ sa ⦃b b'⦄ sb ↦ setoid.mulCon sa sb
+  mul_assoc a b c := by
+    cases a using Quotient.ind
+    cases b using Quotient.ind
+    cases c using Quotient.ind
+    simp only [HMul.hMul, Quotient.map₂_mk]
+    apply equ.mpr
+
+    sorry
   one := sorry
   one_mul := sorry
   mul_one := sorry

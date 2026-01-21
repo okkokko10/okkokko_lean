@@ -253,16 +253,24 @@ def basic.mul.both' (f : IndexedFamily X) (g : IndexedFamily X) : IndexedFamily 
 --   sorry
 
 
+instance basic.instHMul : HMul (IndexedFamily.{v} X) (IndexedFamily.{v'} X) (IndexedFamily.{max v v'} X) where
+  hMul := basic.mul
+
 instance basic.instMul : Mul (IndexedFamily X) where
   mul := basic.mul
-def basic.instHMul : HMul (IndexedFamily.{v} X) (IndexedFamily.{v'} X) (IndexedFamily.{max v v'} X) where
-  hMul := basic.mul
+-- #check (fun x ↦ 1) ∘ (fun x ↦ 2)
 
 
 #check Con
 
-theorem setoid.mulCon {a a' b b' : IndexedFamily X} (sa : a ≃' a') (sb : b ≃' b') : (basic.mul a b) ≃' (basic.mul a' b') := by
-  simp only [basic.mul]
+theorem algebra.mulCon.{va,va',vb,vb'}
+  {a : IndexedFamily.{va} X}
+  {a' : IndexedFamily.{va'} X}
+  {b : IndexedFamily.{vb} X}
+  {b' : IndexedFamily.{vb'} X}
+  (sa : a ≃' a') (sb : b ≃' b')
+  : (a * b) ≃' ((a' * b') : IndexedFamily.{max va' vb'} X) := by
+  simp only [HMul.hMul,basic.mul]
   apply equivalence.ofEquiv ?_ ?_
   -- #check Equiv.prodShear
   refine Equiv.subtypeEquiv (Equiv.prodCongr sa.equiv sb.equiv) ?_
@@ -274,12 +282,57 @@ theorem setoid.mulCon {a a' b b' : IndexedFamily X} (sa : a ≃' a') (sb : b ≃
 
 
 instance setoid.instCon : Con (IndexedFamily.{v} X) where
-  mul' := fun {_ _ _ _} sa sb ↦ mulCon sa sb
+  mul' := fun {_ _ _ _} sa sb ↦ algebra.mulCon sa sb
 
 def basic.univ'' {X_down : Type v} (up : X_down ≃ X) : IndexedFamily.{v} X := ⟨X_down, up⟩
 
+-- idea: multiplication where the pairs just have to be related
+open basic
+-- multiplication could be a special case of a filter-mapped prod a × b
+-- todo: change X to α
+#check Finset.filterMap
+-- def operation.filterMap {α β : Type*} (f : α → )
+#check basic.multiImage
+def basic.prod {Y : Type*} (f : IndexedFamily X) (g : IndexedFamily Y) : IndexedFamily (X × Y)
+  := ⟨f.fst × g.fst,fun w ↦ (f.snd w.1, g.snd w.2)⟩
+-- #check basic.hAdd
+#check Finset.filter
+def basic.filter (p : X → Prop) (A : IndexedFamily.{v} X) : IndexedFamily.{v} X := ⟨{x : A.fst // p (A.snd x)},A.snd ∘ (Subtype.val)⟩
+
+-- todo: a Option/Subsingleton property
+
+-- todo: a general lift/map/map₂ on quotient.
+-- property: respects ≃'
+
+-- def quotient.map
+
+theorem operation.mul_as_prod (a b : IndexedFamily X)
+  : a * b ≃' basic.multiImage (fun ⟨a,b⟩ ↦ open scoped Classical in if a = b then (basic.singleton a) else basic.zero) (basic.prod a b ) := sorry
+
+
+-- hm. what if I made X dependent? Nah, I'll want multiple universes anyway
+#check MulAction
+#check HVAdd -- was there a Mul variant?
+-- idea: try category
+
+-- todo: supply this as an Equiv
+theorem algebra.mul_assoc {a b c : IndexedFamily.{_} X} : a * b * c ≃' a * (b * c) := by
+
+  simp only [HMul.hMul, basic.mul]
+  apply equivalence.ofEquiv ?_ ?_
+  exact {
+    toFun := fun ⟨⟨⟨⟨a,b⟩,q⟩,c⟩,p⟩ ↦ ⟨⟨a,⟨⟨b,c⟩,by simp_all only⟩⟩,q⟩
+    invFun := fun  ⟨⟨a,⟨⟨b,c⟩,p⟩⟩,q⟩ ↦  ⟨⟨⟨⟨a,b⟩,q⟩,c⟩,by simp_all only⟩
+    left_inv := congrFun rfl
+    right_inv := congrFun rfl
+  }
+  rfl
+
+
+
+
 def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.{v} X) where
-  mul := Quotient.map₂ (fun a b ↦ a * b) <| fun ⦃a a'⦄ sa ⦃b b'⦄ sb ↦ setoid.mulCon sa sb
+  mul := Quotient.map₂ (fun a b ↦ a * b) <| fun ⦃a a'⦄ sa ⦃b b'⦄ sb ↦ algebra.mulCon sa sb
   mul_assoc a b c := by
     cases a using Quotient.ind
     cases b using Quotient.ind
@@ -287,20 +340,11 @@ def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.
     rename_i A B C
     simp only [HMul.hMul, Quotient.map₂_mk]
     apply equ.mpr
-    simp only [Mul.mul, basic.mul]
-    apply equivalence.ofEquiv ?_ ?_
-    exact {
-      toFun := fun ⟨⟨⟨⟨a,b⟩,q⟩,c⟩,p⟩ ↦ ⟨⟨a,⟨⟨b,c⟩,by simp_all only⟩⟩,q⟩
-      invFun := fun  ⟨⟨a,⟨⟨b,c⟩,p⟩⟩,q⟩ ↦  ⟨⟨⟨⟨a,b⟩,q⟩,c⟩,by simp_all only⟩
-      left_inv := congrFun rfl
-      right_inv := congrFun rfl
-    }
-    apply congrFun rfl
+    apply algebra.mul_assoc
   one := ⟦basic.univ'' up⟧
   one_mul := by
     apply Quotient.ind
     intro A
-
     -- simp only [HMul.hMul]
     change Quotient.map₂ (fun a b ↦ Mul.mul a b) _ ⟦basic.univ'' up⟧ ⟦A⟧ = ⟦A⟧
     simp only [Quotient.map₂_mk, equ]

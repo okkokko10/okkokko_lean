@@ -40,7 +40,7 @@ open scoped CardinalLiftFunEq
 open scoped Function
 
 @[pp_with_univ]
-abbrev IndexedFamily (X : Type u) := (ι : Type v) × (ι → X)
+def IndexedFamily (X : Type u) := (ι : Type v) × (ι → X)
 namespace IndexedFamily
 
 -- variable (f : IndexedFamily X)
@@ -52,14 +52,3 @@ def preimageCard (f : IndexedFamily.{v} X) (x : Set X) : Cardinal.{v}
 #check Setoid.ker
 
 def elemCard (f : IndexedFamily X) (x : X) : Cardinal.{v} := preimageCard f {x}
-
-
-irreducible_def equivalence (f : IndexedFamily.{v} X) (g : IndexedFamily.{v'} X) : Prop
-  := f.elemCard =cl g.elemCard
-
-infixl:25 " ≃' " => equivalence
-theorem equivalence.elemCard_iff {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
-  : f ≃' g ↔ f.elemCard =cl g.elemCard := by simp only [equivalence_def]
-
-
-end IndexedFamily

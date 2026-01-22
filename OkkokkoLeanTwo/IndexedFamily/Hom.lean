@@ -1,4 +1,5 @@
 import OkkokkoLeanTwo.IndexedFamily.BasicDefs
+import OkkokkoLeanTwo.IndexedFamily.Equivalence
 
 namespace IndexedFamily
 
@@ -95,5 +96,5 @@ instance elemCard_addMonoidHom : AddMonoidHom (IndexedFamily.{v} X) (X → Cardi
   map_add' := elemCard.addHom.map_add
 
 theorem equivalence.elemCard_addMonoid_iff {f : IndexedFamily.{v} X} {g : IndexedFamily.{v'} X}
-  : f ≃' g ↔ elemCard_addMonoidHom f =cl elemCard_addMonoidHom g := by simp only [equivalence_def,
+  : Nonempty (f ≃' g) ↔ elemCard_addMonoidHom f =cl elemCard_addMonoidHom g := by simp only [elemCard_iff,
     elemCard_addMonoidHom, AddMonoidHom.coe_mk, ZeroHom.coe_mk]

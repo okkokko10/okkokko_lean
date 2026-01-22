@@ -14,17 +14,17 @@ section quotient
 #check Equiv.symm
 
 instance setoid {X : Type u} : Setoid (IndexedFamily.{v} X) where
-  r := equivalence
+  r A B := Nonempty (A ≃' B)
   iseqv := {
-    refl := equivalence.refl
-    symm := equivalence.symm
-    trans := equivalence.trans
+    refl x :=  Nonempty.intro <| equivalence.refl x
+    symm a := Nonempty.intro <| equivalence.symm a.some
+    trans a b :=  Nonempty.intro <| equivalence.trans a.some b.some
   }
 
 -- def setoid {X : Type u} : Setoid (IndexedFamily X) :=
 --   Setoid.ker (preimageCard)
 
-theorem setoid.equ {f g : IndexedFamily X} : setoid f g ↔ f ≃' g := by rfl
+theorem setoid.equ {f g : IndexedFamily X} : setoid f g ↔ Nonempty (f ≃' g) := by rfl
 
 -- theorem basic.equivalence.add (f : IndexedFamily.{v} X) ( g : IndexedFamily.{v'} X) : basic.add f g
 
@@ -43,8 +43,9 @@ instance setoid.instModuleCon : ModuleCon (Cardinal.{v}) (IndexedFamily.{v} X) w
   add' := setoid.instAddCon.add'
   smul := by
     simp only [setoid.equ]
-    intro c x y xy
+    intro c x y ⟨xy⟩
     have := equivalence.equiv_map xy
+    constructor
     apply equivalence.ofEquiv ?_ ?_
     refine Equiv.prodCongr (Equiv.refl _) (xy.equiv)
     funext w
@@ -59,12 +60,12 @@ abbrev quotient.mk (f : IndexedFamily.{v} X) : @quotient.{v} X := Quotient.mk se
 
 
 @[simp high]
-lemma quotient.equ {f g : IndexedFamily.{v} X} : (⟦f⟧ : quotient) = ⟦g⟧ ↔ f ≃' g := by
+lemma quotient.equ {f g : IndexedFamily.{v} X} : (⟦f⟧ : quotient) = ⟦g⟧ ↔ Nonempty (f ≃' g) := by
   simp only [← setoid.equ]
   simp only [Quotient.eq]
 
 @[simp]
-lemma quotient.equ' {f g : IndexedFamily.{v} X} : f ≈ g ↔ f ≃' g := by
+lemma quotient.equ' {f g : IndexedFamily.{v} X} : f ≈ g ↔ Nonempty (f ≃' g) := by
   simp only [← setoid.equ]
   simp only [HasEquiv.Equiv]
 
@@ -164,11 +165,11 @@ open Cardinal in
 
 instance quotient.instSmul : SMul Cardinal.{v} (@quotient.{v} X) where
   smul c := Quotient.map (basic.mulCard c) <| by
-    intro a b ab
+    intro a b ⟨ab⟩
     simp only [quotient.equ'] at *
     -- change basic.mulCard c a ≃' basic.mulCard c b
     unfold basic.mulCard
-    refine equivalence.ofEquiv ?_ ?_
+    refine ⟨equivalence.ofEquiv ?_ ?_⟩
     simp only
     exact Equiv.prodCongr (Equiv.refl _) ab.equiv
     simp only [id_eq]
@@ -263,7 +264,7 @@ instance basic.instMul : Mul (IndexedFamily X) where
 
 #check Con
 
-theorem algebra.mulCon.{va,va',vb,vb'}
+def algebra.mulCon.{va,va',vb,vb'}
   {a : IndexedFamily.{va} X}
   {a' : IndexedFamily.{va'} X}
   {b : IndexedFamily.{vb} X}
@@ -282,7 +283,7 @@ theorem algebra.mulCon.{va,va',vb,vb'}
 
 
 instance setoid.instCon : Con (IndexedFamily.{v} X) where
-  mul' := fun {_ _ _ _} sa sb ↦ algebra.mulCon sa sb
+  mul' := fun {_ _ _ _} ⟨sa⟩ ⟨sb⟩ ↦ ⟨algebra.mulCon sa sb⟩
 
 def basic.univ'' {X_down : Type v} (up : X_down ≃ X) : IndexedFamily.{v} X := ⟨X_down, up⟩
 
@@ -306,7 +307,7 @@ def basic.filter (p : X → Prop) (A : IndexedFamily.{v} X) : IndexedFamily.{v} 
 
 -- def quotient.map
 
-theorem operation.mul_as_prod (a b : IndexedFamily X)
+def operation.mul_as_prod (a b : IndexedFamily X)
   : a * b ≃' basic.multiImage (fun ⟨a,b⟩ ↦ open scoped Classical in if a = b then (basic.singleton a) else basic.zero) (basic.prod a b ) := sorry
 
 
@@ -316,7 +317,7 @@ theorem operation.mul_as_prod (a b : IndexedFamily X)
 -- idea: try category
 
 -- todo: supply this as an Equiv
-theorem algebra.mul_assoc {a b c : IndexedFamily.{_} X} : a * b * c ≃' a * (b * c) := by
+def algebra.mul_assoc {a b c : IndexedFamily.{_} X} : a * b * c ≃' a * (b * c) := by
 
   simp only [HMul.hMul, basic.mul]
   apply equivalence.ofEquiv ?_ ?_
@@ -332,12 +333,12 @@ theorem algebra.mul_assoc {a b c : IndexedFamily.{_} X} : a * b * c ≃' a * (b 
 
 
 def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.{v} X) where
-  mul := Quotient.map₂ (fun a b ↦ a * b) <| fun ⦃a a'⦄ sa ⦃b b'⦄ sb ↦ algebra.mulCon sa sb
+  mul := Quotient.map₂ (fun a b ↦ a * b) <| fun ⦃a a'⦄ sa ⦃b b'⦄ sb ↦ Nonempty.intro (algebra.mulCon sa.some sb.some)
   mul_assoc a b c := by
     induction a using Quotient.ind
     induction b using Quotient.ind
     induction c using Quotient.ind
-    exact equ.mpr algebra.mul_assoc
+    apply equ.mpr ⟨algebra.mul_assoc⟩
   one := ⟦basic.univ'' up⟧
   one_mul := by
     apply Quotient.ind
@@ -346,6 +347,7 @@ def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.
     change Quotient.map₂ (fun a b ↦ Mul.mul a b) _ ⟦basic.univ'' up⟧ ⟦A⟧ = ⟦A⟧
     simp only [Quotient.map₂_mk, equ]
     simp only [Mul.mul, basic.mul, basic.univ'']
+    constructor
     apply equivalence.ofEquiv ?_ ?_
     simp only
     have ewe x y : up x = A.snd y ↔ (up.symm ∘ A.snd) y = x := by
@@ -373,6 +375,7 @@ def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.
     apply equ.mpr
     -- todo: make its own theorem
     unfold basic.mul
+    constructor
     refine equivalence.ofEquiv ?_ ?_
     -- simp only
     refine Equiv.subtypeEquiv (Equiv.prodComm A.fst B.fst) (by tauto)

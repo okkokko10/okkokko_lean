@@ -369,10 +369,22 @@ def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.
     funext w
     simp only [Function.comp_apply, w.property]
   mul_one := sorry
-  npow_zero := sorry
-  npow_succ := sorry
-  mul_comm := sorry
-
+  mul_comm := by
+    apply Quotient.ind₂
+    intro A B
+    simp only [HMul.hMul, Quotient.map₂_mk]
+    apply equ.mpr
+    simp only [Mul.mul]
+    -- todo: make its own theorem
+    unfold basic.mul
+    refine equivalence.ofEquiv ?_ ?_
+    -- simp only
+    refine Equiv.subtypeEquiv (Equiv.prodComm A.fst B.fst) (by tauto)
+    simp only
+    funext ⟨x,hx⟩
+    rw [hx]
+    simp only [Function.comp_apply, Equiv.subtypeEquiv_apply, Equiv.prodComm_apply, Prod.fst_swap]
+-- idea: a macro that translates Equiv into equivalence?
 
 #check LinearMap
 -- theorem basic.mul_linear

@@ -334,13 +334,10 @@ theorem algebra.mul_assoc {a b c : IndexedFamily.{_} X} : a * b * c ≃' a * (b 
 def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.{v} X) where
   mul := Quotient.map₂ (fun a b ↦ a * b) <| fun ⦃a a'⦄ sa ⦃b b'⦄ sb ↦ algebra.mulCon sa sb
   mul_assoc a b c := by
-    cases a using Quotient.ind
-    cases b using Quotient.ind
-    cases c using Quotient.ind
-    rename_i A B C
-    simp only [HMul.hMul, Quotient.map₂_mk]
-    apply equ.mpr
-    apply algebra.mul_assoc
+    induction a using Quotient.ind
+    induction b using Quotient.ind
+    induction c using Quotient.ind
+    exact equ.mpr algebra.mul_assoc
   one := ⟦basic.univ'' up⟧
   one_mul := by
     apply Quotient.ind
@@ -374,7 +371,6 @@ def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.
     intro A B
     simp only [HMul.hMul, Quotient.map₂_mk]
     apply equ.mpr
-    simp only [Mul.mul]
     -- todo: make its own theorem
     unfold basic.mul
     refine equivalence.ofEquiv ?_ ?_
@@ -386,42 +382,12 @@ def quotient.mul {X_down : Type v} (up : X_down ≃ X)  : CommMonoid (@quotient.
     simp only [Function.comp_apply, Equiv.subtypeEquiv_apply, Equiv.prodComm_apply, Prod.fst_swap]
 -- idea: a macro that translates Equiv into equivalence?
 
+-- todo: decomposition into finite and infinite components. maybe even of certain cardinality. then theorems like ⊔ and ⊓ working like + and * for the infinite component
+
 #check LinearMap
 -- theorem basic.mul_linear
 
 end quotient
 
 
-namespace category
-open CategoryTheory
-#check Category
-
--- #check Grp
-
-#check equivalence.equiv_map
-
-instance instCategory : Category (IndexedFamily X) where
-  Hom A B := {e : A.fst → B.fst // B.snd ∘ e = A.snd}
-  id A := ⟨Equiv.refl A.fst,rfl⟩
-  comp ab bc := ⟨bc.val ∘ ab.val, by
-    have t1:= ab.property
-    have t2:= bc.property
-    simp only [← t1, ← t2]
-    rfl
-    ⟩
-  id_comp := fun {X_2 Y} f ↦ rfl
-  comp_id := fun {X_2 Y} f ↦ rfl
-  assoc {A B C D} ab bc cd := rfl
-#check equivalence.asSubtype
-
-noncomputable example (A B : IndexedFamily X) (h : A ≃' B) : (A ≅ B) where
-  hom := ⟨h.equiv,h.equiv_map⟩
-  inv := ⟨h.symm.equiv,h.symm.equiv_map⟩
-  hom_inv_id := sorry
-  inv_hom_id := sorry
-
-
-
-
-end category
 end IndexedFamily

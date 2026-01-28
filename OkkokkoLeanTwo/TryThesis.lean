@@ -121,7 +121,42 @@ def Λ (B : Basis (Fin n) ℝ (@Rn n))
   : AddSubgroup (@Rn n)
   := @AddSubgroup.closure (@Rn n) (Rn.instAddCommGroup.toAddGroup) (Set.range B)
 
+
+#check fun x ↦ B x
+
+abbrev Zn := Fin n → ℤ
+
+abbrev Zn' : Set (Fin n → ℝ) := Set.range ((Int.cast : ℤ → ℝ) ∘ ·)
+-- abbrev Zn'' : Set (Fin n →₀ ℝ) := Finsupp.equivFunOnFinite.symm '' Zn'
+abbrev Zn₀ : Set (Fin n →₀ ℝ) := Set.range ( Finsupp.equivFunOnFinite.symm <| ((↑) : ℤ → ℝ) ∘ ·)
+
+
+lemma Λ.BZ : Λ B = B.repr.symm '' Zn₀ := by
+  ext x
+
+  simp only [SetLike.mem_coe, Basis.repr_symm_apply, Set.mem_image, Set.mem_range,
+    exists_exists_eq_and]
+  refine ⟨?_,?_⟩
+  rw [Λ,AddSubgroup.mem_closure]
+  intro xin
+
+  sorry
+  sorry
+
 instance : AddCommGroup (Λ B) := AddSubgroup.toAddCommGroup _
+
+lemma Λ.B_in (i) : B i ∈ Λ B := by
+  rw [Λ]
+  apply AddSubgroup.mem_closure_of_mem -- aesop
+  simp_all only [Set.mem_range, exists_apply_eq_apply]
+
+variable (B) in
+def Λ.basis : Fin n → Λ B := fun i ↦ ⟨B i,Λ.B_in i⟩
+
+-- maybe define Module ℤ (Λ B)
+
+example : Basis (Fin n) ℤ (Λ B) := Basis.mk (R := ℤ) (v := Λ.basis B) sorry sorry
+
 
 -- coercions
 example (q : @Rn n) : Fin n → ℝ := q
@@ -145,5 +180,35 @@ most r. We write λ∞
 1
 to denote the minimum distance measured in the ∞ norm (which is defined as ‖x‖∞ = max |xᵢ|).
 -/
+-- i or more
+def Λ.successive_minimum_distance (norm : (@Rn n) → ℝ) (i : ℕ)
+  := ⨅ (r : ℝ) (_ : ∃s ⊆ ((Λ B).carrier), LinearIndependent ℝ (Subtype.val : s → Rn) ∧ s.encard ≤ i ∧ ∀x ∈ s, norm x ≤ r), r
+-- note: for i := 0 this is ⊥ and i := 1 this is 0
 
--- def Λ.successive_minimum_distance (i : ℕ) (norm : Rn → ℝ) := ⨅ (x ∈ (Λ B)) (_ : x ≠ 0), norm x
+-- quotient groups
+
+-- example (B' : Basis (Fin n) ℝ (@Rn n)) := (Λ B) ⧸ (Λ B')
+-- example (b : @Rn n) := Λ B ⧸ b
+-- example (B' : Basis (Fin n) ℝ (@Rn n)) :=
+#check QuotientAddGroup.coe_mk'
+
+
+instance : AddSubgroup.Normal (Λ B) := AddSubgroup.normal_of_comm (Λ B)
+
+-- hmm, hold on, paper: "Therefore for lattices Λ' ⊆ Λ,..."
+-- sub-lattices? Oh, these aren't full-rank lattices. confusing
+-- wait, we can just use subgroups of Λ, since they are also lattices? is that correct? VERIFY
+
+example (Λ' : AddSubgroup (Λ B)) (a b : (Λ B) ⧸ Λ') : a + b = b + a := by
+  exact AddCommMagma.add_comm a b
+
+-- example (Λ' : AddSubgroup (Λ B)) (a : (Λ B) ⧸ Λ') (x) : x ∈ a := sorry
+
+
+-- what does "full-rank set of lattice vectors" mean?
+-- I assume a set whose span is the whole space
+-- wait, hold on, what is "the whole space"? Λ or ℝⁿ?
+
+-- is "a basis T of Λ" a `Basis (Fin n) ℤ (Λ B)`
+
+-- def lemma_2_1 (S : Set (Λ B)) (h : ⊤ ≤ Submodule.span ℝ ((Subtype.val) '' S)) : Basis (Fin n) ℤ (Λ B) := sorry

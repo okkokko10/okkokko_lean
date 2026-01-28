@@ -97,6 +97,8 @@ instance : AddCommGroup (@Λ n B hli) := Λ.toAddCommGroup
 end s1
 
 
+open Module
+
 variable {n : ℕ}
 -- let's define an element of ℝⁿ as a function from the canonical type with n elements to ℝ
 abbrev Rn := EuclideanSpace ℝ (Fin n)
@@ -106,18 +108,24 @@ instance Rn.instAddCommMonoid : AddCommGroup (@Rn n) := instAddCommGroup
 
 instance Rn.instModule : @Module ℝ (@Rn n) Real.instRing.toSemiring (Rn.instAddCommGroup.toAddCommMonoid) := inferInstance
 
-variable {B : Fin n → (@Rn n)} (hli: LinearIndependent ℝ B)
+variable {B : Basis (Fin n) ℝ (@Rn n)}
+
+-- wait, where's the theorem that n linearly independent vectors are a basis?
+
+example {B : Fin n → (@Rn n)} (hli: LinearIndependent ℝ B) : ⊤ ≤ Submodule.span ℝ (Set.range B) := sorry
+
+-- example := Module.Basis.mk hli _
 
 
-def Λ {B : Fin n → (@Rn n)} (_ : LinearIndependent ℝ B)
+def Λ (B : Basis (Fin n) ℝ (@Rn n))
   : AddSubgroup (@Rn n)
   := @AddSubgroup.closure (@Rn n) (Rn.instAddCommGroup.toAddGroup) (Set.range B)
 
-instance : AddCommGroup (Λ hli) := AddSubgroup.toAddCommGroup _
+instance : AddCommGroup (Λ B) := AddSubgroup.toAddCommGroup _
 
 -- coercions
 example (q : @Rn n) : Fin n → ℝ := q
-example (q : Λ hli) : (@Rn n) := by
+example (q : Λ B) : (@Rn n) := by
   #check q
   exact q.val
 
@@ -126,7 +134,7 @@ example : Norm ℝ := by exact Real.norm
 example : Norm (@Rn n) := by exact PiLp.instNorm 2 fun x ↦ ℝ
 
 
-def Λ.minimum_distance (norm : Rn → ℝ) := ⨅ (x ∈ (Λ hli)) (_ : x ≠ 0), norm x
+def Λ.minimum_distance (norm : Rn → ℝ) := ⨅ (x ∈ (Λ B)) (_ : x ≠ 0), norm x
 
 /-
 paper:
@@ -138,8 +146,4 @@ most r. We write λ∞
 to denote the minimum distance measured in the ∞ norm (which is defined as ‖x‖∞ = max |xᵢ|).
 -/
 
--- def Λ.successive_minimum_distance (i : ℕ) (norm : Rn → ℝ) := ⨅ (x ∈ (Λ hli)) (_ : x ≠ 0), norm x
-
-
--- hm, B is a basis for the whole space, right? I forgot.
-#check Module.Basis.mk hli
+-- def Λ.successive_minimum_distance (i : ℕ) (norm : Rn → ℝ) := ⨅ (x ∈ (Λ B)) (_ : x ≠ 0), norm x

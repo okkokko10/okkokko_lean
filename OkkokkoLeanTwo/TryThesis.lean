@@ -327,3 +327,75 @@ def 𝓛.ofMatrix' {ι n} [Fintype n] (B : Matrix ι n ℝ) : AddSubgroup (ι �
 
 -- todo: note that the function from (ι → ℤ) is a group homomorphism
 #check AddHom
+
+#check Basis
+#check Submodule
+#check Submodule.traceDual
+-- #check Submodule.traceDual
+#check Algebra
+-- #check Matrix.mulVec
+example : Algebra ℤ ℝ := by exact Ring.toIntAlgebra ℝ
+#check IsScalarTower
+#check Polynomial
+
+#check dotProductEquiv
+#check Dual -- not the same as dual lattice
+
+open Function
+
+def 𝓛.dualLattice {ι : Type*} [Fintype ι] (Λ : Set (ι → ℝ)) := { x : ι → ℝ | ∀ v ∈ Λ, dotProduct x v ∈ Set.range (Int.cast)}
+#check neg_involutive
+#check Function.Involutive
+
+theorem 𝓛.dualLattice_involutive  {ι : Type*} [Fintype ι] : Involutive (𝓛.dualLattice (ι := ι)) := by
+  -- unfold Involutive
+  intro Λ
+
+  let p (r : ℝ) := (r ∈ Set.range Int.cast)
+  let h (v u : ι → ℝ) := p (v ⬝ᵥ u)
+
+
+  have uu Λ : dualLattice Λ = {x | ∀ v ∈ Λ, h x v} := rfl
+
+  set Λ' := dualLattice Λ with back
+
+  -- ext x
+
+
+
+  -- unfold dualLattice at back ⊢
+
+  change {x | ∀ y ∈ Λ', h x y} = Λ
+  change {y | ∀ x ∈ Λ, h y x} = Λ' at back
+  convert_to {y | ∀ x ∈ Λ, h x y} = Λ' using 5 at back
+  · unfold h
+    congr! 1
+    exact dotProduct_comm _ _
+
+
+
+
+
+
+  -- rw [Set.ext_iff] at back ⊢
+  -- simp only [Set.mem_setOf_eq] at *
+
+  -- intro x
+  -- constructor
+  -- intro hy
+  -- have rr t := (back t).mpr
+
+  rw [←back]
+  simp only [Set.mem_setOf_eq]
+  clear * -
+  ext x
+  simp only [Set.mem_setOf_eq]
+  refine ⟨?_,fun a _ a_1 ↦ a_1 x a⟩
+  intro hh
+  -- strange... there must be an assumption I'm missing.
+  -- maybe bacause it's not a lattice, but an arbitrary set
+  sorry
+
+
+theorem 𝓛.dualLattice_basis  {ι n : Type*} [Fintype ι] [Fintype n] (B : Matrix ι n ℝ)
+  : 𝓛.dualLattice (𝓛.ofMatrix B) = { x : ι → ℝ | ∀ v ∈ Set.range (B.col), dotProduct x v ∈ Set.range (Int.cast)} := by sorry

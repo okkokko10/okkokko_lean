@@ -264,10 +264,22 @@ open scoped Matrix
 
 example {m n} [Fintype n] (A : Matrix m n ℝ) (v : n → ℝ) := A *ᵥ v
 
+variable  {ι n : Type*} [Fintype n] (B : Matrix ι n ℝ)
+
+
+def int_cast : (ι → ℤ) →+ (ι → ℝ) where
+  toFun := (Int.cast <| · ·)
+  map_zero' := funext fun _ ↦ Int.cast_zero
+  map_add' := fun x y ↦ funext fun z ↦ Int.cast_add (x z) (y z)
+
+
+
+def ints (ι : Type*) : AddSubgroup (ι → ℝ) := int_cast.range
+
 -- variable {B' : Matrix}
 
 -- let's revise Zn
-#check Zn'
+-- #check Zn'
 abbrev Zn (ι : Type*) : Set (ι → ℝ) := Set.range ((Int.cast : ℤ → ℝ) ∘ ·)
 lemma Zn.mem_int {ι : Type*} {x} : (Int.cast : ℤ → ℝ) ∘ x ∈ Zn ι := ⟨x,rfl⟩
 lemma Zn.mem_int' {ι : Type*} {x : ι → ℤ} : (Int.cast <| x ·) ∈ Zn ι := ⟨x,rfl⟩
@@ -293,13 +305,6 @@ theorem Zn.add {ι : Type*} {x y} (hx : x ∈ Zn ι) (hy : y ∈ Zn ι) : (x + y
 
 #check PMF.bind_map
 
-variable  {ι n : Type*} [Fintype n] (B : Matrix ι n ℝ)
-
-def int_cast : (n → ℤ) →ₙ+ (n → ℝ) := ⟨(Int.cast <| · ·),by
-    intro x y
-    simp only [Pi.add_apply, Int.cast_add]
-    rfl
-  ⟩
 
 
 def 𝓛.ofMatrix {ι n} [Fintype n] (B : Matrix ι n ℝ) := (B.mulVec : (n → ℝ) → (ι → ℝ)) '' (Zn n)
@@ -347,13 +352,23 @@ theorem 𝓛.ofMatrix_def' {ι n} [Fintype n] (B : Matrix ι n ℝ)
     simp_all only [Set.mem_image, Set.mem_range, exists_exists_eq_and, Function.comp_apply]
 
 theorem 𝓛.ofMatrix_def_lin {ι n} [Fintype n] (B : Matrix ι n ℝ)
-  : 𝓛.ofMatrix B = Set.range ( (B.mulVecLin : (n → ℝ) →ₙ+ (ι → ℝ)).comp (int_cast) ) := by
+  : 𝓛.ofMatrix B = Set.range ( (B.mulVecLin : (n → ℝ) →+ (ι → ℝ)).comp (int_cast) ) := by
     unfold ofMatrix
-    simp_all only [AddHom.coe_comp, AddHom.coe_coe]
+    simp_all only [AddMonoidHom.coe_comp, AddMonoidHom.coe_coe]
     ext x : 1
     simp_all only [Set.mem_image, Set.mem_range, exists_exists_eq_and, Function.comp_apply, Matrix.mulVecBilin_apply]
     rfl
 
+-- theorem 𝓛.ofMatrix_def_lin' {ι n} [Fintype n] (B : Matrix ι n ℝ)
+--   : 𝓛.ofMatrix B = ( (B.mulVecLin : (n → ℝ) →+ (ι → ℝ)).comp (int_cast) ).range := by
+--     unfold ofMatrix
+--     simp_all only [AddHom.coe_comp, AddHom.coe_coe]
+--     ext x : 1
+--     simp_all only [Set.mem_image, Set.mem_range, exists_exists_eq_and, Function.comp_apply, Matrix.mulVecBilin_apply]
+--     rfl
+
+theorem 𝓛.ofMatrix_def_carrier {ι n} [Fintype n] (B : Matrix ι n ℝ)
+  : 𝓛.ofMatrix B = ofMatrix' B := by rfl
 
 
 #check Matrix.mulVec_add
@@ -366,8 +381,8 @@ lemma 𝓛.ofMatrix_is_closure {ι n} [Fintype n] (B : Matrix ι n ℝ) : ofMatr
   apply AddSubgroup.closure_eq_of_le
   ·
 
-    simp only [ofMatrix', ofMatrix_def_lin, AddHom.coe_comp, AddHom.coe_coe, AddSubgroup.coe_set_mk,
-      AddSubmonoid.coe_set_mk, AddSubsemigroup.coe_set_mk]
+    simp only [ofMatrix', ofMatrix_def_lin, AddMonoidHom.coe_comp, AddMonoidHom.coe_coe,
+      AddSubgroup.coe_set_mk, AddSubmonoid.coe_set_mk, AddSubsemigroup.coe_set_mk]
 
     intro x ⟨xn,xcol⟩
     subst xcol
@@ -460,6 +475,37 @@ theorem 𝓛.dualLattice_involutive  {ι : Type*} [Fintype ι] : Involutive (�
   -- maybe bacause it's not a lattice, but an arbitrary set
   sorry
 
+#check AddSubgroup.map -- use to define 𝓛.ofMatrix
+
+-- #check Real
+#check Dual
 
 theorem 𝓛.dualLattice_basis  {ι n : Type*} [Fintype ι] [Fintype n] (B : Matrix ι n ℝ)
-  : 𝓛.dualLattice (𝓛.ofMatrix B) = { x : ι → ℝ | ∀ v ∈ Set.range (B.col), dotProduct x v ∈ Set.range (Int.cast)} := by sorry
+  : 𝓛.dualLattice (𝓛.ofMatrix B) = { x : ι → ℝ | ∀ v ∈ Set.range (B.col), dotProduct x v ∈ Set.range (Int.cast)} := by
+  sorry
+  -- #check AddSubgroup.closure_induction
+  -- unfold dualLattice
+  -- #check Subtype.forall
+  -- conv => {
+  --   left; right; intro x;
+  --   rw [Subgroup.forall (p := ofMatrix' B) (q := fun v ↦ x ⬝ᵥ v ∈ Set.range Int.cast)]
+
+  -- }
+
+  -- simp only [ofMatrix_def_carrier]
+
+  -- -- have tt q := SetLike.forall (p := ofMatrix' B) (q := q)
+  -- -- simp only [tt _]
+  -- ext x
+  -- dsimp only [Set.mem_setOf_eq]
+  -- constructor
+  -- sorry
+  -- intro w
+  -- #check Subgroup.forall
+  -- intro v vw
+  -- lift v to ofMatrix' B using vw
+
+  -- #check Subtype.canLift
+  -- simp [ofMatrix_def_carrier]
+  -- #check Quotient.ind
+  -- sorry

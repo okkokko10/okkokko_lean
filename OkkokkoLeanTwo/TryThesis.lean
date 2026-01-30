@@ -293,13 +293,17 @@ theorem Zn.add {ι : Type*} {x y} (hx : x ∈ Zn ι) (hy : y ∈ Zn ι) : (x + y
 
 #check PMF.bind_map
 
+variable  {ι n : Type*} [Fintype n] (B : Matrix ι n ℝ)
+
+def int_cast : (n → ℤ) →ₙ+ (n → ℝ) := ⟨(Int.cast <| · ·),by
+    intro x y
+    simp only [Pi.add_apply, Int.cast_add]
+    rfl
+  ⟩
+
 
 def 𝓛.ofMatrix {ι n} [Fintype n] (B : Matrix ι n ℝ) := (B.mulVec : (n → ℝ) → (ι → ℝ)) '' (Zn n)
 --  (⟨B.mulVec,B.mulVec_add⟩ : (n → ℝ) →ₙ+ (ι → ℝ))
-
--- theorem 𝓛.ofMatrix_def {ι n} [Fintype n] (B : Matrix ι n ℝ) : 𝓛.ofMatrix B = (B.mulVec : (n → ℝ) → (ι → ℝ)) '' (Zn n)
-
-#check Matrix.mulVec_add
 
 def 𝓛.ofMatrix' {ι n} [Fintype n] (B : Matrix ι n ℝ) : AddSubgroup (ι → ℝ) where
   carrier := 𝓛.ofMatrix B
@@ -315,15 +319,75 @@ def 𝓛.ofMatrix' {ι n} [Fintype n] (B : Matrix ι n ℝ) : AddSubgroup (ι �
     simp only [Matrix.mulVec_zero]
 
   neg_mem' := by
-    intro Bx ⟨x,hx,hBx⟩
-    subst hBx
+    intro Bx ⟨x,⟨x',hx⟩,hBx⟩
+    subst hBx hx
     unfold ofMatrix
     simp only [Set.mem_image, Set.mem_range, exists_exists_eq_and]
+    refine ⟨-x',?_⟩
+    rw [←Matrix.mulVec_neg _ _]
+    apply congrArg
+    ext x : 1
+    simp_all only [Function.comp_apply, Pi.neg_apply, Int.cast_neg]
+
+#check B.mulVecLin
+
+theorem 𝓛.ofMatrix_def {ι n} [Fintype n] (B : Matrix ι n ℝ)
+  -- : 𝓛.ofMatrix B = (B.mulVec) '' (Set.range ((Int.cast <| · ·) : (_ → _) → _)) := rfl
+  -- : 𝓛.ofMatrix B = Set.range (B.mulVec <| ((Int.cast <| · ·) : (_ → _) → _) ·) := by
+  : 𝓛.ofMatrix B = Set.range (fun x : _ → _ ↦ B.mulVec (Int.cast <| x ·) ) := by
+
+    unfold ofMatrix
+    ext x
+    simp only [Set.mem_image, Set.mem_range, exists_exists_eq_and]
+    rfl
+theorem 𝓛.ofMatrix_def' {ι n} [Fintype n] (B : Matrix ι n ℝ)
+  : 𝓛.ofMatrix B = Set.range ( B.mulVec ∘ (Int.cast ∘ ·) ) := by
+    unfold ofMatrix
+    ext x : 1
+    simp_all only [Set.mem_image, Set.mem_range, exists_exists_eq_and, Function.comp_apply]
+
+theorem 𝓛.ofMatrix_def_lin {ι n} [Fintype n] (B : Matrix ι n ℝ)
+  : 𝓛.ofMatrix B = Set.range ( (B.mulVecLin : (n → ℝ) →ₙ+ (ι → ℝ)).comp (int_cast) ) := by
+    unfold ofMatrix
+    simp_all only [AddHom.coe_comp, AddHom.coe_coe]
+    ext x : 1
+    simp_all only [Set.mem_image, Set.mem_range, exists_exists_eq_and, Function.comp_apply, Matrix.mulVecBilin_apply]
+    rfl
+
+
+
+#check Matrix.mulVec_add
+
+-- todo: note that the function from (ι → ℤ) is a group homomorphism
+#check AddHom
+
+lemma 𝓛.ofMatrix_is_closure {ι n} [Fintype n] (B : Matrix ι n ℝ) : ofMatrix' B = AddSubgroup.closure (Set.range B.col) := by
+  symm
+  apply AddSubgroup.closure_eq_of_le
+  ·
+
+    simp only [ofMatrix', ofMatrix_def_lin, AddHom.coe_comp, AddHom.coe_coe, AddSubgroup.coe_set_mk,
+      AddSubmonoid.coe_set_mk, AddSubsemigroup.coe_set_mk]
+
+    intro x ⟨xn,xcol⟩
+    subst xcol
+    simp only [Set.mem_range]
+    open Classical in
+    use (fun x ↦ if x = xn then 1 else 0)
+    simp only [Function.comp_apply, Matrix.mulVecBilin_apply]
 
 
 
 
     sorry
+
+
+  sorry
+
+-- theorem 𝓛.ofMatrix_def {ι n} [Fintype n] (B : Matrix ι n ℝ) : 𝓛.ofMatrix B = (B.mulVec : (n → ℝ) → (ι → ℝ)) '' (Zn n)
+
+#check Matrix.mulVec_add
+
 
 -- todo: note that the function from (ι → ℤ) is a group homomorphism
 #check AddHom

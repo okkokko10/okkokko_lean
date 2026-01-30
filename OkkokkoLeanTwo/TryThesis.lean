@@ -265,24 +265,56 @@ open scoped Matrix
 example {m n} [Fintype n] (A : Matrix m n ℝ) (v : n → ℝ) := A *ᵥ v
 
 variable  {ι n : Type*} [Fintype n] (B : Matrix ι n ℝ)
+-- todo: should I assume [Fintype ι]? it's going to be true, and a lot relies on it
 
+-- #check Pi.addMonoidHom
 
 def int_cast : (ι → ℤ) →+ (ι → ℝ) where
   toFun := (Int.cast <| · ·)
   map_zero' := funext fun _ ↦ Int.cast_zero
   map_add' := fun x y ↦ funext fun z ↦ Int.cast_add (x z) (y z)
 
+@[simp]
+theorem int_cast.apply (f : ι → ℤ) : int_cast f = (Int.cast <| f ·) := rfl
 
+@[simp high]
+theorem int_cast.apply_single [DecidableEq ι] (i : ι) (x) : int_cast (Pi.single i x) = Pi.single i (Int.cast x) := by
+  simp
+  ext j
+  simp only [Pi.single_apply, Int.cast_ite, Int.cast_zero]
 
-def ints (ι : Type*) : AddSubgroup (ι → ℝ) := int_cast.range
+example (a : ℤ →+ ℝ) : ℤ →ₗ[ℤ] ℝ := by exact a.toIntLinearMap
+#check AddMonoidHom.toIntLinearMap
+
+#check (1 : Matrix ℤ ℤ ℝ)
+-- def int_axes (ι : Type*) : Basis ι ℤ (ι → ℤ) where repr := LinearEquiv.refl
+-- def int_axes (ι : Type*) [DecidableEq ι] := Set.range (1 : Matrix ι ι ℤ).col
+def int_axes (ι : Type*) [Fintype ι] [DecidableEq ι] : Set (ι → ℤ) := Set.range (Pi.single · 1)
+
+-- lemma int_axes.decomposition [Fintype ι] [DecidableEq ι] : int_axes ι
+
+-- #check AddSubgroup.mem_closure_range_iff_of_fintype
+theorem int_axes.basis [Fintype ι]  [DecidableEq ι] : AddSubgroup.closure (int_axes ι) = ⊤ := by
+  ext x
+  simp only [AddSubgroup.mem_top, iff_true]
+  apply AddSubgroup.mem_closure_range_iff_of_fintype.mpr
+  use x
+  exact pi_eq_sum_univ' x
+
 
 -- variable {B' : Matrix}
 
 -- let's revise Zn
--- #check Zn'
-abbrev Zn (ι : Type*) : Set (ι → ℝ) := Set.range ((Int.cast : ℤ → ℝ) ∘ ·)
-lemma Zn.mem_int {ι : Type*} {x} : (Int.cast : ℤ → ℝ) ∘ x ∈ Zn ι := ⟨x,rfl⟩
-lemma Zn.mem_int' {ι : Type*} {x : ι → ℤ} : (Int.cast <| x ·) ∈ Zn ι := ⟨x,rfl⟩
+
+def Zn (ι : Type*) : AddSubgroup (ι → ℝ) := int_cast.range
+
+def Zn.axes (ι : Type*) [Fintype ι] [DecidableEq ι] : Set (ι → ℝ) := int_cast '' (int_axes ι)
+
+theorem Zn.axes_basis [Fintype ι] [DecidableEq ι] : AddSubgroup.closure (Zn.axes ι) = Zn ι := by
+  unfold axes Zn
+  rw [AddMonoidHom.range_eq_map,←int_axes.basis]
+  exact Eq.symm (AddMonoidHom.map_closure int_cast (int_axes ι))
+
 
 -- should I generalize further? there was ℤₐⁿ
 
@@ -291,110 +323,64 @@ lemma Zn.mem_int' {ι : Type*} {x : ι → ℤ} : (Int.cast <| x ·) ∈ Zn ι :
 -- def Zn.general (ι : Type*) (R : Type*) [IntCast R] : Set (ι → R) := Set.range ((Int.cast : ℤ → R) ∘ ·)
 
 
-#check canLift
-instance Zn.canLift {ι : Type*} : CanLift (ι → ℝ) (ι → ℤ) (Int.cast <| · ·) fun f => f ∈ Zn ι where
-  prf := fun _ a ↦ a
 
-@[simp]
-theorem Zn.add {ι : Type*} {x y} (hx : x ∈ Zn ι) (hy : y ∈ Zn ι) : (x + y) ∈ Zn ι := by
-  lift x to ι → ℤ using hx
-  lift y to ι → ℤ using hy
-  rw [Pi.add_def _ _]
-  norm_cast
-  exact Zn.mem_int'
+
 
 #check PMF.bind_map
 
 
 
-def 𝓛.ofMatrix {ι n} [Fintype n] (B : Matrix ι n ℝ) := (B.mulVec : (n → ℝ) → (ι → ℝ)) '' (Zn n)
---  (⟨B.mulVec,B.mulVec_add⟩ : (n → ℝ) →ₙ+ (ι → ℝ))
+def 𝓛.ofMatrix (B : Matrix ι n ℝ) :=  (Zn n).map (B.mulVecLin : (n → ℝ) →+ (ι → ℝ))
 
-def 𝓛.ofMatrix' {ι n} [Fintype n] (B : Matrix ι n ℝ) : AddSubgroup (ι → ℝ) where
-  carrier := 𝓛.ofMatrix B
-  add_mem'  := by
-    unfold ofMatrix at *
-    -- simp_all only [Set.mem_image]
-    intro Bx By ⟨x,hx,hBx⟩ ⟨y,hy,hBy⟩
-    subst hBy hBx
-    refine ⟨x + y,Zn.add hx hy,Matrix.mulVec_add _ _ _⟩
-  zero_mem' := by
-    refine ⟨0,⟨0,?_⟩,?_⟩
-    simp only [Pi.comp_zero, Int.cast_zero, Function.const_zero]
-    simp only [Matrix.mulVec_zero]
-
-  neg_mem' := by
-    intro Bx ⟨x,⟨x',hx⟩,hBx⟩
-    subst hBx hx
-    unfold ofMatrix
-    simp only [Set.mem_image, Set.mem_range, exists_exists_eq_and]
-    refine ⟨-x',?_⟩
-    rw [←Matrix.mulVec_neg _ _]
-    apply congrArg
-    ext x : 1
-    simp_all only [Function.comp_apply, Pi.neg_apply, Int.cast_neg]
 
 #check B.mulVecLin
 
-theorem 𝓛.ofMatrix_def {ι n} [Fintype n] (B : Matrix ι n ℝ)
+
+theorem 𝓛.ofMatrix_def (B : Matrix ι n ℝ)
   -- : 𝓛.ofMatrix B = (B.mulVec) '' (Set.range ((Int.cast <| · ·) : (_ → _) → _)) := rfl
   -- : 𝓛.ofMatrix B = Set.range (B.mulVec <| ((Int.cast <| · ·) : (_ → _) → _) ·) := by
   : 𝓛.ofMatrix B = Set.range (fun x : _ → _ ↦ B.mulVec (Int.cast <| x ·) ) := by
+    sorry
 
-    unfold ofMatrix
-    ext x
-    simp only [Set.mem_image, Set.mem_range, exists_exists_eq_and]
-    rfl
-theorem 𝓛.ofMatrix_def' {ι n} [Fintype n] (B : Matrix ι n ℝ)
-  : 𝓛.ofMatrix B = Set.range ( B.mulVec ∘ (Int.cast ∘ ·) ) := by
-    unfold ofMatrix
-    ext x : 1
-    simp_all only [Set.mem_image, Set.mem_range, exists_exists_eq_and, Function.comp_apply]
+theorem 𝓛.ofMatrix_def_comp (B : Matrix ι n ℝ)
+  : 𝓛.ofMatrix B = ( (B.mulVecLin.toAddMonoidHom).comp (int_cast) ).range := by
+    sorry
 
-theorem 𝓛.ofMatrix_def_lin {ι n} [Fintype n] (B : Matrix ι n ℝ)
-  : 𝓛.ofMatrix B = Set.range ( (B.mulVecLin : (n → ℝ) →+ (ι → ℝ)).comp (int_cast) ) := by
-    unfold ofMatrix
-    simp_all only [AddMonoidHom.coe_comp, AddMonoidHom.coe_coe]
-    ext x : 1
-    simp_all only [Set.mem_image, Set.mem_range, exists_exists_eq_and, Function.comp_apply, Matrix.mulVecBilin_apply]
-    rfl
+theorem Zn.is_ofMatrix  [Fintype ι] [DecidableEq ι]  : Zn ι = 𝓛.ofMatrix (1 : Matrix ι ι _) := by
+  ext x
+  simp only [𝓛.ofMatrix, Matrix.mulVecLin_one, AddSubgroup.mem_map, AddMonoidHom.coe_coe,
+    LinearMap.id_coe, id_eq, exists_eq_right]
 
--- theorem 𝓛.ofMatrix_def_lin' {ι n} [Fintype n] (B : Matrix ι n ℝ)
---   : 𝓛.ofMatrix B = ( (B.mulVecLin : (n → ℝ) →+ (ι → ℝ)).comp (int_cast) ).range := by
---     unfold ofMatrix
---     simp_all only [AddHom.coe_comp, AddHom.coe_coe]
---     ext x : 1
---     simp_all only [Set.mem_image, Set.mem_range, exists_exists_eq_and, Function.comp_apply, Matrix.mulVecBilin_apply]
---     rfl
 
-theorem 𝓛.ofMatrix_def_carrier {ι n} [Fintype n] (B : Matrix ι n ℝ)
-  : 𝓛.ofMatrix B = ofMatrix' B := by rfl
 
 
 #check Matrix.mulVec_add
 
 -- todo: note that the function from (ι → ℤ) is a group homomorphism
-#check AddHom
+#check AddMonoidHom
 
-lemma 𝓛.ofMatrix_is_closure {ι n} [Fintype n] (B : Matrix ι n ℝ) : ofMatrix' B = AddSubgroup.closure (Set.range B.col) := by
+#check Matrix.mulVec.addMonoidHomLeft
+#check Matrix.ext_addMonoidHom
+-- #check Matrix.addMonoidHom
+-- wait I'm an idiot, a matrix as a linear map is Matrix.mulVecLin, I found that already
+
+lemma 𝓛.ofMatrix_is_closure (B : Matrix ι n ℝ) : ofMatrix B = AddSubgroup.closure (Set.range B.col) := by
   symm
   apply AddSubgroup.closure_eq_of_le
   ·
+    simp [ofMatrix_def_comp]
 
-    simp only [ofMatrix', ofMatrix_def_lin, AddMonoidHom.coe_comp, AddMonoidHom.coe_coe,
-      AddSubgroup.coe_set_mk, AddSubmonoid.coe_set_mk, AddSubsemigroup.coe_set_mk]
 
     intro x ⟨xn,xcol⟩
     subst xcol
-    simp only [Set.mem_range]
-    open Classical in
-    use (fun x ↦ if x = xn then 1 else 0)
-    simp only [Function.comp_apply, Matrix.mulVecBilin_apply]
+    simp only [Set.mem_range, Function.comp_apply, Matrix.mulVecBilin_apply]
 
+    open scoped Classical in
+    use Pi.single xn 1
+    simp only [int_cast.apply_single, Int.cast_one, Matrix.mulVec_single, MulOpposite.op_one,
+      one_smul]
+  simp [ofMatrix]
 
-
-
-    sorry
 
 
   sorry

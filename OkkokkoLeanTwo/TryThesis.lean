@@ -267,12 +267,30 @@ example {m n} [Fintype n] (A : Matrix m n ℝ) (v : n → ℝ) := A *ᵥ v
 variable  {ι n : Type*} [Fintype n] (B : Matrix ι n ℝ)
 -- todo: should I assume [Fintype ι]? it's going to be true, and a lot relies on it
 
--- #check Pi.addMonoidHom
+#check Pi.addMonoidHom
+#check Pi.map
 
-def int_cast : (ι → ℤ) →+ (ι → ℝ) where
-  toFun := (Int.cast <| · ·)
-  map_zero' := funext fun _ ↦ Int.cast_zero
-  map_add' := fun x y ↦ funext fun z ↦ Int.cast_add (x z) (y z)
+#check Pi.instAdd
+
+instance Pi.instAddZero {ι : Type*} {M : ι → Type*}  [(i : ι) → AddZero (M i)] : AddZero (∀ i, M i) := {}
+
+def Pi_map_addMonoidHom {ι : Type*} {X Y : ι → Type*}  [(i : ι) → AddZero (X i)] [(i : ι) → AddZero (Y i)] (c : (i : ι) → X i →+ Y i) : ((i : ι) → X i) →+ ((i : ι) → Y i) where
+  toFun := Pi.map (c · ·)
+  map_zero' := by
+    ext x : 1
+    simp_all only [Pi.map_apply, Pi.zero_apply, map_zero]
+  map_add' := by
+    intro x y
+    ext x_1 : 1
+    simp_all only [Pi.map_apply, Pi.add_apply, map_add]
+
+
+def int_cast : (ι → ℤ) →+ (ι → ℝ) := Pi_map_addMonoidHom fun _ ↦ Int.castAddHom ℝ
+
+-- def int_cast : (ι → ℤ) →+ (ι → ℝ) where
+--   toFun := (Int.cast <| · ·)
+--   map_zero' := funext fun _ ↦ Int.cast_zero
+--   map_add' := fun x y ↦ funext fun z ↦ Int.cast_add (x z) (y z)
 
 @[simp]
 theorem int_cast.apply (f : ι → ℤ) : int_cast f = (Int.cast <| f ·) := rfl
@@ -408,90 +426,100 @@ example : Algebra ℤ ℝ := by exact Ring.toIntAlgebra ℝ
 
 open Function
 
-def 𝓛.dualLattice {ι : Type*} [Fintype ι] (Λ : Set (ι → ℝ)) := { x : ι → ℝ | ∀ v ∈ Λ, dotProduct x v ∈ Set.range (Int.cast)}
+-- def 𝓛.dualLattice {ι : Type*} [Fintype ι] (Λ : Set (ι → ℝ)) := { x : ι → ℝ | ∀ v ∈ Λ, dotProduct x v ∈ Set.range (Int.cast)}
 #check neg_involutive
 #check Function.Involutive
 
-theorem 𝓛.dualLattice_involutive  {ι : Type*} [Fintype ι] : Involutive (𝓛.dualLattice (ι := ι)) := by
-  -- unfold Involutive
-  intro Λ
-
-  let p (r : ℝ) := (r ∈ Set.range Int.cast)
-  let h (v u : ι → ℝ) := p (v ⬝ᵥ u)
-
-
-  have uu Λ : dualLattice Λ = {x | ∀ v ∈ Λ, h x v} := rfl
-
-  set Λ' := dualLattice Λ with back
-
-  -- ext x
-
-
-
-  -- unfold dualLattice at back ⊢
-
-  change {x | ∀ y ∈ Λ', h x y} = Λ
-  change {y | ∀ x ∈ Λ, h y x} = Λ' at back
-  convert_to {y | ∀ x ∈ Λ, h x y} = Λ' using 5 at back
-  · unfold h
-    congr! 1
-    exact dotProduct_comm _ _
-
-
-
-
-
-
-  -- rw [Set.ext_iff] at back ⊢
-  -- simp only [Set.mem_setOf_eq] at *
-
-  -- intro x
-  -- constructor
-  -- intro hy
-  -- have rr t := (back t).mpr
-
-  rw [←back]
-  simp only [Set.mem_setOf_eq]
-  clear * -
-  ext x
-  simp only [Set.mem_setOf_eq]
-  refine ⟨?_,fun a _ a_1 ↦ a_1 x a⟩
-  intro hh
-  -- strange... there must be an assumption I'm missing.
-  -- maybe bacause it's not a lattice, but an arbitrary set
-  sorry
 
 #check AddSubgroup.map -- use to define 𝓛.ofMatrix
 
 -- #check Real
 #check Dual
 
-theorem 𝓛.dualLattice_basis  {ι n : Type*} [Fintype ι] [Fintype n] (B : Matrix ι n ℝ)
-  : 𝓛.dualLattice (𝓛.ofMatrix B) = { x : ι → ℝ | ∀ v ∈ Set.range (B.col), dotProduct x v ∈ Set.range (Int.cast)} := by
+-- theorem 𝓛.dualLattice_basis  {ι n : Type*} [Fintype ι] [Fintype n] (B : Matrix ι n ℝ)
+--   : 𝓛.dualLattice (𝓛.ofMatrix B) = { x : ι → ℝ | ∀ v ∈ Set.range (B.col), dotProduct x v ∈ Set.range (Int.cast)} := by
+--   sorry
+
+-- wait, sublattices are still n-dimensional? see Corollary 2.8
+-- ah, I see. for example 2*Λ is a sublattice of Λ, but Λ with a basis vector removed is not
+-- no, nevermind. MG02 defines
+
+#check HomogeneousSubmodule
+#check HomogeneousIdeal
+#check DirectSum
+#check DirectSum.Decomposition
+#check Algebra
+#check Submodule.IsOrtho
+#check Submodule.orthogonal
+-- ^^^ would be a subset of a lattice, but it needs [RCLike 𝕜]
+#check Orthonormal
+#check GradedRing
+
+#check TopologicalSpace
+def 𝓛.IsLattice (Λ : AddSubgroup (ι → ℝ)) : Prop := sorry
+
+
+def 𝓛.dualLattice_general {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (Λ : AddSubgroup (ι → ℝ))  : AddSubgroup (ι → ℝ) where
+  carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ S}
+  add_mem' := by
+    intro a b ha hb v hL
+    specialize ha v hL
+    specialize hb v hL
+    rw [add_dotProduct]
+    exact AddMemClass.add_mem ha hb
+  zero_mem' := by
+    simp only [Set.mem_setOf_eq, zero_dotProduct, zero_mem, implies_true]
+  neg_mem' := by
+    simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
+
+
+
+def 𝓛.dualLattice {ι : Type*} [Fintype ι] (Λ : AddSubgroup (ι → ℝ)) : AddSubgroup (ι → ℝ) := dualLattice_general (Int.castAddHom ℝ |>.range) Λ
+
+
+#check Basis.addHaar
+
+
+theorem 𝓛.dualLattice_involutive  {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) : Involutive (𝓛.dualLattice_general (ι := ι) S) := by
+  -- unfold Involutive
+  intro Λ
+
+  -- let p (r : ℝ) := (r ∈ S)
+  -- let h (v u : ι → ℝ) := p (v ⬝ᵥ u)
+
+
+  set Λ' := dualLattice_general S Λ with back
+
+  ext x
+  rw [AddSubgroup.ext_iff] at back
+
+  unfold dualLattice_general at back ⊢
+  change (∀ v ∈ Λ', x ⬝ᵥ v ∈ S) ↔ x ∈ Λ
+  change ∀v, v ∈ Λ' ↔ ∀ x ∈ Λ, v ⬝ᵥ x ∈ S at back
+  simp_rw [dotProduct_comm x _]
+  refine ⟨?_,fun xL v vL' ↦ (back v).mp vL' x xL⟩
+
+  intro fo
+
+  have : ∀v, v ∈ Λ' → ∀ x ∈ Λ, v ⬝ᵥ x ∈ S := by exact fun v a x a_1 ↦ a x a_1
+  have t2: ∀v, (∀ x ∈ Λ, v ⬝ᵥ x ∈ S) → v ∈ Λ' := by exact fun v a ↦ this v (this v (this v (this v a)))
+
+  --  `∀ x ∈ Λ, v ⬝ᵥ x ∈ S` means the preimage of (v ⬝ᵥ) over S contains Λ
+  -- or that the image over Λ is in S
+  #check AddMonoidHom.range
+
+  let qq (x : ι → ℝ) := (dotProductBilin ℤ ℤ x).toAddMonoidHom
+
+  have nne (v : ι → ℝ): (∀ x ∈ Λ, v ⬝ᵥ x ∈ S) ↔ Λ.map (qq v) ≤ S := by
+    simp [qq]
+    constructor
+    intro eer
+    exact AddSubgroup.map_le_iff_le_comap.mpr (this v (this v (this v (this v eer))))
+    intro xee x xL
+    rw [AddSubgroup.map_le_iff_le_comap] at xee
+    simp_all only [implies_true, Λ']
+    apply xee
+    simp_all only
+  simp_all only [implies_true]
+
   sorry
-  -- #check AddSubgroup.closure_induction
-  -- unfold dualLattice
-  -- #check Subtype.forall
-  -- conv => {
-  --   left; right; intro x;
-  --   rw [Subgroup.forall (p := ofMatrix' B) (q := fun v ↦ x ⬝ᵥ v ∈ Set.range Int.cast)]
-
-  -- }
-
-  -- simp only [ofMatrix_def_carrier]
-
-  -- -- have tt q := SetLike.forall (p := ofMatrix' B) (q := q)
-  -- -- simp only [tt _]
-  -- ext x
-  -- dsimp only [Set.mem_setOf_eq]
-  -- constructor
-  -- sorry
-  -- intro w
-  -- #check Subgroup.forall
-  -- intro v vw
-  -- lift v to ofMatrix' B using vw
-
-  -- #check Subtype.canLift
-  -- simp [ofMatrix_def_carrier]
-  -- #check Quotient.ind
-  -- sorry

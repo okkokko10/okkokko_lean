@@ -523,3 +523,69 @@ theorem 𝓛.dualLattice_involutive  {ι : Type*} [Fintype ι] (S : AddSubgroup 
   simp_all only [implies_true]
 
   sorry
+
+--
+
+example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (Λ_basis : Set (ι → ℝ))
+  : { x : ι → ℝ | ∀ v ∈ AddSubgroup.closure (Λ_basis), x ⬝ᵥ v ∈ S}
+  = { x : ι → ℝ | ∀ v ∈ (Λ_basis), x ⬝ᵥ v ∈ S}
+  := by
+  ext x
+  simp only [Set.mem_setOf_eq]
+
+  sorry
+
+-- try dual lattice as a comap
+
+#check dotProductBilin
+#check dotProductBilin_apply_apply
+#check AddSubgroup.comap
+#check dotProductBilin ℤ ℤ
+
+example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (v : ι → ℝ)
+  : {x | v ⬝ᵥ x ∈ S} = (v ⬝ᵥ ·) ⁻¹' S
+  := by rfl
+example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (v : ι → ℝ)
+  : {x | v ⬝ᵥ x ∈ S} = (S.comap (dotProductBilin ℤ ℤ v)).carrier
+  := by rfl
+
+example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (Λ_basis : Set (ι → ℝ))
+  : { x : ι → ℝ | ∀ v ∈ (Λ_basis), v ⬝ᵥ x ∈ S}
+  = ⨅ v ∈ Λ_basis, (S.comap (dotProductBilin ℤ ℤ v)).carrier
+  := by
+    ext x
+    simp only [Set.mem_setOf_eq, Set.iInf_eq_iInter, Set.mem_iInter, AddSubsemigroup.mem_carrier,
+      AddSubmonoid.mem_toSubsemigroup, AddSubgroup.mem_toAddSubmonoid, AddSubgroup.mem_comap,
+      AddMonoidHom.coe_coe, dotProductBilin_apply_apply]
+
+
+example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (Λ_basis : Set (ι → ℝ))
+  : ⨅ v ∈ Λ_basis, ((S.comap (dotProductBilin ℤ ℤ v)) : AddSubgroup (ι → ℝ)).carrier
+  = (⨅ v ∈ Λ_basis, S.comap (dotProductBilin ℤ ℤ v)).carrier
+  := by
+    ext x
+    simp only [Set.iInf_eq_iInter, Set.mem_iInter, AddSubsemigroup.mem_carrier,
+      AddSubmonoid.mem_toSubsemigroup, AddSubgroup.mem_toAddSubmonoid, AddSubgroup.mem_comap,
+      AddMonoidHom.coe_coe, dotProductBilin_apply_apply]
+    sorry
+
+example [Fintype ι]  (S : AddSubgroup ℝ)
+  : { x : ι → ℝ | ∀ v ∈ 𝓛.ofMatrix B, v ⬝ᵥ x ∈ S}
+  = { x : ι → ℝ | ∀ z ∈ (Zn n), ((B.mulVecLin : (n → ℝ) →+ (ι → ℝ)) z) ⬝ᵥ x ∈ S}
+  := by
+    unfold 𝓛.ofMatrix
+    simp only [AddSubgroup.mem_map, AddMonoidHom.coe_coe, Matrix.mulVecBilin_apply,
+      forall_exists_index, and_imp, forall_apply_eq_imp_iff₂]
+
+
+example [Fintype ι]  (S : AddSubgroup ℝ)
+  : { x : ι → ℝ | ∀ v ∈ 𝓛.ofMatrix B, v ⬝ᵥ x ∈ S}
+  = { x : ι → ℝ | ∀ z ∈ (Zn n), dotProductBilin ℤ ℤ ((B.mulVecLin) z) x ∈ S}
+  := by
+    calc
+      {x | ∀ v ∈ 𝓛.ofMatrix B, v ⬝ᵥ x ∈ S} = {x | ∀ z ∈ Zn n, ((dotProductBilin ℤ ℤ) (B.mulVecLin z)) x ∈ S} := sorry
+      _ = {x | ∀ z ∈ Zn n, ((dotProductBilin ℤ ℤ) (B.mulVecLin z)) x ∈ S} := by rfl
+      _ = {x | ∀ z ∈ Zn n, ((dotProductBilin ℤ ℤ).toAddMonoidHom.comp (B.mulVecLin)) z x ∈ S} := sorry
+      _ = {x | ∀ z ∈ Zn n, ((dotProductBilin ℤ ℤ) (B.mulVecLin z)) x ∈ S} := sorry
+
+-- right, if all the basis vectors dotprod to ℤ then the matrix muls to ℤⁿ

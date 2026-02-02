@@ -559,7 +559,7 @@ example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (Λ_basis : Set (ι → 
       AddMonoidHom.coe_coe, dotProductBilin_apply_apply]
 
 
-example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (Λ_basis : Set (ι → ℝ))
+example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (Λ_basis : Finset (ι → ℝ))
   : ⨅ v ∈ Λ_basis, ((S.comap (dotProductBilin ℤ ℤ v)) : AddSubgroup (ι → ℝ)).carrier
   = (⨅ v ∈ Λ_basis, S.comap (dotProductBilin ℤ ℤ v)).carrier
   := by
@@ -567,6 +567,13 @@ example {ι : Type*} [Fintype ι] (S : AddSubgroup ℝ) (Λ_basis : Set (ι → 
     simp only [Set.iInf_eq_iInter, Set.mem_iInter, AddSubsemigroup.mem_carrier,
       AddSubmonoid.mem_toSubsemigroup, AddSubgroup.mem_toAddSubmonoid, AddSubgroup.mem_comap,
       AddMonoidHom.coe_coe, dotProductBilin_apply_apply]
+    constructor
+    intro xw ew ⟨G,er⟩
+    simp_all
+    subst er
+    simp only [Set.mem_iInter, SetLike.mem_coe]
+    intro y eg
+    sorry
     sorry
 
 example [Fintype ι]  (S : AddSubgroup ℝ)
@@ -589,3 +596,64 @@ example [Fintype ι]  (S : AddSubgroup ℝ)
       _ = {x | ∀ z ∈ Zn n, ((dotProductBilin ℤ ℤ) (B.mulVecLin z)) x ∈ S} := sorry
 
 -- right, if all the basis vectors dotprod to ℤ then the matrix muls to ℤⁿ
+
+open ProbabilityTheory
+open MeasureTheory
+
+#check ProbabilityTheory.IsGaussian
+#check ProbabilityTheory.gaussianReal
+#check ProbabilityTheory.gaussianPDF
+
+
+def gaussian [Norm (ι → ℝ)] (c : ι → ℝ) (s : ℝ≥0) (x : ι → ℝ) := ProbabilityTheory.gaussianPDF 0 s ‖x - c‖
+
+
+#check ProbabilityTheory.IsGaussian
+#check ProbabilityTheory.isGaussian_map
+
+#check ProbabilityTheory.gaussianReal
+#check ProbabilityTheory.gaussianReal _ _ |>.map
+
+#check MeasureTheory.Measure.comap
+#check MeasureTheory.Measure.comap_apply
+
+-- we have a function Rn → ℝ, and a measure on ℝ
+
+example [Norm (ι → ℝ)] (c : ι → ℝ) (s : ℝ≥0) : gaussian c s = ProbabilityTheory.gaussianPDF 0 s ∘ (‖· - c‖) := by rfl
+
+#check ProbabilityTheory.gaussianReal
+#check MeasureTheory.Measure.withDensity
+#check MeasureTheory.Measure.compProd_withDensity
+-- look for theorems on this
+#check MeasureTheory.pdf_def
+
+
+#check MeasureTheory.withDensity_pdf_le_map
+
+#check MeasureTheory.pdf
+
+-- nope
+example [Norm (ι → ℝ)] (c : ι → ℝ) (s : ℝ≥0) := (ProbabilityTheory.gaussianReal 0 s).comap (‖· - c‖) -- nope, not injective.
+
+#check MeasureTheory.pdf
+
+
+
+def gaussianMeasure [Fintype ι] [Norm (ι → ℝ)] (c : ι → ℝ) (s : ℝ≥0) := volume.withDensity (gaussianPDF 0 s ∘ (‖· - c‖))
+def gaussianMeasure' [Fintype ι] [Norm (ι → ℝ)] (Λ : AddSubgroup (ι → ℝ)) (c : ι → ℝ) (s : ℝ≥0) := gaussianMeasure c s |>.restrict Λ
+
+def gaussianMeasure'' [Fintype ι] [Norm (ι → ℝ)] (Λ : AddSubgroup (ι → ℝ))  (c : ι → ℝ) (s : ℝ≥0)
+  := (gaussianMeasure' Λ c s Set.univ)⁻¹ • (gaussianMeasure' Λ c s)
+
+
+-- is this true?
+-- example  [Fintype ι] [Norm (ι → ℝ)] (c : ι → ℝ) (s : ℝ≥0) : IsGaussian (gaussianMeasure'' c s) := by sorry
+
+#check IsGaussian.toIsProbabilityMeasure
+
+#check IsGaussian.map_eq_gaussianReal
+
+
+
+--oh, I found a lattice definition
+#check IsZLattice

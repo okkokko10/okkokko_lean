@@ -803,31 +803,21 @@ lemma Lemma_2_6 {ε : ℝ≥0} (he : ε ≠ 0)
 
 #check Monad
 
-def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0) (hs : s ≠ 0) (center : (Fin n) → ℝ) (DZ : {s' : ℝ // s' > 0} → ℝ → PMF (ℤ)) : PMF ( Fin n → ℝ)  := Id.run do {
-  -- let x ← u;
-  let mut v : Vector ((Fin n) → ℝ) n := (Vector.range n).map (fun _ ↦ 0);
-  let mut c : Vector ((Fin n) → ℝ) n := (Vector.range n).map (fun _ ↦ center);
-  -- c := c.set (n-1) center
-
+def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0) (hs : s ≠ 0) (center : (Fin n) → ℝ) (DZ : {s' : ℝ // s' > 0} → ℝ → PMF (ℤ)) : PMF ( Fin n → ℝ)  := do {
+  let mut v : ((Fin n) → ℝ)  := 0;
+  let mut c : ((Fin n) → ℝ) := center;
 
   for hi : i in (Vector.range n).reverse do
-    have := (Vector.mem_range.mp (Vector.mem_reverse.mp hi))
-    let fi : Fin n := ⟨i,this⟩
-    have bi := gs_b fi
-    let c'i : ℝ := (c.get fi ⬝ᵥ bi) / (bi ⬝ᵥ bi);
+    let fi : Fin n := ⟨i,(Vector.mem_range.mp (Vector.mem_reverse.mp hi))⟩
+    let bi := gs_b fi
+    let c'i : ℝ := (c ⬝ᵥ bi) / (bi ⬝ᵥ bi);
     let s'i : ℝ := s / ‖bi‖;
     have : s'i > 0 := by sorry;
     -- step (b)
     let zi ← (DZ ⟨s'i,this⟩ c'i);
-    let zi' : ℤ := sorry; -- figure out how this works.
-
     -- step (c)
-    if 0 < i then
-      c := c.set (i - 1) (c.get fi - zi' • bi)
-      v := v.set (i - 1) (v.get fi + zi' • bi)
+    c := (c - zi • bi)
+    v := (v + zi • bi)
 
-
-
-
-  return pure <| v.get ⟨0,hn⟩ -- not how to do it
+  return v
 }

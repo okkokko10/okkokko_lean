@@ -19,7 +19,7 @@ open CategoryTheory
 
 instance instCategory : Category (IndexedFamily.{v} α) where
   Hom A B := {e : A.fst → B.fst // A.snd = B.snd ∘ e}
-  id A := ⟨Equiv.refl A.fst,rfl⟩
+  id A := ⟨id,rfl⟩
   comp ab bc := ⟨bc.val ∘ ab.val, by
     have t1:= ab.property
     have t2:= bc.property

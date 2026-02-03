@@ -8,6 +8,11 @@ variable {X : Type u} {func : X → ℕ∞} {F : Set (Set X)} {ι : Type v} {ι'
 #check ENat.instWellFoundedRelation
 #check WellFoundedRelation
 
+/--
+MultiCover ι F:
+= ∑i : ι, s i
+s i ∈ F
+--/
 
 
 theorem CoverDecomposes.sum_eq {al : ι → X → ℕ∞} {sl : ι → ι' → _}

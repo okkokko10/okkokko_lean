@@ -95,7 +95,7 @@ instance : AddCommGroup (@Λ n B hli) := Λ.toAddCommGroup
 -- I should use this.
 
 end s1
-
+namespace s2
 
 open Module
 
@@ -657,3 +657,177 @@ def gaussianMeasure'' [Fintype ι] [Norm (ι → ℝ)] (Λ : AddSubgroup (ι →
 
 --oh, I found a lattice definition
 #check IsZLattice
+
+end s2
+
+namespace s3
+
+open scoped NNReal ENNReal
+
+
+#check IsZLattice
+#check Submodule.IsLattice
+
+abbrev Basis (ι : Type*) [Fintype ι] := Module.Basis ι ℝ (ι → ℝ)
+
+variable {ι : Type*} [Fintype ι] (B : Basis ι)
+variable (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology Λ] [IsZLattice ℝ Λ]
+
+section lattices
+
+abbrev 𝓛 := Submodule.span ℤ (Set.range B)
+
+-- example :=
+
+example : DiscreteTopology (𝓛 B) := ZSpan.instDiscreteTopologySubtypeMemSubmoduleIntSpanRangeCoeBasisRealOfFinite B
+example : IsZLattice ℝ (𝓛 B) := by infer_instance
+example : Basis ι := (IsZLattice.basis Λ).ofZLatticeBasis ℝ
+
+def dualLattice_basic : AddSubgroup (ι → ℝ) where
+  carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ (Int.castAddHom ℝ |>.range)}
+  add_mem' := by
+    intro a b ha hb v hL
+    specialize ha v hL
+    specialize hb v hL
+    rw [add_dotProduct]
+    exact AddMemClass.add_mem ha hb
+  zero_mem' := by
+    simp only [Set.mem_setOf_eq, zero_dotProduct, zero_mem, implies_true]
+  neg_mem' := by
+    simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
+
+def dualLattice : Submodule ℤ (ι → ℝ) := (dualLattice_basic Λ).toIntSubmodule
+
+-- #check ZSpan
+
+def minimum_distance [Norm (ι → ℝ)] := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖
+
+/-
+paper:
+The minimum distance λ1(Λ) of a lattice Λ is the length (in the Euclidean `2 norm, unless otherwise
+indicated) of its shortest nonzero vector: λ1(Λ) = min06=x∈Λkxk. More generally, the ith successive
+minimum λi(Λ) is the smallest radius r such that Λ contains i linearly independent vectors of norm at
+most r. We write λ∞
+1
+to denote the minimum distance measured in the ∞ norm (which is defined as ‖x‖∞ = max |xᵢ|).
+-/
+-- i or more
+def successive_minimum_distance [Norm (ι → ℝ)] (i : ℕ)
+  := ⨅ (r : ℝ≥0) (_ : ∃s ⊆ (Λ.carrier), LinearIndependent ℝ (Subtype.val : s → _) ∧ s.encard ≤ i ∧ ∀x ∈ s, ‖x‖ ≤ r), r
+-- note: for i := 0 this is ⊥ and i := 1 this is 0
+def successive_minimum_distance' [Norm (ι → ℝ)] (i : ℕ)
+  := ⨅ (s ⊆ (Λ.carrier)) (_ : LinearIndependent ℝ (Subtype.val : s → _)) (_ : s.encard ≤ i), ⨆x ∈ s, ‖x‖
+
+-- def dualLattice
+
+end lattices
+
+section gaussians
+
+open ProbabilityTheory
+open MeasureTheory
+
+
+def gaussianFunction [Norm (ι → ℝ)] {s : ℝ≥0} (_ : s ≠ 0) (c : ι → ℝ)  := gaussianPDF 0 s ∘ (‖· - c‖)
+
+#check MeasureTheory.Measure.count
+-- #check Measure.comap
+
+#check gaussianReal
+/-
+2.4 Gaussians on Lattices
+ρ s c
+-/
+def gaussianMeasure [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) := Measure.count.withDensity (gaussianFunction hs c)
+
+#check ProbabilityMeasure
+
+
+def gaussianMeasure' [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0) (c : ι → ℝ)  := (gaussianMeasure hs c).restrict Λ
+
+
+lemma gaussianMeasure'_finite [Norm (ι → ℝ)]  {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) : IsFiniteMeasure (gaussianMeasure' Λ hs c) := sorry
+-- def gaussianMeasure'_total [Norm (ι → ℝ)] (c : ι → ℝ) {s : ℝ≥0} (hs : s ≠ 0) := (gaussianMeasure' Λ c hs) Set.univ
+
+def gaussianDistribution [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) := ((gaussianMeasure' Λ hs c) Set.univ)⁻¹ • gaussianMeasure' Λ hs c
+
+lemma gaussianDistribution_prob [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0) (c : ι → ℝ) : IsProbabilityMeasure (gaussianDistribution Λ hs c) := by
+  refine isProbabilityMeasure_iff.mpr ?_
+  unfold gaussianDistribution
+  simp only [Measure.smul_apply, smul_eq_mul]
+  refine ENNReal.inv_mul_cancel ?_ ?_
+  -- todo: make its own theorem
+  simp only [ne_eq, Measure.measure_univ_eq_zero]
+  intro gm
+  rw [Measure.ext_iff] at gm
+  specialize gm {0}
+  simp only [MeasurableSet.singleton, Measure.coe_zero, Pi.ofNat_apply, forall_const] at gm
+  unfold gaussianMeasure' gaussianMeasure at gm
+  have : {0} ∩ (Λ : Set (ι → ℝ)) = {0} := by
+    rw [Set.inter_eq_left, Set.singleton_subset_iff, SetLike.mem_coe]
+    exact zero_mem Λ
+
+  simp only [MeasurableSet.singleton, Measure.restrict_apply, this, withDensity_apply,
+    Measure.restrict_singleton, Measure.count_singleton', one_smul, lintegral_dirac] at gm
+  unfold gaussianFunction gaussianPDF at gm
+  simp at gm
+  revert gm
+  simp only [imp_false, not_le]
+  exact gaussianPDFReal_pos _ _ _ hs
+
+  have := gaussianMeasure'_finite Λ hs c
+  exact this.1.ne
+
+end gaussians
+
+
+def smoothing_parameter {ε : ℝ≥0} (_ : ε ≠ 0)
+  := ⨅ (s : ℝ≥0) (hs : s ≠ 0) (_ : (gaussianMeasure' (dualLattice Λ) (show s⁻¹ ≠ 0 by simp only [ne_eq,
+    inv_eq_zero, hs, not_false_eq_true]) 0) (Set.compl {0}) ≤ ε), s
+
+def infinity_norm : Norm (ι → ℝ) := ⟨fun x ↦ (PiLp.instNorm ∞ (fun (_ : ι) ↦ ℝ)).norm (WithLp.toLp ∞ x)⟩
+
+-- what log base?
+lemma Lemma_2_6 {ε : ℝ≥0} (he : ε ≠ 0)
+  : smoothing_parameter Λ he ≤
+  √ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)
+  / @minimum_distance ι Λ (infinity_norm) := sorry
+-- find infinity-norm
+
+#check EuclideanSpace
+
+-- todo: Norm is just a notation class. theorems about defs using it need [NormedAddCommGroup]
+#check NormedAddCommGroup
+
+#check ForIn
+
+#check Monad
+
+def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0) (hs : s ≠ 0) (center : (Fin n) → ℝ) (DZ : {s' : ℝ // s' > 0} → ℝ → PMF (ℤ)) : PMF ( Fin n → ℝ)  := Id.run do {
+  -- let x ← u;
+  let mut v : Vector ((Fin n) → ℝ) n := (Vector.range n).map (fun _ ↦ 0);
+  let mut c : Vector ((Fin n) → ℝ) n := (Vector.range n).map (fun _ ↦ center);
+  -- c := c.set (n-1) center
+
+
+  for hi : i in (Vector.range n).reverse do
+    have := (Vector.mem_range.mp (Vector.mem_reverse.mp hi))
+    let fi : Fin n := ⟨i,this⟩
+    have bi := gs_b fi
+    let c'i : ℝ := (c.get fi ⬝ᵥ bi) / (bi ⬝ᵥ bi);
+    let s'i : ℝ := s / ‖bi‖;
+    have : s'i > 0 := by sorry;
+    -- step (b)
+    let zi ← (DZ ⟨s'i,this⟩ c'i);
+    let zi' : ℤ := sorry; -- figure out how this works.
+
+    -- step (c)
+    if 0 < i then
+      c := c.set (i - 1) (c.get fi - zi' • bi)
+      v := v.set (i - 1) (v.get fi + zi' • bi)
+
+
+
+
+  return pure <| v.get ⟨0,hn⟩ -- not how to do it
+}

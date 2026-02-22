@@ -821,3 +821,129 @@ def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0
 
   return v
 }
+
+#check Asymptotics.IsLittleO
+open Asymptotics MeasureTheory
+
+def negligible {R : Type*} [Norm R] (f : ℕ → R) := ∀(c : ℕ), c > 0 → f =o[Filter.atTop] (fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ)))
+
+-- #check ProbabilityTheory.HasPDF
+#check MeasureTheory.pdf
+
+--- [https://www.cs.bu.edu/~reyzin/teaching/s11cs937/notes-leo-1.pdf]
+
+
+#check PMF
+
+
+#check MeasureTheory.SignedMeasure.totalVariation -- Gemini found this.
+
+
+-- I need to explain this
+def statistical_distance' {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D) := (2⁻¹) * (SignedMeasure.totalVariation (X.toMeasure.toSignedMeasure - Y.toMeasure.toSignedMeasure)) Set.univ
+lemma statistical_distance_finite_1 {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D)
+  : IsFiniteMeasure ((X.toMeasure.toSignedMeasure - Y.toMeasure.toSignedMeasure).totalVariation) := isFiniteMeasureAdd
+lemma statistical_distance_finite_2 {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D)
+  : statistical_distance' X Y < ∞ := by
+    unfold statistical_distance'
+    refine ENNReal.mul_lt_top ?_ ?_
+    simp only [ENNReal.inv_lt_top, Nat.ofNat_pos]
+    simp only [statistical_distance_finite_1, measure_lt_top]
+def statistical_distance {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D) : ℝ≥0 := statistical_distance' X Y |>.toNNReal
+
+
+def statistically_close {D : Type*} [MeasurableSpace D] (X Y : ℕ → ProbabilityMeasure D) :=
+  let _ : Norm ℝ≥0 := ⟨(↑)⟩;
+  negligible (fun n ↦ statistical_distance (X n) (Y n))
+
+
+-- theorem lemma_5_1 {m : ℝ≥0} {_ : 2 * n }
+
+-- #check Mathlib.Testing.SlimCheck
+
+def mHyp (m n q : ℕ) : Prop := (2 * n * Real.log q) ≤ m
+
+
+-- #check ZMod 2
+-- def mod_q ( q : ℕ) := ℤ ⧸ (AddSubgroup.closure {(q : ℤ)})
+-- lemma mod_q.isFinite {q : ℕ} : Finite (ZMod q) := by
+--   apply?
+--   sorry
+
+-- seems like Fin q is the integers mod q
+#eval (7 : Fin 6)
+-- ZMod q is Fin q if q is positive
+
+-- abbrev mod_q ( q : ℕ) := ZMod q
+
+
+-- note: NeZero allows this to be inferred, while h : q > 0 doesn't
+example  {q : ℕ} [NeZero q] : Finite (ZMod q) := inferInstance
+
+-- instance {q : ℕ} : Zero (ZMod q) where zero := 0
+
+def A_Matrix (n m q : ℕ) : Type := Matrix (Fin n) (Fin m) (ZMod q)
+
+instance A_Matrix.instFinite {n m q : ℕ} [NeZero q] : Finite (A_Matrix n m q) := Matrix.instFinite (ZMod q)
+
+-- set_option trace.Meta.synthInstance true in
+example (q)  [NeZero q] : Algebra ℤ (ZMod q) := inferInstance
+
+def toZModLin (q) : ℤ →ₗ[ℤ] (ZMod q) := Algebra.linearMap ℤ (ZMod q)
+
+#eval
+  (List.range 10).map ((↑) : _ → ℤ) |>.map (toZModLin 3)
+
+def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) →ₗ[ℤ] (Fin n → ZMod q) := by
+  -- have := Matrix.toLin (m := Fin n) (n := Fin m) (R := ZMod q) sorry sorry
+  let vl:= Matrix.mulVecLin A
+  -- have this be →ₗ[ℤ] as well
+  -- is converting to ZMod q the same before or after "this"?
+  let : (Fin m → ℤ) →ₗ[ℤ] (Fin m → ZMod q) := by
+    exact (toZModLin q).compLeft (Fin m)
+  exact Fintype.linearCombination ℤ fun a a_1 ↦ A a_1 a
+
+  -- refine ((LinearMap.comp this vl) )
+
+
+-- this shows that modulo can be done before or after
+example (q : ℕ) (a b : ℤ) : ((a : ZMod q) * (b : ZMod q)) = ↑(a * b) := by
+  simp only [Int.cast_mul]
+
+def A_Matrix.syndrome_map' {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) → (Fin n → ZMod q) := by
+  intro x
+  apply A.mulVec
+  intro i
+  apply toZModLin q (x i)
+
+
+instance A_Matrix.instFintype {n m q : ℕ} [NeZero q] : Fintype (A_Matrix n m q) := Matrix.instFintypeOfDecidableEq (ZMod q)
+
+
+
+
+example : Rand (A_Matrix 4 2 3) := by sorry
+
+-- -- Gemini
+-- def testFuncs {A : Sort*} (statement : A → Prop) (iters : ℕ) : IO Unit := do
+--   for _ in [0:iters] do
+--     let n ← IO.rand 0 1000000
+
+--     if ¬ statement n then
+--       IO.println s!"Vastaesimerkki löytyi: n = {n}"
+--       return
+--   IO.println "Kaikki testit menivät läpi!"
+-- #eval testFuncs 100
+
+-- def xx : Fin 2 → ℤ := [2, 3].get
+example :
+  ∀ A : A_Matrix 4 2 3,
+  ∀y xx, A.syndrome_map xx y = A.syndrome_map' xx y := by
+    -- slim_check
+    sorry
+
+
+
+def corollary_5_4_statement {n m q : ℕ} (A : Matrix (Fin n) (Fin m) (ZMod q)) (s : ℝ) : Prop := sorry
+
+theorem corollary_5_4 {n m q : ℕ} (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : False := sorry

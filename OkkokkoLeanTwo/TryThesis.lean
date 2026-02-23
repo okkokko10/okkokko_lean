@@ -796,12 +796,18 @@ def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s �
 
 -- def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : Measure (Fin m → ℤ)
 --   :=  (gaussianMeasure hs 0)[| (s2.Zn (Fin m))].comap ((↑) ∘ ·)
-def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : Measure (Fin m → ℤ)
-  :=  ((gaussianMeasure hs 0).comap ((Int.cast : ℤ → ℝ) ∘ ·))[|Set.univ]
+def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0) (c : Fin m → ℝ)  : Measure (Fin m → ℤ)
+  :=  ((gaussianMeasure hs c).comap ((Int.cast : ℤ → ℝ) ∘ ·))[|Set.univ]
 
-def int_gaussian  (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (h : s ≠ 0)  : ProbabilityMeasure (Fin m → ℤ) :=
+def int_gaussian  (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : ProbabilityMeasure (Fin m → ℤ) :=
   ⟨
-    int_gaussian_int_measure m h
+    int_gaussian_int_measure m hs 0
+    , sorry
+  ⟩
+
+def int_gaussian_sublattice  (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0) (Λ : AddSubgroup (Fin m → ℤ)) (c : Fin m → ℤ) : ProbabilityMeasure (Fin m → ℤ) :=
+  ⟨
+    (int_gaussian_int_measure m hs ((↑) ∘ c))[|Λ]
     , sorry
   ⟩
 
@@ -941,8 +947,7 @@ example (q : ℕ) (a b : ℤ) : ((a : ZMod q) * (b : ZMod q)) = ↑(a * b) := by
 
 def A_Matrix.syndrome_map' {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) → (Fin n → ZMod q) := by
   intro x
-  apply A.mulVec
-  exact Int.cast ∘ x
+  apply A.mulVec <| Int.cast ∘ x
 
 section testing
 open Plausible
@@ -1000,9 +1005,33 @@ def lemma_5_1_statement {n m q : ℕ} (A : A_Matrix n m q) : Prop :=
   A.syndrome_map '' {e | ∀i, e i = 0 ∨ e i = 1} = Set.univ
 
 -- the form seems complete
+-- wait, is q_prime
 theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_1_statement n m q) ≤ (q ^ (- n : ℝ)) := sorry
 
+-- {e | Ae mod q = 0 }
+def A_Matrix.Λ_ortho {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) := AddSubgroup.comap A.syndrome_map.toAddMonoidHom ⊥
 
+def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : AddSubgroup (Fin m → ℝ) := AddSubgroup.map ((s2.int_cast) : (Fin m → ℤ) →+ (Fin m → ℝ)) L
+
+def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
+  (e : ProbabilityMeasure (Fin m → ℤ))
+  := e.map (f := A.syndrome_map) (AEMeasurable.of_discrete)
+
+theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
+  (ε : ℝ≥0) (ε_pos : ε ≠ 0) (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
+  (s_prop : s ≥ smoothing_parameter (ι := Fin m) (AddSubgroup.toIntSubmodule (to_R A.Λ_ortho)) ε_pos) :
+  let hs : s ≠ 0 := sorry;
+  statistical_distance (A.syndrome_distributed (int_gaussian m hs)) (uniform_over_Zqn _ _) ≤ 2 * ε
+  := sorry
+
+theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
+  (ε : ℝ≥0) (ε_pos : ε ≠ 0) (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
+  (s_prop : s ≥ smoothing_parameter (ι := Fin m) (AddSubgroup.toIntSubmodule (to_R A.Λ_ortho)) ε_pos) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
+  :
+  let hs : s ≠ 0 := sorry;
+  -- ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = t +ᵥ (int_gaussian_sublattice m hs A.Λ_ortho (-t))
+  ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = (int_gaussian_sublattice m hs A.Λ_ortho (-t)).map (f := (· + t)) (AEMeasurable.of_discrete)
+  := sorry
 
 
 -- hmm, in Corollary 5.4, "statistically close" describes what happens as n varies, but A is conditioned on n. this means statistically_close does not fit

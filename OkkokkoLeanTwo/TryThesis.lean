@@ -821,14 +821,20 @@ def smoothing_parameter {ε : ℝ≥0} (_ : ε ≠ 0)
   := ⨅ (s : ℝ≥0) (hs : s ≠ 0) (_ : (gaussianMeasure' (dualLattice Λ) (show s⁻¹ ≠ 0 by simp only [ne_eq,
     inv_eq_zero, hs, not_false_eq_true]) 0) (Set.compl {0}) ≤ ε), s
 
-def infinity_norm : Norm (ι → ℝ) := ⟨fun x ↦ (PiLp.instNorm ∞ (fun (_ : ι) ↦ ℝ)).norm (WithLp.toLp ∞ x)⟩
+def infinity_norm : Norm (ι → ℝ) := Pi.normedAddGroup.toNorm
+
+-- justifies changing infinity_norm
+example {ι} [Fintype ι] : (⟨fun x ↦ (PiLp.instNorm ∞ (fun (_ : ι) ↦ ℝ)).norm (WithLp.toLp ∞ x)⟩ : Norm (ι → ℝ)) = Pi.normedAddGroup.toNorm := by
+  simp only [PiLp.norm_toLp]
+
+/-- λ₁∞ -/
+def minimum_distance_sup  := @minimum_distance ι Λ (infinity_norm)
 
 -- what log base?
-lemma Lemma_2_6 {ε : ℝ≥0} (he : ε ≠ 0)
+theorem Lemma_2_6 {ε : ℝ≥0} (he : ε ≠ 0)
   : smoothing_parameter Λ he ≤
   √ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)
-  / @minimum_distance ι Λ (infinity_norm) := sorry
--- find infinity-norm
+  / minimum_distance_sup Λ := sorry
 
 #check EuclideanSpace
 
@@ -890,9 +896,9 @@ lemma statistical_distance_finite_2 {D : Type*} [MeasurableSpace D] (X Y : Proba
     simp only [statistical_distance_finite_1, measure_lt_top]
 def statistical_distance {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D) : ℝ≥0 := statistical_distance' X Y |>.toNNReal
 
+instance : Norm ℝ≥0 := ⟨(↑)⟩
 
 def statistically_close {D : Type*} [MeasurableSpace D] (X Y : ℕ → ProbabilityMeasure D) :=
-  let _ : Norm ℝ≥0 := ⟨(↑)⟩;
   negligible (fun n ↦ statistical_distance (X n) (Y n))
 
 
@@ -901,6 +907,8 @@ def statistically_close {D : Type*} [MeasurableSpace D] (X Y : ℕ → Probabili
 -- #check Mathlib.Testing.SlimCheck
 
 def mHyp (m n q : ℕ) : Prop := (2 * n * Real.log q) ≤ m
+
+def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω[Filter.atTop] (Real.sqrt ∘  Real.log ∘ (↑))
 
 
 -- #check ZMod 2
@@ -914,6 +922,13 @@ def mHyp (m n q : ℕ) : Prop := (2 * n * Real.log q) ≤ m
 -- ZMod q is Fin q if q is positive
 
 -- abbrev mod_q ( q : ℕ) := ZMod q
+
+-- again, does Λ vary over n?
+theorem Lemma_2_6_then
+  (ω : ℕ → ℝ≥0) (hω : ω_sqrt_log ω)
+  : ∃(ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i,
+  smoothing_parameter Λ (ε_pos i) ≤ ω i / minimum_distance_sup (dualLattice Λ)
+  := sorry
 
 
 -- note: NeZero allows this to be inferred, while h : q > 0 doesn't
@@ -1025,6 +1040,17 @@ def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup
 
 def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : Submodule ℤ (Fin m → ℝ) := (AddSubgroup.map ((s2.int_cast) : (Fin m → ℤ) →+ (Fin m → ℝ)) L).toIntSubmodule
 
+
+theorem A_Matrix.Λ_dual {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
+  -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
+  (to_R A.Λ_ortho) = (dualLattice <| to_R A.Λ_main).map (LinearMap.lsmul ℤ _ q)
+  := by sorry
+theorem A_Matrix.Λ_dual' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
+  -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
+  (to_R A.Λ_main) = (dualLattice <| to_R A.Λ_ortho).map (LinearMap.lsmul ℤ _ q)
+  := by sorry
+
+
 def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
   (e : ProbabilityMeasure (Fin m → ℤ))
   := e.map (f := A.syndrome_map) (AEMeasurable.of_discrete)
@@ -1047,17 +1073,16 @@ theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass
 
 
 def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
-  let : Norm (Fin m → ℝ) := by exact Pi.normedAddGroup.toNorm
-  minimum_distance (to_R A.Λ_main) ≥ q/4
+  minimum_distance_sup (to_R A.Λ_main) ≥ q/4
 
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_3_statement n m q _) ≤ (q ^ (- n : ℝ)) := sorry
 
 -- won't work like this
 -- note the proof: the m is not this m
-instance : Norm ℝ≥0 := ⟨(↑)⟩ in
+-- todo: make shorthand for this ε
 theorem lemma_5_3_also  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
-  (A : A_Matrix n m q) (hA : lemma_5_3_statement A) (ω : ℕ → ℝ≥0) (hω : ω =ω[Filter.atTop] (Real.sqrt ∘  Real.log ∘ (↑)))
-: ∃ (ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i : ℕ, smoothing_parameter (to_R A.Λ_ortho) (ε_pos i) ≤ ω i := by sorry
+  (A : A_Matrix n m q) (hA : lemma_5_3_statement A) (ω : ℕ → ℝ≥0) (hω : ω_sqrt_log ω)
+  : ∃ (ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i : ℕ, smoothing_parameter (to_R A.Λ_ortho) (ε_pos i) ≤ ω i := by sorry
 
 
 

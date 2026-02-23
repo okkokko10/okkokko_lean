@@ -913,33 +913,11 @@ example (q : ℕ) (a b : ℤ) : ((a : ZMod q) * (b : ZMod q)) = ↑(a * b) := by
 def A_Matrix.syndrome_map' {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) → (Fin n → ZMod q) := by
   intro x
   apply A.mulVec
-  intro i
-  apply toZModLin q (x i)
+  exact Int.cast ∘ x
 
 section testing
 open Plausible
 
-instance A_Matrix.instFintype {n m q : ℕ} [NeZero q] : Fintype (A_Matrix n m q) := Matrix.instFintypeOfDecidableEq (ZMod q)
-
-
--- def Pi_pair {n} [NeZero n] : (Fin n → ℕ) ≃ ℕ := by
---   have : Denumerable (Fin n →  ℕ) := by
---     exact Denumerable.ofEncodableOfInfinite (Fin n → ℕ)
---   refine Denumerable.eqv (Fin n → ℕ)
-def repeated (n : ℕ) {X : Type} (gen : IO X) : IO (Fin n → X) := Vector.ofFnM (fun _ => gen) |>.map (·.get)
--- def repeated'.{u1, u2} (n : ℕ) {m : Type u1 → Type u2} [Monad m] {X : Type u1} (gen : m X) : m (Fin n → X) := Vector.ofFnM (m := m) (n := n) (fun _ => gen) |>.map (·.get)
-
-
-def A_Matrix.random {n m q : ℕ} (gen : IO ℤ) : IO (A_Matrix n m q) := do
-  let a ←  (repeated n (repeated m (gen.map (↑))))
-  return Matrix.of a
-def A_Matrix.random' (n m : ℕ) {q} (gen : IO (ZMod q)) : IO (A_Matrix n m q) := do
-  let a ←  (repeated n (repeated m (gen)))
-  return Matrix.of a
-
-def A_Matrix.random'' (n m : ℕ) {q} (gen : IO (ZMod q)) : IO (A_Matrix n m q) := do
-  let a ←  (repeated n (repeated m (gen)))
-  return Matrix.of a
 
 
 instance {q} : Arbitrary (ZMod q) :=
@@ -951,38 +929,14 @@ instance {q} : Shrinkable (ZMod q) :=
     | 0 => Int.shrinkable
     | _ + 1 => Fin.shrinkable
 #test ∀i : (ZMod 5), i + 0 = i
-set_option trace.Meta.synthInstance true in
-#test ∀i : (Fin 5 → Fin 5), i + 0 = i
+#test ∀i : (Fin 2 → Fin 2), i + 0 = i
 
-
--- instance {n m q : ℕ} [NeZero q]  : Plausible.Arbitrary  (A_Matrix n m q) := by
---   have : Arbitrary (Fin n → Fin m → ZMod q) := by
---     infer_instance
---   constructor
---   apply this.arbitrary.map
---   sorry
-
-
--- Gemini
--- def testFuncs {A : Sort*} (statement : A → Prop) (iters : ℕ) : IO Unit := do
---   for _ in [0:iters] do
---     let n ← IO.rand 0 1000000
-
---     if ¬ statement n then
---       IO.println s!"Vastaesimerkki löytyi: n = {n}"
---       return
---   IO.println "Kaikki testit menivät läpi!"
--- #eval testFuncs 100
-
--- def xx : Fin 2 → ℤ := [2, 3].get
-
-
-
--- set_option trace.Meta.synthInstance true in
-#test
-  ∀ ee : _ → _ → (ZMod _),
-  let A : A_Matrix 3 2 5 := Matrix.of ee;
-  ∀xx, A.syndrome_map xx = A.syndrome_map' xx
+-- experimentally checks that syndrome_map is correct
+#eval Testable.check
+    (∀ ee : _ → _ → (ZMod _),
+    let A : A_Matrix 3 4 5 := Matrix.of ee;
+    ∀xx, A.syndrome_map xx = A.syndrome_map' xx)
+  {traceSuccesses := true}
 
 
 

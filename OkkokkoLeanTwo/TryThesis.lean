@@ -912,7 +912,8 @@ def statistically_close {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)]
 
 def mHyp (m n q : ℕ) : Prop := (2 * n * Real.log q) ≤ m
 
-def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω[Filter.atTop] (Real.sqrt ∘  Real.log ∘ (↑))
+def sqrt_log : ℕ → ℝ := (Real.sqrt ∘  Real.log ∘ (↑))
+def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω[Filter.atTop] sqrt_log
 
 
 -- #check ZMod 2
@@ -1047,23 +1048,62 @@ def A_Matrix.Λ_ortho {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgrou
 
 -- does it matter that this is ZMod q?
 -- I wonder, a philosophical idea about a sense in which ℕ is equivalent to {0 mod 2, 1 mod 2}
-def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ZMod q) := (A_Matrix.syndrome_map (A.transpose : A_Matrix m n q)).toAddMonoidHom.range
+def A_Matrix.Λ_main_base {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ZMod q) := (A_Matrix.syndrome_map (A.transpose : A_Matrix m n q)).toAddMonoidHom.range
 def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ℤ)
   := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
-def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : Submodule ℤ (Fin m → ℝ) := (AddSubgroup.map ((s2.int_cast) : (Fin m → ℤ) →+ (Fin m → ℝ)) L).toIntSubmodule
+def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : Submodule ℤ (Fin m → ℝ) := (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L).toIntSubmodule
 
+def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Submodule ℤ (Fin m → ℝ) := to_R A.Λ_ortho
+def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Submodule ℤ (Fin m → ℝ) := to_R A.Λ_main
 
 theorem A_Matrix.Λ_dual {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
-  (to_R A.Λ_ortho) = (dualLattice <| to_R A.Λ_main).map (LinearMap.lsmul ℤ _ q)
+  (A.Λ_ortho') = (dualLattice <| A.Λ_main').map (LinearMap.lsmul ℤ _ q)
   := by sorry
 theorem A_Matrix.Λ_dual' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
-  (to_R A.Λ_main) = (dualLattice <| to_R A.Λ_ortho).map (LinearMap.lsmul ℤ _ q)
+  (A.Λ_main') = (dualLattice <| A.Λ_ortho').map (LinearMap.lsmul ℤ _ q)
   := by sorry
 
+lemma A_Matrix.Λ_ortho'.has_qZn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
+  ∀i, Pi.single i q ∈ (A.Λ_ortho') := by
+    intro i
+    refine (Submodule.mem_toAddSubgroup A.Λ_ortho').mp ?_
+    unfold Λ_ortho' to_R
+    simp only [AddSubgroup.toIntSubmodule_toAddSubgroup, AddSubgroup.mem_map]
+    unfold Λ_ortho
+    simp only [AddMonoidHom.mem_ker, LinearMap.toAddMonoidHom_coe]
+    use Pi.single i q
+    constructor
+    {
+      ext j
+      unfold syndrome_map
+      simp only [Fintype.linearCombination_apply_single, Pi.smul_apply, zsmul_eq_mul,
+        Int.cast_natCast, CharP.cast_eq_zero, zero_mul, Pi.zero_apply]
+    }
+    ext j
+    simp only [AddMonoidHom.compLeft_apply, Int.coe_castAddHom, Function.comp_apply]
+    by_cases h : i = j
+    subst h
+    simp only [Pi.single_eq_same, Int.cast_natCast]
+    simp only [ne_eq, h, not_false_eq_true, Pi.single_eq_of_ne', Int.cast_zero]
+
+
+
+
+
+#check instIsZLatticeComap
+#check Submodule.IsLattice
+
+instance A_Matrix.Λ_ortho'.instDiscreteTopology {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
+  DiscreteTopology ↥(A.Λ_ortho') := sorry
+instance A_Matrix.Λ_ortho'.instIsZLattice {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
+  IsZLattice ℝ (A.Λ_ortho') := sorry
+instance A_Matrix.Λ_main'.instDiscreteTopology {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
+  DiscreteTopology ↥(A.Λ_main') := sorry
+instance A_Matrix.Λ_main'.instIsZLattice {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
+  IsZLattice ℝ (A.Λ_main') := sorry
 
 def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
   (e : ProbabilityMeasure (Fin m → ℤ))
@@ -1071,14 +1111,14 @@ def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
 
 theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) (ε_pos : ε ≠ 0) (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
-  (s_prop : s ≥ smoothing_parameter (to_R A.Λ_ortho) ε_pos) :
+  (s_prop : s ≥ smoothing_parameter (A.Λ_ortho') ε_pos) :
   let hs : s ≠ 0 := sorry;
   statistical_distance (A.syndrome_distributed (int_gaussian m hs)) (uniform_over_Zqn _ _) ≤ 2 * ε
   := sorry
 
 theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) (ε_pos : ε ≠ 0) (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
-  (s_prop : s ≥ smoothing_parameter (to_R A.Λ_ortho) ε_pos) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
+  (s_prop : s ≥ smoothing_parameter (A.Λ_ortho') ε_pos) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
   :
   let hs : s ≠ 0 := sorry;
   -- ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = t +ᵥ (int_gaussian_sublattice m hs A.Λ_ortho (-t))
@@ -1087,7 +1127,7 @@ theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass
 
 
 def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
-  minimum_distance_sup (to_R A.Λ_main) ≥ q/4
+  minimum_distance_sup (A.Λ_main') ≥ q/4
 
 abbrev N := ℕ
 abbrev M := ℕ
@@ -1102,9 +1142,20 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp 
 theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   (A : (n : N) → (A_Matrix n (m n) (q n)))(hA : ∀n, lemma_5_3_statement (A n))
   (ω : (m : M) → ℝ≥0) (hω : ω_sqrt_log ω)
-  : ∃ (ε : (m : M) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0),
-  ∀n : N, smoothing_parameter (to_R (A n).Λ_ortho) (ε_pos (m n)) ≤ ω (m n) := by sorry
+  : ∃ (ε : (m : M) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀m, ε m ≠ 0),
+  ∀n : N, smoothing_parameter ((A n).Λ_ortho') (ε_pos (m n)) ≤ ω (m n) := by
 
+  #check Lemma_2_6_then'
+  #check A_Matrix.Λ_dual'
+  have ⟨ε, negl_ε, ε_pos, so⟩:= Lemma_2_6_then' (fun n ↦ (A n).Λ_ortho') (ω ∘ m) ?_
+  use ε, negl_ε, ε_pos
+  intro n
+  specialize so n
+
+
+
+  sorry
+  sorry
 
 
 -- hmm, in Corollary 5.4, "statistically close" describes what happens as n varies, but A is conditioned on n. this means statistically_close does not fit
@@ -1137,11 +1188,16 @@ def corollary_5_4_statement (q : N → Q) [∀n, NeZero (q n)]  (m : N → M)
 
 theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   : ∃(subsets : (n : N) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
-  ∀(s : N → ℝ≥0)(_ : s =ω[Filter.atTop] (Real.sqrt ∘  Real.log ∘ (↑) ∘ m))(s_pos : ∀n, s n ≠ 0), -- ≥ω is the same as =ω, right?
+  ∀(s : N → ℝ≥0)(_ : s =ω[Filter.atTop] (sqrt_log ∘ m))(s_pos : ∀n, s n ≠ 0), -- ≥ω is the same as =ω, right?
   ∀(A : (n : N) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
   corollary_5_4_statement q m A s s_pos
-  := sorry
+  := by
+
+
+  sorry
 
 -- should s be a function of m?
 
 -- idea: have m be N → M, to not confuse variables
+
+-- unrelated idea: Module with polynomials as the scalars.

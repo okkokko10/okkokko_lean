@@ -814,7 +814,9 @@ def int_gaussian_sublattice  (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s �
 
 end gaussians
 
-
+/--
+η
+-/
 def smoothing_parameter {ε : ℝ≥0} (_ : ε ≠ 0)
   := ⨅ (s : ℝ≥0) (hs : s ≠ 0) (_ : (gaussianMeasure' (dualLattice Λ) (show s⁻¹ ≠ 0 by simp only [ne_eq,
     inv_eq_zero, hs, not_false_eq_true]) 0) (Set.compl {0}) ≤ ε), s
@@ -858,6 +860,9 @@ def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0
 
 #check Asymptotics.IsLittleO
 open Asymptotics MeasureTheory
+
+-- f(x) = ω(g(x))
+notation:100 f " =ω[" l "] " g:100 => g =o[l] f
 
 def negligible {R : Type*} [Norm R] (f : ℕ → R) := ∀(c : ℕ), c > 0 → f =o[Filter.atTop] (fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ)))
 
@@ -1018,7 +1023,7 @@ def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup
   := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
-def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : AddSubgroup (Fin m → ℝ) := AddSubgroup.map ((s2.int_cast) : (Fin m → ℤ) →+ (Fin m → ℝ)) L
+def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : Submodule ℤ (Fin m → ℝ) := (AddSubgroup.map ((s2.int_cast) : (Fin m → ℤ) →+ (Fin m → ℝ)) L).toIntSubmodule
 
 def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
   (e : ProbabilityMeasure (Fin m → ℤ))
@@ -1026,14 +1031,14 @@ def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
 
 theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) (ε_pos : ε ≠ 0) (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
-  (s_prop : s ≥ smoothing_parameter (to_R A.Λ_ortho).toIntSubmodule ε_pos) :
+  (s_prop : s ≥ smoothing_parameter (to_R A.Λ_ortho) ε_pos) :
   let hs : s ≠ 0 := sorry;
   statistical_distance (A.syndrome_distributed (int_gaussian m hs)) (uniform_over_Zqn _ _) ≤ 2 * ε
   := sorry
 
 theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) (ε_pos : ε ≠ 0) (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
-  (s_prop : s ≥ smoothing_parameter (to_R A.Λ_ortho).toIntSubmodule ε_pos) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
+  (s_prop : s ≥ smoothing_parameter (to_R A.Λ_ortho) ε_pos) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
   :
   let hs : s ≠ 0 := sorry;
   -- ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = t +ᵥ (int_gaussian_sublattice m hs A.Λ_ortho (-t))
@@ -1043,12 +1048,17 @@ theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass
 
 def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
   let : Norm (Fin m → ℝ) := by exact Pi.normedAddGroup.toNorm
-  minimum_distance (to_R A.Λ_main).toIntSubmodule ≥ q/4
+  minimum_distance (to_R A.Λ_main) ≥ q/4
 
-theorem lemma_5_3  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_3_statement n m q _) ≤ (q ^ (- n : ℝ)) := sorry
+theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_3_statement n m q _) ≤ (q ^ (- n : ℝ)) := sorry
 
 -- won't work like this
-theorem lemma_5_3_also  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) (A : A_Matrix n m q) (hA : lemma_5_3_statement A) : True := sorry
+-- note the proof: the m is not this m
+instance : Norm ℝ≥0 := ⟨(↑)⟩ in
+theorem lemma_5_3_also  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
+  (A : A_Matrix n m q) (hA : lemma_5_3_statement A) (ω : ℕ → ℝ≥0) (hω : ω =ω[Filter.atTop] (Real.sqrt ∘  Real.log ∘ (↑)))
+: ∃ (ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i : ℕ, smoothing_parameter (to_R A.Λ_ortho) (ε_pos i) ≤ ω i := by sorry
+
 
 
 -- hmm, in Corollary 5.4, "statistically close" describes what happens as n varies, but A is conditioned on n. this means statistically_close does not fit

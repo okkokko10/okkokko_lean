@@ -799,6 +799,7 @@ def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s �
 def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0) (c : Fin m → ℝ)  : Measure (Fin m → ℤ)
   :=  ((gaussianMeasure hs c).comap ((Int.cast : ℤ → ℝ) ∘ ·))[|Set.univ]
 
+/-- D_{Zᵐ,s} -/
 def int_gaussian  (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : ProbabilityMeasure (Fin m → ℤ) :=
   ⟨
     int_gaussian_int_measure m hs 0
@@ -866,6 +867,8 @@ def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0
 
 #check Asymptotics.IsLittleO
 open Asymptotics MeasureTheory
+open ProbabilityTheory
+#check ℙ
 
 -- f(x) = ω(g(x))
 notation:100 f " =ω[" l "] " g:100 => g =o[l] f
@@ -898,7 +901,8 @@ def statistical_distance {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasu
 
 instance : Norm ℝ≥0 := ⟨(↑)⟩
 
-def statistically_close {D : Type*} [MeasurableSpace D] (X Y : ℕ → ProbabilityMeasure D) :=
+
+def statistically_close {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)] (X Y : (n : ℕ) → ProbabilityMeasure (D n)) :=
   negligible (fun n ↦ statistical_distance (X n) (Y n))
 
 
@@ -1002,12 +1006,12 @@ end testing
 instance A_Matrix.instMeasurableSpace (n m q : ℕ) [NeZero q] : MeasurableSpace (A_Matrix n m q) := ⊤
 example (n m q : ℕ) [NeZero q] : DiscreteMeasurableSpace (A_Matrix n m q) := inferInstance
 
-def A_Matrix.uniform (n m q : ℕ) [NeZero q] : ProbabilityMeasure (A_Matrix n m q) :=
+def A_Matrix.uniform {n m q : ℕ} [NeZero q] : ProbabilityMeasure (A_Matrix n m q) :=
   ⟨ProbabilityTheory.uniformOn Set.univ,
   ProbabilityTheory.uniformOn_isProbabilityMeasure Set.finite_univ Set.univ_nonempty⟩
 
 instance {n m q : ℕ} [NeZero q] : MeasureSpace (A_Matrix n m q) where
-  volume := A_Matrix.uniform n m q
+  volume := @A_Matrix.uniform n m q _
 
 
 def uniform_over_Zqn (n q : ℕ) [NeZero q] : ProbabilityMeasure (Fin n → ZMod q) :=
@@ -1026,7 +1030,7 @@ def lemma_5_1_statement {n m q : ℕ} (A : A_Matrix n m q) : Prop :=
 
 -- the form seems complete
 -- wait, is q_prime
-theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_1_statement n m q) ≤ (q ^ (- n : ℝ)) := sorry
+theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : ℙ (lemma_5_1_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
 
 -- {e | Ae mod q = 0 }
 def A_Matrix.Λ_ortho {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ℤ) := A.syndrome_map.toAddMonoidHom.ker
@@ -1075,7 +1079,8 @@ theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass
 def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
   minimum_distance_sup (to_R A.Λ_main) ≥ q/4
 
-theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_3_statement n m q _) ≤ (q ^ (- n : ℝ)) := sorry
+
+theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
 
 -- won't work like this
 -- note the proof: the m is not this m
@@ -1098,11 +1103,30 @@ theorem lemma_5_3_also  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp 
   ProbabilityMeasure ((A_Matrix n m q) × (Fin n → ZMod q))
 
 
-def corollary_5_4_statement {n m q : ℕ} (A : Matrix (Fin n) (Fin m) (ZMod q)) (s : ℝ) : Prop := sorry
-
-theorem corollary_5_4 {n m q : ℕ} (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : False := sorry
-
 
 def mHyp' (m q : ℕ → ℕ) : Prop := ∀n, (2 * n * Real.log (q n)) ≤ m n
 
-theorem corollary_5_4_gen (q : ℕ → ℕ)  (m : ℕ → ℕ) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q) : False := sorry
+
+-- example (q : ℕ → ℕ) (m : ℕ → ℕ)
+
+-- this collection of subsets have all but 2q^-n values
+def corollary_5_4_condition {q : ℕ → ℕ} [∀n, NeZero (q n)] {m : ℕ → ℕ} (subsets : (n : ℕ) → Set (A_Matrix n (m n) (q n)))
+  := (∀n, ℙ (subsets n) ≤ 2 * ((q n) ^ (- n : ℝ)))
+
+
+def corollary_5_4_statement (q : ℕ → ℕ) [∀n, NeZero (q n)]  (m : ℕ → ℕ)
+  (A : (n : ℕ) → A_Matrix n (m n) (q n)) (s : ℕ → ℝ≥0) (s_pos : ∀n, s n ≠ 0) :=
+    statistically_close
+      (fun n ↦ (A n).syndrome_distributed (int_gaussian (m n) (s_pos n)))
+      (fun n ↦ uniform_over_Zqn n (q n))
+
+
+theorem corollary_5_4 (q : ℕ → ℕ) [∀n, NeZero (q n)]  (m : ℕ → ℕ) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+  : ∃(subsets : (n : ℕ) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
+  ∀(s : ℕ → ℝ≥0)(_ : s =ω[Filter.atTop] (Real.sqrt ∘  Real.log ∘ (↑) ∘ m))(s_pos : ∀n, s n ≠ 0), -- ≥ω is the same as =ω, right?
+  ∀(A : (n : ℕ) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
+  corollary_5_4_statement q m A s s_pos
+
+  := sorry
+
+-- idea: have m be N → M, to not confuse variables

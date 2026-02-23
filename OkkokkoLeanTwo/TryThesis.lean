@@ -1079,15 +1079,21 @@ theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass
 def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
   minimum_distance_sup (to_R A.Λ_main) ≥ q/4
 
+abbrev N := ℕ
+abbrev M := ℕ
+abbrev Q := ℕ
 
-theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
+def mHyp' (m : N → M) (q : N → Q) : Prop := ∀n, (2 * n * Real.log (q n)) ≤ m n
 
--- won't work like this
--- note the proof: the m is not this m
--- todo: make shorthand for this ε
-theorem lemma_5_3_also  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
-  (A : A_Matrix n m q) (hA : lemma_5_3_statement A) (ω : ℕ → ℝ≥0) (hω : ω_sqrt_log ω)
-  : ∃ (ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i : ℕ, smoothing_parameter (to_R A.Λ_ortho) (ε_pos i) ≤ ω i := by sorry
+theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
+  : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
+
+
+theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+  (A : (n : N) → (A_Matrix n (m n) (q n)))(hA : ∀n, lemma_5_3_statement (A n))
+  (ω : (m : M) → ℝ≥0) (hω : ω_sqrt_log ω)
+  : ∃ (ε : (m : M) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0),
+  ∀n : N, smoothing_parameter (to_R (A n).Λ_ortho) (ε_pos (m n)) ≤ ω (m n) := by sorry
 
 
 
@@ -1104,29 +1110,26 @@ theorem lemma_5_3_also  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp 
 
 
 
-def mHyp' (m q : ℕ → ℕ) : Prop := ∀n, (2 * n * Real.log (q n)) ≤ m n
-
 
 -- example (q : ℕ → ℕ) (m : ℕ → ℕ)
 
 -- this collection of subsets have all but 2q^-n values
-def corollary_5_4_condition {q : ℕ → ℕ} [∀n, NeZero (q n)] {m : ℕ → ℕ} (subsets : (n : ℕ) → Set (A_Matrix n (m n) (q n)))
+def corollary_5_4_condition {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (subsets : (n : N) → Set (A_Matrix n (m n) (q n)))
   := (∀n, ℙ (subsets n) ≤ 2 * ((q n) ^ (- n : ℝ)))
 
 
-def corollary_5_4_statement (q : ℕ → ℕ) [∀n, NeZero (q n)]  (m : ℕ → ℕ)
-  (A : (n : ℕ) → A_Matrix n (m n) (q n)) (s : ℕ → ℝ≥0) (s_pos : ∀n, s n ≠ 0) :=
+def corollary_5_4_statement (q : N → Q) [∀n, NeZero (q n)]  (m : N → M)
+  (A : (n : N) → A_Matrix n (m n) (q n)) (s : N → ℝ≥0) (s_pos : ∀n, s n ≠ 0) :=
     statistically_close
       (fun n ↦ (A n).syndrome_distributed (int_gaussian (m n) (s_pos n)))
       (fun n ↦ uniform_over_Zqn n (q n))
 
 
-theorem corollary_5_4 (q : ℕ → ℕ) [∀n, NeZero (q n)]  (m : ℕ → ℕ) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
-  : ∃(subsets : (n : ℕ) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
-  ∀(s : ℕ → ℝ≥0)(_ : s =ω[Filter.atTop] (Real.sqrt ∘  Real.log ∘ (↑) ∘ m))(s_pos : ∀n, s n ≠ 0), -- ≥ω is the same as =ω, right?
-  ∀(A : (n : ℕ) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
+theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+  : ∃(subsets : (n : N) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
+  ∀(s : N → ℝ≥0)(_ : s =ω[Filter.atTop] (Real.sqrt ∘  Real.log ∘ (↑) ∘ m))(s_pos : ∀n, s n ≠ 0), -- ≥ω is the same as =ω, right?
+  ∀(A : (n : N) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
   corollary_5_4_statement q m A s s_pos
-
   := sorry
 
 -- idea: have m be N → M, to not confuse variables

@@ -749,12 +749,14 @@ def gaussianMeasure' [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0) (c : ι �
 lemma gaussianMeasure'_finite [Norm (ι → ℝ)]  {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) : IsFiniteMeasure (gaussianMeasure' Λ hs c) := sorry
 -- def gaussianMeasure'_total [Norm (ι → ℝ)] (c : ι → ℝ) {s : ℝ≥0} (hs : s ≠ 0) := (gaussianMeasure' Λ c hs) Set.univ
 
-def gaussianDistribution [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) := ((gaussianMeasure' Λ hs c) Set.univ)⁻¹ • gaussianMeasure' Λ hs c
+-- def gaussianDistribution [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) := ((gaussianMeasure' Λ hs c) Set.univ)⁻¹ • gaussianMeasure' Λ hs c
+def gaussianDistribution [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) := (gaussianMeasure' Λ hs c)[|Set.univ]
 
 lemma gaussianDistribution_prob [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0) (c : ι → ℝ) : IsProbabilityMeasure (gaussianDistribution Λ hs c) := by
-  refine isProbabilityMeasure_iff.mpr ?_
   unfold gaussianDistribution
-  simp only [Measure.smul_apply, smul_eq_mul]
+  -- refine cond_isProbabilityMeasure ?_
+  refine isProbabilityMeasure_iff.mpr ?_
+  simp only [ProbabilityTheory.cond, Measure.restrict_univ, Measure.smul_apply, smul_eq_mul]
   refine ENNReal.inv_mul_cancel ?_ ?_
   -- todo: make its own theorem
   simp only [ne_eq, Measure.measure_univ_eq_zero]
@@ -777,6 +779,32 @@ lemma gaussianDistribution_prob [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)
 
   have := gaussianMeasure'_finite Λ hs c
   exact this.1.ne
+
+
+lemma gaussianDistribution.eq [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ)
+  : gaussianDistribution Λ hs c = (gaussianMeasure hs c)[|Λ] := by
+    unfold gaussianDistribution gaussianMeasure'
+    simp only [ProbabilityTheory.cond, MeasurableSet.univ, Measure.restrict_apply, Set.univ_inter,
+      Measure.restrict_univ]
+
+
+def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : Measure (Fin m → ℝ)
+  :=
+  gaussianDistribution (AddSubgroup.toIntSubmodule (s2.Zn (Fin m))) hs 0
+
+
+
+-- def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : Measure (Fin m → ℤ)
+--   :=  (gaussianMeasure hs 0)[| (s2.Zn (Fin m))].comap ((↑) ∘ ·)
+def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : Measure (Fin m → ℤ)
+  :=  ((gaussianMeasure hs 0).comap ((Int.cast : ℤ → ℝ) ∘ ·))[|Set.univ]
+
+def int_gaussian  (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (h : s ≠ 0)  : ProbabilityMeasure (Fin m → ℤ) :=
+  ⟨
+    int_gaussian_int_measure m h
+    , sorry
+  ⟩
+
 
 end gaussians
 
@@ -885,6 +913,7 @@ example  {q : ℕ} [NeZero q] : Finite (ZMod q) := inferInstance
 def A_Matrix (n m q : ℕ) : Type := Matrix (Fin n) (Fin m) (ZMod q)
 
 instance A_Matrix.instFinite {n m q : ℕ} [NeZero q] : Finite (A_Matrix n m q) := Matrix.instFinite (ZMod q)
+instance {n m q : ℕ} [NeZero q] : Nonempty (A_Matrix n m q) := Equiv.nonempty Matrix.of.symm
 
 -- set_option trace.Meta.synthInstance true in
 example (q)  [NeZero q] : Algebra ℤ (ZMod q) := inferInstance
@@ -942,6 +971,57 @@ instance {q} : Shrinkable (ZMod q) :=
 
 end testing
 
+#check DiscreteMeasurableSpace
+-- #check OpensMeasurableSpace
+
+instance A_Matrix.instMeasurableSpace (n m q : ℕ) [NeZero q] : MeasurableSpace (A_Matrix n m q) := ⊤
+example (n m q : ℕ) [NeZero q] : DiscreteMeasurableSpace (A_Matrix n m q) := inferInstance
+
+def A_Matrix.uniform (n m q : ℕ) [NeZero q] : ProbabilityMeasure (A_Matrix n m q) :=
+  ⟨ProbabilityTheory.uniformOn Set.univ,
+  ProbabilityTheory.uniformOn_isProbabilityMeasure Set.finite_univ Set.univ_nonempty⟩
+
+instance {n m q : ℕ} [NeZero q] : MeasureSpace (A_Matrix n m q) where
+  volume := A_Matrix.uniform n m q
+
+
+def uniform_over_Zqn (n q : ℕ) [NeZero q] : ProbabilityMeasure (Fin n → ZMod q) :=
+  ⟨ProbabilityTheory.uniformOn Set.univ,
+  ProbabilityTheory.uniformOn_isProbabilityMeasure Set.finite_univ Set.univ_nonempty⟩
+
+#check ProbabilityTheory.uniformOn_univ
+
+
+#check int_gaussian
+
+
+-- "the subset-sums of the columns of A generate Zqn"
+def lemma_5_1_statement {n m q : ℕ} (A : A_Matrix n m q) : Prop :=
+  A.syndrome_map '' {e | ∀i, e i = 0 ∨ e i = 1} = Set.univ
+
+-- the form seems complete
+theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_1_statement n m q) ≤ (q ^ (- n : ℝ)) := sorry
+
+
+
+
+-- hmm, in Corollary 5.4, "statistically close" describes what happens as n varies, but A is conditioned on n. this means statistically_close does not fit
+-- what does it mean?
+
+-- the distribution of the syndrome is statistically close to uniform
+-- statistically close = statistical distance is negligible in n
+-- blackboard: (A, Ax mod q) ≈ (A, y)     f m ≥ ...
+-- is it expressed that the distribution sampled from (A : Uniform,e : Gaussian) to (A, Ae mod q), is compared to the distribution (A : Uniform, y: Uniform),
+--  and these distributions have type [ProbabilityMeasure ()]
+#check let n :=5; let m := 7; let q := 10;
+  ProbabilityMeasure ((A_Matrix n m q) × (Fin n → ZMod q))
+
+
 def corollary_5_4_statement {n m q : ℕ} (A : Matrix (Fin n) (Fin m) (ZMod q)) (s : ℝ) : Prop := sorry
 
 theorem corollary_5_4 {n m q : ℕ} (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : False := sorry
+
+
+def mHyp' (m q : ℕ → ℕ) : Prop := ∀n, (2 * n * Real.log (q n)) ≤ m n
+
+theorem corollary_5_4_gen (q : ℕ → ℕ)  (m : ℕ → ℕ) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q) : False := sorry

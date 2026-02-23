@@ -698,6 +698,8 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
 
 def dualLattice : Submodule ℤ (ι → ℝ) := (dualLattice_basic Λ).toIntSubmodule
 
+theorem dualLattice.involution : Function.Involutive (dualLattice (ι := ι)) := sorry
+
 -- #check ZSpan
 
 def minimum_distance [Norm (ι → ℝ)] := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖
@@ -1135,6 +1137,29 @@ abbrev Q := ℕ
 
 def mHyp' (m : N → M) (q : N → Q) : Prop := ∀n, (2 * n * Real.log (q n)) ≤ m n
 
+lemma mHyp'_linear (m : N → M) (q : N → Q) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q) : id ≤ m :=
+  by
+  unfold mHyp' at m_hyp
+  intro n
+  dsimp only [id_eq]
+  specialize m_hyp n
+  rify
+  apply le_trans ?_ m_hyp
+  have t n : 2 ≤ (q n : ℝ) := by
+    simp only [Nat.ofNat_le_cast]
+    apply Nat.Prime.two_le (q_prime n)
+  have tt : Real.log (2) ≤ Real.log ↑(q n) := by
+    apply Real.log_le_log zero_lt_two
+    exact t n
+
+  trans  ↑n * 2 * Real.log 2
+  sorry
+  ring_nf
+  refine mul_le_mul ?_ (by rfl) zero_le_two (by positivity)
+  refine mul_le_mul (by rfl) tt (by positivity) (Nat.cast_nonneg' n)
+
+lemma mHyp'_tendsTo (m : N → M) (q : N → Q) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q) : Filter.Tendsto m Filter.atTop Filter.atTop := sorry
+
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
   : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
 
@@ -1151,10 +1176,22 @@ theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prim
   use ε, negl_ε, ε_pos
   intro n
   specialize so n
+  specialize hA n
+  unfold lemma_5_3_statement at hA
+  nth_rw 2 [A_Matrix.Λ_dual] at so
+
+
 
 
 
   sorry
+  have m_top := mHyp'_tendsTo _ _ q_prime m_hyp
+  #check IsLittleO.comp_tendsto
+  unfold ω_sqrt_log at *
+  #check IsBigO.trans_isLittleO
+  have : (ω) =O[Filter.atTop] (ω ∘ m) := by sorry
+  -- refine IsBigO.trans_isLittleO ?_ ?_
+
   sorry
 
 

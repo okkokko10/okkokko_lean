@@ -274,18 +274,18 @@ variable  {ι n : Type*} [Fintype n] (B : Matrix ι n ℝ)
 
 instance Pi.instAddZero {ι : Type*} {M : ι → Type*}  [(i : ι) → AddZero (M i)] : AddZero (∀ i, M i) := {}
 
-def Pi_map_addMonoidHom {ι : Type*} {X Y : ι → Type*}  [(i : ι) → AddZero (X i)] [(i : ι) → AddZero (Y i)] (c : (i : ι) → X i →+ Y i) : ((i : ι) → X i) →+ ((i : ι) → Y i) where
-  toFun := Pi.map (c · ·)
-  map_zero' := by
-    ext x : 1
-    simp_all only [Pi.map_apply, Pi.zero_apply, map_zero]
-  map_add' := by
-    intro x y
-    ext x_1 : 1
-    simp_all only [Pi.map_apply, Pi.add_apply, map_add]
+-- def Pi_map_addMonoidHom {ι : Type*} {X Y : ι → Type*}  [(i : ι) → AddZero (X i)] [(i : ι) → AddZero (Y i)] (c : (i : ι) → X i →+ Y i) : ((i : ι) → X i) →+ ((i : ι) → Y i) where
+--   toFun := Pi.map (c · ·)
+--   map_zero' := by
+--     ext x : 1
+--     simp_all only [Pi.map_apply, Pi.zero_apply, map_zero]
+--   map_add' := by
+--     intro x y
+--     ext x_1 : 1
+--     simp_all only [Pi.map_apply, Pi.add_apply, map_add]
 
 
-def int_cast : (ι → ℤ) →+ (ι → ℝ) := Pi_map_addMonoidHom fun _ ↦ Int.castAddHom ℝ
+def int_cast : (ι → ℤ) →+ (ι → ℝ) := (Int.castAddHom ℝ).compLeft ι
 
 -- def int_cast : (ι → ℤ) →+ (ι → ℝ) where
 --   toFun := (Int.cast <| · ·)
@@ -1009,7 +1009,14 @@ def lemma_5_1_statement {n m q : ℕ} (A : A_Matrix n m q) : Prop :=
 theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_1_statement n m q) ≤ (q ^ (- n : ℝ)) := sorry
 
 -- {e | Ae mod q = 0 }
-def A_Matrix.Λ_ortho {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) := AddSubgroup.comap A.syndrome_map.toAddMonoidHom ⊥
+def A_Matrix.Λ_ortho {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ℤ) := A.syndrome_map.toAddMonoidHom.ker
+
+-- does it matter that this is ZMod q?
+-- I wonder, a philosophical idea about a sense in which ℕ is equivalent to {0 mod 2, 1 mod 2}
+def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ZMod q) := (A_Matrix.syndrome_map (A.transpose : A_Matrix m n q)).toAddMonoidHom.range
+def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ℤ)
+  := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
+  ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
 def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : AddSubgroup (Fin m → ℝ) := AddSubgroup.map ((s2.int_cast) : (Fin m → ℤ) →+ (Fin m → ℝ)) L
 
@@ -1019,19 +1026,29 @@ def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
 
 theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) (ε_pos : ε ≠ 0) (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
-  (s_prop : s ≥ smoothing_parameter (ι := Fin m) (AddSubgroup.toIntSubmodule (to_R A.Λ_ortho)) ε_pos) :
+  (s_prop : s ≥ smoothing_parameter (to_R A.Λ_ortho).toIntSubmodule ε_pos) :
   let hs : s ≠ 0 := sorry;
   statistical_distance (A.syndrome_distributed (int_gaussian m hs)) (uniform_over_Zqn _ _) ≤ 2 * ε
   := sorry
 
 theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) (ε_pos : ε ≠ 0) (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
-  (s_prop : s ≥ smoothing_parameter (ι := Fin m) (AddSubgroup.toIntSubmodule (to_R A.Λ_ortho)) ε_pos) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
+  (s_prop : s ≥ smoothing_parameter (to_R A.Λ_ortho).toIntSubmodule ε_pos) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
   :
   let hs : s ≠ 0 := sorry;
   -- ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = t +ᵥ (int_gaussian_sublattice m hs A.Λ_ortho (-t))
   ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = (int_gaussian_sublattice m hs A.Λ_ortho (-t)).map (f := (· + t)) (AEMeasurable.of_discrete)
   := sorry
+
+
+def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
+  let : Norm (Fin m → ℝ) := by exact Pi.normedAddGroup.toNorm
+  minimum_distance (to_R A.Λ_main).toIntSubmodule ≥ q/4
+
+theorem lemma_5_3  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : volume (@lemma_5_3_statement n m q _) ≤ (q ^ (- n : ℝ)) := sorry
+
+-- won't work like this
+theorem lemma_5_3_also  {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) (A : A_Matrix n m q) (hA : lemma_5_3_statement A) : True := sorry
 
 
 -- hmm, in Corollary 5.4, "statistically close" describes what happens as n varies, but A is conditioned on n. this means statistically_close does not fit

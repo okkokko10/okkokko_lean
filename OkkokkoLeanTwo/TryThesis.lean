@@ -929,11 +929,21 @@ def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω[Filter.atTop] (Real.sqrt
 
 -- again, does Λ vary over n?
 theorem Lemma_2_6_then
-  (ω : ℕ → ℝ≥0) (hω : ω_sqrt_log ω)
-  : ∃(ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i,
+  (ω : (n : ℕ) → ℝ≥0) (hω : ω_sqrt_log ω)
+  : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i,
   smoothing_parameter Λ (ε_pos i) ≤ ω i / minimum_distance_sup (dualLattice Λ)
   := sorry
+theorem Lemma_2_6_then'
+  {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (Λ : (n : ℕ) → Submodule ℤ ((ι n) → ℝ)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+  (ω : (n : ℕ) → ℝ≥0) (hω : ω_sqrt_log ω)
+  : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0), ∀n,
+  smoothing_parameter (Λ n) (ε_pos n) ≤ ω n / minimum_distance_sup (dualLattice (Λ n))
+  := by
+    have other n := Lemma_2_6_then (Λ n) ω hω
+    have t n := other n |>.choose n
+    use t
 
+    sorry
 
 -- note: NeZero allows this to be inferred, while h : q > 0 doesn't
 example  {q : ℕ} [NeZero q] : Finite (ZMod q) := inferInstance
@@ -1131,5 +1141,7 @@ theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp :
   ∀(A : (n : N) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
   corollary_5_4_statement q m A s s_pos
   := sorry
+
+-- should s be a function of m?
 
 -- idea: have m be N → M, to not confuse variables

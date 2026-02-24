@@ -702,7 +702,7 @@ theorem dualLattice.involution : Function.Involutive (dualLattice (ι := ι)) :=
 
 -- #check ZSpan
 
-def minimum_distance [Norm (ι → ℝ)] := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖
+def minimum_distance [Norm (ι → ℝ)] : ℝ≥0 := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖.toNNReal
 
 /-
 paper:
@@ -1172,11 +1172,17 @@ theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prim
 
   #check Lemma_2_6_then'
   #check A_Matrix.Λ_dual'
-  have ⟨ε, negl_ε, ε_pos, so⟩:= Lemma_2_6_then' (fun n ↦ (A n).Λ_ortho') (ω ∘ m) ?_
+  let ⟨ε, negl_ε, ε_pos, so⟩:= Lemma_2_6_then' (fun n ↦ (A n).Λ_ortho') (ω ∘ m) ?_
   use ε, negl_ε, ε_pos
   intro n
   specialize so n
+  simp only [Function.comp_apply] at so
   specialize hA n
+  set ww := smoothing_parameter (A n).Λ_ortho' _
+  -- change ww ≤ _ at so
+  apply le_trans
+
+
   unfold lemma_5_3_statement at hA
   nth_rw 2 [A_Matrix.Λ_dual] at so
 

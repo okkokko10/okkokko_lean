@@ -938,11 +938,11 @@ theorem Lemma_2_6_then
   := sorry
 theorem Lemma_2_6_then'
   {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (Λ : (n : ℕ) → Submodule ℤ ((ι n) → ℝ)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
-  (ω : (n : ℕ) → ℝ≥0) (hω : ω_sqrt_log ω)
+  (s : (n : ℕ) → ℝ≥0) (hs : ω_sqrt_log s)
   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0), ∀n,
-  smoothing_parameter (Λ n) (ε_pos n) ≤ ω n / minimum_distance_sup (dualLattice (Λ n))
+  smoothing_parameter (Λ n) (ε_pos n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
   := by
-    have other n := Lemma_2_6_then (Λ n) ω hω
+    have other n := Lemma_2_6_then (Λ n) s hs
     have t n := other n |>.choose n
     use t
 
@@ -1162,7 +1162,8 @@ lemma mHyp'_ge_id (m : N → M) (q : N → Q) (q_prime : ∀n, Nat.Prime (q n)) 
   refine mul_le_mul ?_ (by rfl) zero_le_two (by positivity)
   refine mul_le_mul (by rfl) tt (by positivity) (Nat.cast_nonneg' n)
 
-lemma mHyp'_tendsTo (m : N → M) (q : N → Q) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q) : Filter.Tendsto m Filter.atTop Filter.atTop := sorry
+lemma mHyp'_tendsTo (m : N → M) (q : N → Q) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+  : Filter.Tendsto m Filter.atTop Filter.atTop := sorry -- use [mHyp'_ge_id]
 
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
   : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
@@ -1170,13 +1171,13 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp 
 
 theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   (A : (n : N) → (A_Matrix n (m n) (q n)))(hA : ∀n, lemma_5_3_statement (A n))
-  (ω : (m : M) → ℝ≥0) (hω : ω_sqrt_log ω)
+  (s : (m : M) → ℝ≥0) (hs : ω_sqrt_log s)
   : ∃ (ε : (m : M) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀m, ε m ≠ 0),
-  ∀n : N, smoothing_parameter ((A n).Λ_ortho') (ε_pos (m n)) ≤ ω (m n) := by
+  ∀n : N, smoothing_parameter ((A n).Λ_ortho') (ε_pos (m n)) ≤ s (m n) := by
 
   #check Lemma_2_6_then'
   #check A_Matrix.Λ_dual'
-  let ⟨ε, negl_ε, ε_pos, so⟩:= Lemma_2_6_then' (fun n ↦ (A n).Λ_ortho') (ω ∘ m) ?_
+  let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then' (fun n ↦ (A n).Λ_ortho') (s ∘ m) ?_
   use ε, negl_ε, ε_pos
   intro n
   specialize so n
@@ -1199,7 +1200,7 @@ theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prim
   #check IsLittleO.comp_tendsto
   unfold ω_sqrt_log at *
   #check IsBigO.trans_isLittleO
-  have : (ω) =O[Filter.atTop] (ω ∘ m) := by sorry
+  have : s =O[Filter.atTop] (s ∘ m) := by sorry
   -- refine IsBigO.trans_isLittleO ?_ ?_
 
   sorry

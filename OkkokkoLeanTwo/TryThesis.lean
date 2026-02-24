@@ -836,8 +836,8 @@ def minimum_distance_sup  := @minimum_distance ι Λ (infinity_norm)
 -- what log base?
 theorem Lemma_2_6 {ε : ℝ≥0} (he : ε ≠ 0)
   : smoothing_parameter Λ he ≤
-  √ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)
-  / minimum_distance_sup Λ := sorry
+  (√ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
+  / minimum_distance_sup (dualLattice Λ) := sorry
 
 #check EuclideanSpace
 
@@ -931,20 +931,27 @@ def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω[Filter.atTop] sqrt_log
 -- abbrev mod_q ( q : ℕ) := ZMod q
 
 -- again, does Λ vary over n?
-theorem Lemma_2_6_then
-  (ω : (n : ℕ) → ℝ≥0) (hω : ω_sqrt_log ω)
-  : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i,
-  smoothing_parameter Λ (ε_pos i) ≤ ω i / minimum_distance_sup (dualLattice Λ)
-  := sorry
+-- theorem Lemma_2_6_then
+--   (ω : (n : ℕ) → ℝ≥0) (hω : ω_sqrt_log ω)
+--   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀i, ε i ≠ 0), ∀i,
+--   smoothing_parameter Λ (ε_pos i) ≤ ω i / minimum_distance_sup (dualLattice Λ)
+--   := sorry
+-- theorem Lemma_2_6_then'
+--   {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (Λ : (n : ℕ) → Submodule ℤ ((ι n) → ℝ)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+--   (s : (n : ℕ) → ℝ≥0) (hs : ω_sqrt_log s)
+--   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0), ∀n,
+--   smoothing_parameter (Λ n) (ε_pos n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
+--   := by sorry
 theorem Lemma_2_6_then'
-  {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (Λ : (n : ℕ) → Submodule ℤ ((ι n) → ℝ)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+  (Λ : (n : ℕ) → Submodule ℤ ((Fin n) → ℝ)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
   (s : (n : ℕ) → ℝ≥0) (hs : ω_sqrt_log s)
   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0), ∀n,
   smoothing_parameter (Λ n) (ε_pos n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
   := by
-    have other n := Lemma_2_6_then (Λ n) s hs
-    have t n := other n |>.choose n
-    use t
+    #check Lemma_2_6
+    -- have other n := Lemma_2_6_then (Λ n) s hs
+    -- have t n := other n |>.choose n
+    -- use t
 
     sorry
 

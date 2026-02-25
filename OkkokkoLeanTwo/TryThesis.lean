@@ -702,7 +702,7 @@ theorem dualLattice.involution : Function.Involutive (dualLattice (ι := ι)) :=
 
 -- #check ZSpan
 
-def minimum_distance [Norm (ι → ℝ)] : ℝ≥0 := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖.toNNReal
+def minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖₊
 
 /-
 paper:
@@ -824,20 +824,47 @@ def smoothing_parameter {ε : ℝ≥0} (_ : ε ≠ 0)
   := ⨅ (s : ℝ≥0) (hs : s ≠ 0) (_ : (gaussianMeasure' (dualLattice Λ) (show s⁻¹ ≠ 0 by simp only [ne_eq,
     inv_eq_zero, hs, not_false_eq_true]) 0) (Set.compl {0}) ≤ ε), s
 
-def infinity_norm : Norm (ι → ℝ) := Pi.normedAddGroup.toNorm
+def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
 
 -- justifies changing infinity_norm
 example {ι} [Fintype ι] : (⟨fun x ↦ (PiLp.instNorm ∞ (fun (_ : ι) ↦ ℝ)).norm (WithLp.toLp ∞ x)⟩ : Norm (ι → ℝ)) = Pi.normedAddGroup.toNorm := by
   simp only [PiLp.norm_toLp]
 
 /-- λ₁∞ -/
-def minimum_distance_sup  := @minimum_distance ι Λ (infinity_norm)
+def minimum_distance_sup := @minimum_distance ι _ Λ (infinity_norm)
+
+theorem minimum_distance.positive
+  -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
+  (h : Λ ≠ ⊥) : NeZero (minimum_distance Λ) := by
+  -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
+  constructor
+  unfold minimum_distance
+  have tw (x : ι → ℝ) : ‖x‖₊ = 0 → x = 0 := nnnorm_eq_zero.mp
+  #check IsZLattice
+
+  simp only [ne_eq]
+  #check NNReal.instConditionallyCompleteLinearOrderBot
+  #check ConditionallyCompleteLinearOrderBot
+  #check ConditionallyCompleteLattice
+  change ¬(⨅x, ⨅ (_ : x ∈ Λ), ⨅ (_ : ¬x = 0), ‖x‖₊) = 0
+
+  intro asm
+  #check InfSet
+
+
+
+
+  sorry
 
 -- what log base?
-theorem Lemma_2_6 {ε : ℝ≥0} (he : ε ≠ 0)
+theorem Lemma_2_6 {ε : ℝ≥0} (he : ε ≠ 0) [DiscreteTopology ↥Λ] [IsZLattice ℝ Λ]
+  [Nonempty ι] --
   : smoothing_parameter Λ he ≤
   (√ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
-  / minimum_distance_sup (dualLattice Λ) := sorry
+  / minimum_distance_sup (dualLattice Λ) := by
+    unfold smoothing_parameter
+
+    sorry
 
 #check EuclideanSpace
 
@@ -914,9 +941,10 @@ def statistically_close {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)]
 
 def mHyp (m n q : ℕ) : Prop := (2 * n * Real.log q) ≤ m
 
-def sqrt_log : ℕ → ℝ := (Real.sqrt ∘  Real.log ∘ (↑))
+def sqrt_log : ℕ → ℝ≥0 := (Real.toNNReal ∘ Real.sqrt ∘  Real.log ∘ (↑))
 def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω[Filter.atTop] sqrt_log
 
+abbrev goes_to_infinity (f : ℕ → ℕ) : Prop := Filter.Tendsto f Filter.atTop Filter.atTop
 
 -- #check ZMod 2
 -- def mod_q ( q : ℕ) := ℤ ⧸ (AddSubgroup.closure {(q : ℤ)})
@@ -942,16 +970,23 @@ def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω[Filter.atTop] sqrt_log
 --   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0), ∀n,
 --   smoothing_parameter (Λ n) (ε_pos n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
 --   := by sorry
+
+/--
+stronger than what the paper literally says, I think, since the dimension is not n, but instead just goes to infinity alongside n
+-/
 theorem Lemma_2_6_then'
-  (Λ : (n : ℕ) → Submodule ℤ ((Fin n) → ℝ)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+  {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (ι_top : goes_to_infinity (Fintype.card <| ι ·)) (Λ : (n : ℕ) → Submodule ℤ ((ι n) → ℝ)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
   (s : (n : ℕ) → ℝ≥0) (hs : ω_sqrt_log s)
   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0), ∀n,
   smoothing_parameter (Λ n) (ε_pos n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
   := by
     #check Lemma_2_6
-    -- have other n := Lemma_2_6_then (Λ n) s hs
-    -- have t n := other n |>.choose n
-    -- use t
+    have ttt n ε (ε_pos : ε ≠ 0) := Lemma_2_6 (Λ n) ε_pos
+    change
+      ∃ ε,
+        ∃ (_ : negligible ε) (ε_pos : ∀ (n : ℕ), ε n ≠ 0),
+          ∀ (n : ℕ), smoothing_parameter (Λ n) ⋯ ≤ s n / minimum_distance_sup (dualLattice (Λ n))
+
 
     sorry
 

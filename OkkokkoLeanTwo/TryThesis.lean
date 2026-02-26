@@ -1214,12 +1214,12 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp 
 theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   (A : (n : N) → (A_Matrix n (m n) (q n)))(hA : ∀n, lemma_5_3_statement (A n))
   (s : (m : M) → ℝ≥0) (hs : ω_sqrt_log s)
-  : ∃ (ε : (m : M) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀m, ε m ≠ 0),
-  ∀n : N, smoothing_parameter ((A n).Λ_ortho') (ε_pos (m n)) ≤ s (m n) := by
+  : ∃ (ε : (n : N) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0), -- change
+  ∀n : N, smoothing_parameter ((A n).Λ_ortho') (ε_pos (n)) ≤ s (m n) := by
 
   #check Lemma_2_6_then'
   #check A_Matrix.Λ_dual'
-  let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then' (fun n ↦ (A n).Λ_ortho') (s ∘ m) ?_
+  let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then' (ι := (Fin <| m ·)) ?_ (fun n ↦ (A n).Λ_ortho') (s ∘ m) ?_
   use ε, negl_ε, ε_pos
   intro n
   specialize so n
@@ -1227,16 +1227,17 @@ theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prim
   specialize hA n
   set ww := smoothing_parameter (A n).Λ_ortho' _
   -- change ww ≤ _ at so
-  apply le_trans
+  apply le_trans so
 
 
   unfold lemma_5_3_statement at hA
-  nth_rw 2 [A_Matrix.Λ_dual] at so
+  -- nth_rw 2 [A_Matrix.Λ_dual] at so
 
 
 
 
 
+  sorry
   sorry
   have m_top := mHyp'_tendsTo _ _ q_prime m_hyp
   #check IsLittleO.comp_tendsto

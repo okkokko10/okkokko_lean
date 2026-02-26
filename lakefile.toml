@@ -16,3 +16,6 @@ name = "OkkokkoLean"
 
 [[lean_lib]]
 name = "OkkokkoLeanTwo"
+
+[[lean_lib]]
+name = "Thesis"

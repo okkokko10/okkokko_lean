@@ -15,15 +15,19 @@ open scoped NNReal ENNReal
 variable {ι : Type*} [Fintype ι] --(B : Basis ι)
 
 
-abbrev 𝓛 ι := Submodule ℤ (ι → ℝ)
+abbrev 𝓛 ι := {L : Submodule ℤ (ι → ℝ) // sorry}
 
 
 
-variable (Λ : 𝓛 ι) [DiscreteTopology Λ] [IsZLattice ℝ Λ]
+variable (Λ : 𝓛 ι) [DiscreteTopology Λ] [IsZLattice ℝ Λ.val]
 
 section lattices
 
 
+abbrev 𝓛.toModule : Submodule ℤ (ι → ℝ) := Λ.val
+
+instance : Membership (ι → ℝ) (𝓛 ι) where
+  mem L x := x ∈ L.toModule
 
 def dualLattice_basic : AddSubgroup (ι → ℝ) where
   carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ (Int.castAddHom ℝ |>.range)}
@@ -38,7 +42,7 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
   neg_mem' := by
     simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
 
-def 𝓛.dualLattice : 𝓛 ι := (dualLattice_basic Λ).toIntSubmodule
+def 𝓛.dualLattice : 𝓛 ι := .mk (dualLattice_basic Λ).toIntSubmodule sorry
 
 theorem 𝓛.dualLattice.involution : Function.Involutive (𝓛.dualLattice (ι := ι)) := sorry
 
@@ -57,10 +61,10 @@ to denote the minimum distance measured in the ∞ norm (which is defined as ‖
 -/
 -- i or more
 def successive_minimum_distance [Norm (ι → ℝ)] (i : ℕ)
-  := ⨅ (r : ℝ≥0) (_ : ∃s ⊆ (Λ.carrier), LinearIndependent ℝ (Subtype.val : s → _) ∧ s.encard ≤ i ∧ ∀x ∈ s, ‖x‖ ≤ r), r
+  := ⨅ (r : ℝ≥0) (_ : ∃s ⊆ (Λ.toModule.carrier), LinearIndependent ℝ (Subtype.val : s → _) ∧ s.encard ≤ i ∧ ∀x ∈ s, ‖x‖ ≤ r), r
 -- note: for i := 0 this is ⊥ and i := 1 this is 0
 def successive_minimum_distance' [Norm (ι → ℝ)] (i : ℕ)
-  := ⨅ (s ⊆ (Λ.carrier)) (_ : LinearIndependent ℝ (Subtype.val : s → _)) (_ : s.encard ≤ i), ⨆x ∈ s, ‖x‖
+  := ⨅ (s ⊆ (Λ.toModule.carrier)) (_ : LinearIndependent ℝ (Subtype.val : s → _)) (_ : s.encard ≤ i), ⨆x ∈ s, ‖x‖
 
 -- def dualLattice
 
@@ -71,7 +75,7 @@ def 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
 
 theorem 𝓛.minimum_distance.positive
   -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
-  (h : Λ ≠ ⊥) : NeZero (𝓛.minimum_distance Λ) := by
+  (h : Λ.toModule ≠ ⊥) : NeZero (𝓛.minimum_distance Λ) := by
   -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
   constructor
   unfold 𝓛.minimum_distance
@@ -92,6 +96,7 @@ theorem 𝓛.minimum_distance.positive
 
   sorry
 
+def 𝓛.mul_nat (q : ℕ) [NeZero q] : 𝓛 ι := .mk (Λ.toModule.map (LinearMap.lsmul ℤ _ q)) sorry
 
 
 end lattices
@@ -141,7 +146,7 @@ lemma 𝓛.gaussianDistribution_prob [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s
   unfold 𝓛.gaussianMeasure' gaussianMeasure at gm
   have : {0} ∩ (Λ : Set (ι → ℝ)) = {0} := by
     rw [Set.inter_eq_left, Set.singleton_subset_iff, SetLike.mem_coe]
-    exact zero_mem Λ
+    exact zero_mem Λ.toModule
 
   simp only [MeasurableSet.singleton, Measure.restrict_apply, this, withDensity_apply,
     Measure.restrict_singleton, Measure.count_singleton', one_smul, lintegral_dirac] at gm
@@ -164,7 +169,7 @@ lemma 𝓛.gaussianDistribution.eq [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] 
 
 def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] : Measure (Fin m → ℝ)
   :=
-  𝓛.gaussianDistribution (AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft (Fin m)).range )) s 0
+  𝓛.gaussianDistribution ⟨(AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft (Fin m)).range )), sorry⟩ s 0
 
 
 
@@ -362,7 +367,7 @@ end hypotheses
 section Lemma_2_6
 
 -- what log base?
-theorem Lemma_2_6 (ε : ℝ≥0) [NeZero ε] [DiscreteTopology ↥Λ] [IsZLattice ℝ Λ]
+theorem Lemma_2_6 (ε : ℝ≥0) [NeZero ε]
   [Nonempty ι] --
   : 𝓛.smoothing_parameter Λ ε ≤
   (√ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
@@ -376,7 +381,7 @@ theorem Lemma_2_6 (ε : ℝ≥0) [NeZero ε] [DiscreteTopology ↥Λ] [IsZLattic
 stronger than what the paper literally says, I think, since the dimension is not n, but instead just goes to infinity alongside n
 -/
 theorem Lemma_2_6_then'
-  {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (ι_top : goes_to_infinity (Fintype.card <| ι ·)) (Λ : (n : ℕ) → 𝓛 (ι n)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+  {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (ι_top : goes_to_infinity (Fintype.card <| ι ·)) (Λ : (n : ℕ) → 𝓛 (ι n))
   (s : (n : ℕ) → ℝ≥0) (hs : ω_sqrt_log s)
   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), ∀n,
   𝓛.smoothing_parameter (Λ n) (ε n) ≤ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n))
@@ -503,24 +508,24 @@ def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup
   := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
-def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : 𝓛 (Fin m) := (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L).toIntSubmodule
+def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : 𝓛 (Fin m) := .mk (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L).toIntSubmodule sorry
 
 def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_ortho
 def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_main
 
 theorem A_Matrix.Λ_dual {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
-  (A.Λ_ortho') = (𝓛.dualLattice <| A.Λ_main').map (LinearMap.lsmul ℤ _ q)
+  (A.Λ_ortho') = (𝓛.dualLattice <| A.Λ_main').mul_nat q
   := by sorry
 theorem A_Matrix.Λ_dual' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  (A.Λ_main') = (𝓛.dualLattice <| A.Λ_ortho').map (LinearMap.lsmul ℤ _ q)
+  (A.Λ_main') = (𝓛.dualLattice <| A.Λ_ortho').mul_nat q
   := by sorry
 
 lemma A_Matrix.Λ_ortho'.has_qZn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   ∀i, Pi.single i q ∈ (A.Λ_ortho') := by
     intro i
-    refine (Submodule.mem_toAddSubgroup A.Λ_ortho').mp ?_
-    unfold Λ_ortho' to_R
+    refine (Submodule.mem_toAddSubgroup A.Λ_ortho'.toModule).mp ?_
+    unfold Λ_ortho' to_R 𝓛.toModule
     simp only [AddSubgroup.toIntSubmodule_toAddSubgroup, AddSubgroup.mem_map]
     unfold Λ_ortho
     simp only [AddMonoidHom.mem_ker, LinearMap.toAddMonoidHom_coe]
@@ -546,14 +551,15 @@ lemma A_Matrix.Λ_ortho'.has_qZn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
 #check instIsZLatticeComap
 #check Submodule.IsLattice
 
+-- currently redundant
 instance A_Matrix.Λ_ortho'.instDiscreteTopology {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  DiscreteTopology ↥(A.Λ_ortho') := sorry
+  DiscreteTopology ↥(A.Λ_ortho'.toModule) := sorry
 instance A_Matrix.Λ_ortho'.instIsZLattice {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  IsZLattice ℝ (A.Λ_ortho') := sorry
+  IsZLattice ℝ (A.Λ_ortho'.toModule) := sorry
 instance A_Matrix.Λ_main'.instDiscreteTopology {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  DiscreteTopology ↥(A.Λ_main') := sorry
+  DiscreteTopology ↥(A.Λ_main'.toModule) := sorry
 instance A_Matrix.Λ_main'.instIsZLattice {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  IsZLattice ℝ (A.Λ_main') := sorry
+  IsZLattice ℝ (A.Λ_main'.toModule) := sorry
 
 def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
   (e : ProbabilityMeasure (Fin m → ℤ))

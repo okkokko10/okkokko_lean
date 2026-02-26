@@ -38,13 +38,13 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
   neg_mem' := by
     simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
 
-def dualLattice : 𝓛 ι := (dualLattice_basic Λ).toIntSubmodule
+def 𝓛.dualLattice : 𝓛 ι := (dualLattice_basic Λ).toIntSubmodule
 
-theorem dualLattice.involution : Function.Involutive (dualLattice (ι := ι)) := sorry
+theorem 𝓛.dualLattice.involution : Function.Involutive (𝓛.dualLattice (ι := ι)) := sorry
 
 -- #check ZSpan
 
-def minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖₊
+def 𝓛.minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖₊
 
 /-
 paper:
@@ -67,14 +67,14 @@ def successive_minimum_distance' [Norm (ι → ℝ)] (i : ℕ)
 def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
 
 /-- λ₁∞ -/
-def minimum_distance_sup := @minimum_distance ι _ Λ (infinity_norm)
+def 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
 
-theorem minimum_distance.positive
+theorem 𝓛.minimum_distance.positive
   -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
-  (h : Λ ≠ ⊥) : NeZero (minimum_distance Λ) := by
+  (h : Λ ≠ ⊥) : NeZero (𝓛.minimum_distance Λ) := by
   -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
   constructor
-  unfold minimum_distance
+  unfold 𝓛.minimum_distance
   have tw (x : ι → ℝ) : ‖x‖₊ = 0 → x = 0 := nnnorm_eq_zero.mp
   #check IsZLattice
 
@@ -117,17 +117,17 @@ def gaussianMeasure [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ
 #check ProbabilityMeasure
 
 
-def gaussianMeasure' [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ)  := (gaussianMeasure s c).restrict Λ
+def 𝓛.gaussianMeasure' [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ)  := (gaussianMeasure s c).restrict Λ
 
 
-lemma gaussianMeasure'_finite [Norm (ι → ℝ)]  (s : ℝ≥0) [NeZero s]  (c : ι → ℝ) : IsFiniteMeasure (gaussianMeasure' Λ s c) := sorry
+lemma 𝓛.gaussianMeasure'_finite [Norm (ι → ℝ)]  (s : ℝ≥0) [NeZero s]  (c : ι → ℝ) : IsFiniteMeasure (𝓛.gaussianMeasure' Λ s c) := sorry
 -- def gaussianMeasure'_total [Norm (ι → ℝ)] (c : ι → ℝ) {s : ℝ≥0} (hs : s ≠ 0) := (gaussianMeasure' Λ c hs) Set.univ
 
 -- def gaussianDistribution [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) := ((gaussianMeasure' Λ hs c) Set.univ)⁻¹ • gaussianMeasure' Λ hs c
-def gaussianDistribution [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s]  (c : ι → ℝ) := (gaussianMeasure' Λ s c)[|Set.univ]
+def 𝓛.gaussianDistribution [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s]  (c : ι → ℝ) := (𝓛.gaussianMeasure' Λ s c)[|Set.univ]
 
-lemma gaussianDistribution_prob [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ) : IsProbabilityMeasure (gaussianDistribution Λ s c) := by
-  unfold gaussianDistribution
+lemma 𝓛.gaussianDistribution_prob [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ) : IsProbabilityMeasure (𝓛.gaussianDistribution Λ s c) := by
+  unfold 𝓛.gaussianDistribution
   -- refine cond_isProbabilityMeasure ?_
   refine isProbabilityMeasure_iff.mpr ?_
   simp only [ProbabilityTheory.cond, Measure.restrict_univ, Measure.smul_apply, smul_eq_mul]
@@ -138,7 +138,7 @@ lemma gaussianDistribution_prob [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c 
   rw [Measure.ext_iff] at gm
   specialize gm {0}
   simp only [MeasurableSet.singleton, Measure.coe_zero, Pi.ofNat_apply, forall_const] at gm
-  unfold gaussianMeasure' gaussianMeasure at gm
+  unfold 𝓛.gaussianMeasure' gaussianMeasure at gm
   have : {0} ∩ (Λ : Set (ι → ℝ)) = {0} := by
     rw [Set.inter_eq_left, Set.singleton_subset_iff, SetLike.mem_coe]
     exact zero_mem Λ
@@ -151,20 +151,20 @@ lemma gaussianDistribution_prob [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c 
   simp only [imp_false, not_le]
   exact gaussianPDFReal_pos _ _ _ NeZero.out
 
-  have := gaussianMeasure'_finite Λ s c
+  have := 𝓛.gaussianMeasure'_finite Λ s c
   exact this.1.ne
 
 
-lemma gaussianDistribution.eq [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ)
-  : gaussianDistribution Λ s c = (gaussianMeasure s c)[|Λ] := by
-    unfold gaussianDistribution gaussianMeasure'
+lemma 𝓛.gaussianDistribution.eq [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ)
+  : 𝓛.gaussianDistribution Λ s c = (gaussianMeasure s c)[|Λ] := by
+    unfold 𝓛.gaussianDistribution 𝓛.gaussianMeasure'
     simp only [ProbabilityTheory.cond, MeasurableSet.univ, Measure.restrict_apply, Set.univ_inter,
       Measure.restrict_univ]
 
 
 def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] : Measure (Fin m → ℝ)
   :=
-  gaussianDistribution (AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft (Fin m)).range )) s 0
+  𝓛.gaussianDistribution (AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft (Fin m)).range )) s 0
 
 
 
@@ -196,9 +196,9 @@ local instance (s : ℝ≥0) [NeZero s] : NeZero s⁻¹ := .mk fun cont ↦ NeZe
 /--
 η
 -/
-def smoothing_parameter (ε : ℝ≥0) [NeZero ε]
+def 𝓛.smoothing_parameter (ε : ℝ≥0) [NeZero ε]
   := ⨅ (s : ℝ≥0) (_ : NeZero s)
-  (_ : gaussianMeasure' (dualLattice Λ) s⁻¹ 0 (Set.compl {0}) ≤ ε), s
+  (_ : 𝓛.gaussianMeasure' (𝓛.dualLattice Λ) s⁻¹ 0 (Set.compl {0}) ≤ ε), s
 
 
 #check EuclideanSpace
@@ -364,10 +364,10 @@ section Lemma_2_6
 -- what log base?
 theorem Lemma_2_6 (ε : ℝ≥0) [NeZero ε] [DiscreteTopology ↥Λ] [IsZLattice ℝ Λ]
   [Nonempty ι] --
-  : smoothing_parameter Λ ε ≤
+  : 𝓛.smoothing_parameter Λ ε ≤
   (√ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
-  / minimum_distance_sup (dualLattice Λ) := by
-    unfold smoothing_parameter
+  / 𝓛.minimum_distance_sup (𝓛.dualLattice Λ) := by
+    unfold 𝓛.smoothing_parameter
 
     sorry
 
@@ -379,7 +379,7 @@ theorem Lemma_2_6_then'
   {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (ι_top : goes_to_infinity (Fintype.card <| ι ·)) (Λ : (n : ℕ) → 𝓛 (ι n)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
   (s : (n : ℕ) → ℝ≥0) (hs : ω_sqrt_log s)
   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), ∀n,
-  smoothing_parameter (Λ n) (ε n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
+  𝓛.smoothing_parameter (Λ n) (ε n) ≤ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n))
   := by
     #check Lemma_2_6
     -- have ttt n ε (ε_pos : ε ≠ 0) := Lemma_2_6 (Λ n) ε_pos
@@ -387,7 +387,7 @@ theorem Lemma_2_6_then'
       ∃ ε,
         ∃ (_ : negligible ε) (ε_pos : ∀ (n : ℕ), NeZero (ε n)),
           ∀ (n : ℕ),
-            smoothing_parameter (Λ n) (ε n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
+            𝓛.smoothing_parameter (Λ n) (ε n) ≤ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n))
 
     sorry
 
@@ -510,10 +510,10 @@ def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin 
 
 theorem A_Matrix.Λ_dual {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
-  (A.Λ_ortho') = (dualLattice <| A.Λ_main').map (LinearMap.lsmul ℤ _ q)
+  (A.Λ_ortho') = (𝓛.dualLattice <| A.Λ_main').map (LinearMap.lsmul ℤ _ q)
   := by sorry
 theorem A_Matrix.Λ_dual' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  (A.Λ_main') = (dualLattice <| A.Λ_ortho').map (LinearMap.lsmul ℤ _ q)
+  (A.Λ_main') = (𝓛.dualLattice <| A.Λ_ortho').map (LinearMap.lsmul ℤ _ q)
   := by sorry
 
 lemma A_Matrix.Λ_ortho'.has_qZn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
@@ -563,14 +563,14 @@ end A_Matrix
 
 theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
-  (s_prop : s ≥ smoothing_parameter (A.Λ_ortho') ε) :
+  (s_prop : s ≥ 𝓛.smoothing_parameter (A.Λ_ortho') ε) :
   let hs : NeZero s := sorry;
   statistical_distance (A.syndrome_distributed (int_gaussian m s)) (uniform_over_Zqn _ _) ≤ 2 * ε
   := sorry
 
 theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
-  (s_prop : s ≥ smoothing_parameter (A.Λ_ortho') ε) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
+  (s_prop : s ≥ 𝓛.smoothing_parameter (A.Λ_ortho') ε) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
   :
   let hs : NeZero s := sorry;
   -- ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = t +ᵥ (int_gaussian_sublattice m hs A.Λ_ortho (-t))
@@ -579,7 +579,7 @@ theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass
 
 
 def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
-  minimum_distance_sup (A.Λ_main') ≥ q/4
+  𝓛.minimum_distance_sup (A.Λ_main') ≥ q/4
 
 abbrev N := ℕ
 abbrev M := ℕ
@@ -627,7 +627,7 @@ theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prim
   (A : (n : N) → (A_Matrix n (m n) (q n)))(hA : ∀n, lemma_5_3_statement (A n))
   (s : (n : N) → ℝ≥0) (hs : s =ω (sqrt_log ∘ m))
   : ∃ (ε : (n : N) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), -- change
-  ∀n : N, smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n := by
+  ∀n : N, 𝓛.smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n := by
 
   #check Lemma_2_6_then'
   #check A_Matrix.Λ_dual'
@@ -637,7 +637,7 @@ theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prim
   specialize so n
   -- simp only [Function.comp_apply] at so
   specialize hA n
-  set ww := smoothing_parameter (A n).Λ_ortho' (ε n)
+  set ww := 𝓛.smoothing_parameter (A n).Λ_ortho' (ε n)
   -- change ww ≤ _ at so
   apply le_trans so
 

@@ -14,8 +14,15 @@ open scoped NNReal ENNReal
 
 variable {ι : Type*} [Fintype ι] --(B : Basis ι)
 
+def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
 
-def 𝓛 ι := {L : AddSubgroup (ι → ℝ) // sorry}
+abbrev 𝓛.criteria_minimum (Λ : AddSubgroup (ι → ℝ)) : Prop := ∃ ε_min : ℝ≥0, (0 < ε_min) ∧ ∀x ∈ Λ , (x ≠ 0) → ε_min < ‖x‖₊
+abbrev 𝓛.criteria_maximum (Λ : AddSubgroup (ι → ℝ)) : Prop := ∃ ε_max : ℝ≥0, ∀y, ∃x ∈ Λ, ‖y - x‖₊ ≤ ε_max
+
+def 𝓛 ι [Fintype ι] :=
+  {Λ : AddSubgroup (ι → ℝ) //
+  (𝓛.criteria_minimum Λ) ∧ 𝓛.criteria_maximum Λ}
+
 
 -- instance : Coe (𝓛 ι) (AddSubgroup (ι → ℝ)) where
 --   coe L := L.val
@@ -36,6 +43,8 @@ def 𝓛.toModule : Submodule ℤ (ι → ℝ) := Λ.val.toIntSubmodule
 
 def 𝓛.ofSubgroup (L : AddSubgroup (ι → ℝ)) (hL : false) : 𝓛 ι := Subtype.mk L sorry
 
+def 𝓛.mk (L : AddSubgroup (ι → ℝ))
+  (criteria_minimum' : criteria_minimum L) (criteria_maximum' : criteria_maximum L) : 𝓛 ι := Subtype.mk L ⟨criteria_minimum',criteria_maximum'⟩
 
 
 instance : Membership (ι → ℝ) (𝓛 ι) where
@@ -54,7 +63,10 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
   neg_mem' := by
     simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
 
-def 𝓛.dualLattice : 𝓛 ι := .ofSubgroup (dualLattice_basic Λ) sorry
+def 𝓛.dualLattice : 𝓛 ι := 𝓛.mk (dualLattice_basic Λ)
+  (by
+    sorry)
+  (sorry)
 
 theorem 𝓛.dualLattice.involution : Function.Involutive (𝓛.dualLattice (ι := ι)) := sorry
 
@@ -80,7 +92,6 @@ def successive_minimum_distance' [Norm (ι → ℝ)] (i : ℕ)
 
 -- def dualLattice
 
-def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
 
 /-- λ₁∞ -/
 def 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
@@ -520,6 +531,7 @@ def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup
   := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
+-- TODO: this sorry is not valid
 def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : 𝓛 (Fin m) := 𝓛.ofSubgroup (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L) sorry
 
 def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_ortho
@@ -580,14 +592,14 @@ def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
 end A_Matrix
 
 theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
-  (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
+  (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0)
   (s_prop : s ≥ 𝓛.smoothing_parameter (A.Λ_ortho') ε) :
   let hs : NeZero s := sorry;
   statistical_distance (A.syndrome_distributed (int_gaussian m s)) (uniform_over_Zqn _ _) ≤ 2 * ε
   := sorry
 
 theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
-  (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
+  (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0)
   (s_prop : s ≥ 𝓛.smoothing_parameter (A.Λ_ortho') ε) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
   :
   let hs : NeZero s := sorry;

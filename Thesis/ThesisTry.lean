@@ -16,7 +16,7 @@ variable {ι : Type*} [Fintype ι] --(B : Basis ι)
 
 def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
 
-abbrev 𝓛.criteria_minimum (Λ : AddSubgroup (ι → ℝ)) : Prop := ∃ ε_min : ℝ≥0, (0 < ε_min) ∧ ∀x ∈ Λ , (x ≠ 0) → ε_min < ‖x‖₊
+abbrev 𝓛.criteria_minimum (Λ : AddSubgroup (ι → ℝ)) : Prop := ∃ ε_min : ℝ≥0, (NeZero ε_min) ∧ ∀x ∈ Λ , (x ≠ 0) → ε_min < ‖x‖₊
 abbrev 𝓛.criteria_maximum (Λ : AddSubgroup (ι → ℝ)) : Prop := ∃ ε_max : ℝ≥0, ∀y, ∃x ∈ Λ, ‖y - x‖₊ ≤ ε_max
 
 def 𝓛 ι [Fintype ι] :=
@@ -38,6 +38,7 @@ variable (Λ : 𝓛 ι) --[DiscreteTopology Λ.val] [IsZLattice ℝ Λ.val]
 
 section lattices
 
+def 𝓛.toSubgroup :  AddSubgroup (ι → ℝ) := Λ.val
 
 def 𝓛.toModule : Submodule ℤ (ι → ℝ) := Λ.val.toIntSubmodule
 
@@ -51,7 +52,7 @@ instance : Membership (ι → ℝ) (𝓛 ι) where
   mem L x := x ∈ L.toModule
 
 def dualLattice_basic : AddSubgroup (ι → ℝ) where
-  carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ (Int.castAddHom ℝ |>.range)}
+  carrier := { x : ι → ℝ | ∀ v ∈ Λ.toSubgroup, x ⬝ᵥ v ∈ (Int.castAddHom ℝ |>.range)}
   add_mem' := by
     intro a b ha hb v hL
     specialize ha v hL
@@ -63,8 +64,33 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
   neg_mem' := by
     simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
 
+def dotProductBiHom : (ι → ℝ) →+ (ι → ℝ) →+ ℝ :=
+  LinearMap.toAddMonoidHom'.comp (dotProductBilin ℤ ℤ (m := ι)).toAddMonoidHom
+
+-- @[simp]
+def dotProductBiHom_apply_apply (x y : ι → ℝ) : dotProductBiHom x y = x ⬝ᵥ y := by rfl
+
 def 𝓛.dualLattice : 𝓛 ι := 𝓛.mk (dualLattice_basic Λ)
   (by
+
+    have ⟨ε_min, ε_pos,smt⟩: criteria_minimum Λ.toSubgroup := Λ.property.left
+    unfold criteria_minimum at *
+    refine ⟨ε_min,ε_pos,?_⟩ -- not correct
+    intro x x_mem x_ne0
+    unfold dualLattice_basic at x_mem
+    simp only [Int.range_castAddHom, AddSubgroup.mem_mk, AddSubmonoid.mem_mk,
+      AddSubsemigroup.mem_mk, Set.mem_setOf_eq] at x_mem
+    #check dotProductBilin_apply_apply
+    change ∀ v ∈ Λ.toSubgroup, dotProductBiHom x v ∈ AddSubgroup.zmultiples 1
+    at x_mem
+    change ∀ v ∈ Λ.toSubgroup,  v ∈ (AddSubgroup.zmultiples (1 : ℝ)).comap (dotProductBiHom x)
+    at x_mem
+
+    #check AddSubgroup.comap
+
+
+
+
     sorry)
   (sorry)
 

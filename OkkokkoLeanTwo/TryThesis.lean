@@ -901,6 +901,7 @@ open ProbabilityTheory
 
 -- f(x) = ω(g(x))
 notation:100 f " =ω[" l "] " g:100 => g =o[l] f
+notation:100 f " =ω " g:100 => g =o[Filter.atTop] f
 
 def negligible {R : Type*} [Norm R] (f : ℕ → R) := ∀(c : ℕ), c > 0 → f =o[Filter.atTop] (fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ)))
 
@@ -942,7 +943,7 @@ def statistically_close {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)]
 def mHyp (m n q : ℕ) : Prop := (2 * n * Real.log q) ≤ m
 
 def sqrt_log : ℕ → ℝ≥0 := (Real.toNNReal ∘ Real.sqrt ∘  Real.log ∘ (↑))
-def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω[Filter.atTop] sqrt_log
+def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω sqrt_log
 
 abbrev goes_to_infinity (f : ℕ → ℕ) : Prop := Filter.Tendsto f Filter.atTop Filter.atTop
 
@@ -981,7 +982,7 @@ theorem Lemma_2_6_then'
   smoothing_parameter (Λ n) (ε_pos n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
   := by
     #check Lemma_2_6
-    have ttt n ε (ε_pos : ε ≠ 0) := Lemma_2_6 (Λ n) ε_pos
+    -- have ttt n ε (ε_pos : ε ≠ 0) := Lemma_2_6 (Λ n) ε_pos
     change
       ∃ ε,
         ∃ (_ : negligible ε) (ε_pos : ∀ (n : ℕ), ε n ≠ 0),
@@ -1213,17 +1214,17 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp 
 
 theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   (A : (n : N) → (A_Matrix n (m n) (q n)))(hA : ∀n, lemma_5_3_statement (A n))
-  (s : (m : M) → ℝ≥0) (hs : ω_sqrt_log s)
+  (s : (n : N) → ℝ≥0) (hs : s =ω (sqrt_log ∘ m))
   : ∃ (ε : (n : N) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, ε n ≠ 0), -- change
-  ∀n : N, smoothing_parameter ((A n).Λ_ortho') (ε_pos (n)) ≤ s (m n) := by
+  ∀n : N, smoothing_parameter ((A n).Λ_ortho') (ε_pos n) ≤ s n := by
 
   #check Lemma_2_6_then'
   #check A_Matrix.Λ_dual'
-  let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then' (ι := (Fin <| m ·)) ?_ (fun n ↦ (A n).Λ_ortho') (s ∘ m) ?_
+  let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then' (ι := (Fin <| m ·)) ?_ (fun n ↦ (A n).Λ_ortho') (s) ?_
   use ε, negl_ε, ε_pos
   intro n
   specialize so n
-  simp only [Function.comp_apply] at so
+  -- simp only [Function.comp_apply] at so
   specialize hA n
   set ww := smoothing_parameter (A n).Λ_ortho' _
   -- change ww ≤ _ at so
@@ -1279,8 +1280,8 @@ def corollary_5_4_statement (q : N → Q) [∀n, NeZero (q n)]  (m : N → M)
 
 theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   : ∃(subsets : (n : N) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
-  ∀(s : N → ℝ≥0)(_ : s =ω[Filter.atTop] (sqrt_log ∘ m))(s_pos : ∀n, s n ≠ 0), -- ≥ω is the same as =ω, right?
   ∀(A : (n : N) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
+  ∀(s : N → ℝ≥0)(_ : s =ω (sqrt_log ∘ m))(s_pos : ∀n, s n ≠ 0), -- ≥ω is the same as =ω, right?
   corollary_5_4_statement q m A s s_pos
   := by
 

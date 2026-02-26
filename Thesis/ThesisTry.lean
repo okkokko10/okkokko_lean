@@ -204,26 +204,7 @@ def smoothing_parameter (ε : ℝ≥0) [NeZero ε]
 #check EuclideanSpace
 -- todo: Norm is just a notation class. theorems about defs using it need [NormedAddCommGroup]
 #check NormedAddCommGroup
-#check ForIn
-#check Monad
-def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0) (hs : s ≠ 0) (center : (Fin n) → ℝ) (DZ : {s' : ℝ // s' > 0} → ℝ → PMF (ℤ)) : PMF ( Fin n → ℝ)  := do {
-  let mut v : ((Fin n) → ℝ)  := 0;
-  let mut c : ((Fin n) → ℝ) := center;
 
-  for hi : i in (Vector.range n).reverse do
-    let fi : Fin n := ⟨i,(Vector.mem_range.mp (Vector.mem_reverse.mp hi))⟩
-    let bi := gs_b fi
-    let c'i : ℝ := (c ⬝ᵥ bi) / (bi ⬝ᵥ bi);
-    let s'i : ℝ := s / ‖bi‖;
-    have : s'i > 0 := by sorry;
-    -- step (b)
-    let zi ← (DZ ⟨s'i,this⟩ c'i);
-    -- step (c)
-    c := (c - zi • bi)
-    v := (v + zi • bi)
-
-  return v
-}
 
 #check Asymptotics.IsLittleO
 open Asymptotics MeasureTheory
@@ -259,11 +240,102 @@ lemma statistical_distance_finite_2 {D : Type*} [MeasurableSpace D] (X Y : Proba
     unfold statistical_distance'
     refine ENNReal.mul_lt_top ?_ ?_
     simp only [ENNReal.inv_lt_top, Nat.ofNat_pos]
-    simp only [statistical_distance_finite_1, measure_lt_top]
+    exact @measure_lt_top _ _ _ (statistical_distance_finite_1 X Y) Set.univ
+
 def statistical_distance {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D) : ℝ≥0 := statistical_distance' X Y |>.toNNReal
 
 instance : Norm ℝ≥0 := ⟨(↑)⟩
+#check EMetricSpace
+example {D : Type*} [MeasurableSpace D] : PseudoMetricSpace (ProbabilityMeasure D) where
+  dist := (statistical_distance' · · |>.toReal)
+  dist_self x := by
+    rw [statistical_distance', sub_self, SignedMeasure.totalVariation_zero]
+    bound
+  dist_comm x y := by
+    unfold statistical_distance'
+    rw [← SignedMeasure.totalVariation_neg _, neg_sub]
+  dist_triangle x y z := by
 
+    have f a b := ne_top_of_lt  <| @measure_lt_top D _ _ (statistical_distance_finite_1 a b) Set.univ
+    have fxy := f x y
+    have fxz := f x z
+    have fyz := f y z
+    -- simp only [statistical_distance_finite_1, measure_lt_top]
+    unfold statistical_distance' at *
+
+    set x' := x.toMeasure.toSignedMeasure
+    set y' := y.toMeasure.toSignedMeasure
+    set z' := z.toMeasure.toSignedMeasure
+
+    simp only [ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_ofNat] at *
+
+    field_simp
+    rw [←ENNReal.toReal_add fxy fyz]
+    -- unfold SignedMeasure.totalVariation
+    -- simp only [Measure.coe_add, Pi.add_apply, ne_eq, ENNReal.add_eq_top, measure_ne_top, or_self,
+    --   not_false_eq_true, ENNReal.toReal_le_toReal]
+
+
+    suffices
+      ((x' - z').totalVariation Set.univ) ≤
+      ((x' - y').totalVariation Set.univ) + ((y' - z').totalVariation Set.univ) by
+      simp_all only [ne_eq, not_false_eq_true, ENNReal.add_eq_top, or_self, ENNReal.toReal_le_toReal, x', y', z']
+    clear f
+    set U := Set.univ
+    revert U
+    suffices
+      ∀U, MeasurableSet U →
+      (x' - y').totalVariation U ≠ ⊤ →
+        (x' - z').totalVariation U ≠ ⊤ →
+          (y' - z').totalVariation U ≠ ⊤ →
+            (x' - z').totalVariation U ≤ (x' - y').totalVariation U + (y' - z').totalVariation U by
+      exact this Set.univ (MeasurableSet.univ)
+
+    intro U mU fxy fxz fyz
+    clear fxy fxz fyz
+
+
+    unfold SignedMeasure.totalVariation
+    simp only [Measure.coe_add, Pi.add_apply]
+
+    -- #check JordanDecomposition.mutuallySingular (x' - z').toJordanDecomposition
+    have ⟨sxz, m_sxz, l_sxz, r_sxz, pos0_xz, neg0_xz⟩:= JordanDecomposition.exists_compl_positive_negative (x' - z').toJordanDecomposition
+    have ⟨sxy, m_sxy, l_sxy, r_sxy, pos0_xy, neg0_xy⟩:= JordanDecomposition.exists_compl_positive_negative (x' - y').toJordanDecomposition
+    have ⟨syz, m_syz, l_syz, r_syz, pos0_yz, neg0_yz⟩:= JordanDecomposition.exists_compl_positive_negative (y' - z').toJordanDecomposition
+
+    -- simp_all only [ne_eq, SignedMeasure.toSignedMeasure_toJordanDecomposition,
+    --   VectorMeasure.restrict_sub, VectorMeasure.restrict_zero, tsub_le_iff_right, zero_add,
+    --   sub_nonneg, ge_iff_le]
+
+    set xz := (x' - z').toJordanDecomposition
+    set xy := (x' - y').toJordanDecomposition
+    set yz := (y' - z').toJordanDecomposition
+
+
+    #check MeasurableSet
+
+    simp only [ge_iff_le]
+    #check measure_inter_add_diff
+    simp_rw [← measure_inter_add_diff U m_syz]
+
+    -- simp [pos0_yz]
+
+
+
+
+
+
+    -- [x - z] + [z - x] ≤ [x - y] + [y - x] + [y - z] + [z - y]
+    -- [x - z]
+
+
+    sorry
+  edist_dist := sorry
+  uniformity_dist := sorry
+  cobounded_sets := sorry
+
+
+-- #exit
 
 def statistically_close {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)] (X Y : (n : ℕ) → ProbabilityMeasure (D n)) :=
   negligible (fun n ↦ statistical_distance (X n) (Y n))

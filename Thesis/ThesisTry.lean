@@ -10,20 +10,20 @@ open scoped NNReal ENNReal
 #check IsZLattice
 #check Submodule.IsLattice
 
-abbrev Basis (ι : Type*) [Fintype ι] := Module.Basis ι ℝ (ι → ℝ)
+-- abbrev Basis (ι : Type*) [Fintype ι] := Module.Basis ι ℝ (ι → ℝ)
 
-variable {ι : Type*} [Fintype ι] (B : Basis ι)
-variable (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology Λ] [IsZLattice ℝ Λ]
+variable {ι : Type*} [Fintype ι] --(B : Basis ι)
+
+
+abbrev 𝓛 ι := Submodule ℤ (ι → ℝ)
+
+
+
+variable (Λ : 𝓛 ι) [DiscreteTopology Λ] [IsZLattice ℝ Λ]
 
 section lattices
 
-abbrev 𝓛 := Submodule.span ℤ (Set.range B)
 
--- example :=
-
-example : DiscreteTopology (𝓛 B) := ZSpan.instDiscreteTopologySubtypeMemSubmoduleIntSpanRangeCoeBasisRealOfFinite B
-example : IsZLattice ℝ (𝓛 B) := by infer_instance
-example : Basis ι := (IsZLattice.basis Λ).ofZLatticeBasis ℝ
 
 def dualLattice_basic : AddSubgroup (ι → ℝ) where
   carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ (Int.castAddHom ℝ |>.range)}
@@ -38,7 +38,7 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
   neg_mem' := by
     simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
 
-def dualLattice : Submodule ℤ (ι → ℝ) := (dualLattice_basic Λ).toIntSubmodule
+def dualLattice : 𝓛 ι := (dualLattice_basic Λ).toIntSubmodule
 
 theorem dualLattice.involution : Function.Involutive (dualLattice (ι := ι)) := sorry
 
@@ -376,7 +376,7 @@ theorem Lemma_2_6 (ε : ℝ≥0) [NeZero ε] [DiscreteTopology ↥Λ] [IsZLattic
 stronger than what the paper literally says, I think, since the dimension is not n, but instead just goes to infinity alongside n
 -/
 theorem Lemma_2_6_then'
-  {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (ι_top : goes_to_infinity (Fintype.card <| ι ·)) (Λ : (n : ℕ) → Submodule ℤ ((ι n) → ℝ)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+  {ι : (n : ℕ) → Type*} [∀n, Fintype (ι n)] (ι_top : goes_to_infinity (Fintype.card <| ι ·)) (Λ : (n : ℕ) → 𝓛 (ι n)) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
   (s : (n : ℕ) → ℝ≥0) (hs : ω_sqrt_log s)
   : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), ∀n,
   smoothing_parameter (Λ n) (ε n) ≤ s n / minimum_distance_sup (dualLattice (Λ n))
@@ -503,11 +503,10 @@ def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup
   := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
--- todo: once Lattice is a definition, change this
-def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : Submodule ℤ (Fin m → ℝ) := (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L).toIntSubmodule
+def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : 𝓛 (Fin m) := (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L).toIntSubmodule
 
-def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Submodule ℤ (Fin m → ℝ) := to_R A.Λ_ortho
-def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Submodule ℤ (Fin m → ℝ) := to_R A.Λ_main
+def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_ortho
+def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_main
 
 theorem A_Matrix.Λ_dual {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)

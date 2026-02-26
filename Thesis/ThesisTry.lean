@@ -2,7 +2,7 @@ import Mathlib
 
 
 noncomputable section
-namespace s3
+
 
 open scoped NNReal ENNReal
 
@@ -63,6 +63,36 @@ def successive_minimum_distance' [Norm (ι → ℝ)] (i : ℕ)
   := ⨅ (s ⊆ (Λ.carrier)) (_ : LinearIndependent ℝ (Subtype.val : s → _)) (_ : s.encard ≤ i), ⨆x ∈ s, ‖x‖
 
 -- def dualLattice
+
+def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
+
+/-- λ₁∞ -/
+def minimum_distance_sup := @minimum_distance ι _ Λ (infinity_norm)
+
+theorem minimum_distance.positive
+  -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
+  (h : Λ ≠ ⊥) : NeZero (minimum_distance Λ) := by
+  -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
+  constructor
+  unfold minimum_distance
+  have tw (x : ι → ℝ) : ‖x‖₊ = 0 → x = 0 := nnnorm_eq_zero.mp
+  #check IsZLattice
+
+  simp only [ne_eq]
+  #check NNReal.instConditionallyCompleteLinearOrderBot
+  #check ConditionallyCompleteLinearOrderBot
+  #check ConditionallyCompleteLattice
+  change ¬(⨅x, ⨅ (_ : x ∈ Λ), ⨅ (_ : ¬x = 0), ‖x‖₊) = 0
+
+  intro asm
+  #check InfSet
+
+
+
+
+  sorry
+
+
 
 end lattices
 
@@ -159,7 +189,10 @@ def int_gaussian_sublattice (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] 
 
 end gaussians
 
-instance (s : ℝ≥0) [NeZero s] : NeZero s⁻¹ := .mk fun cont ↦ NeZero.out (inv_eq_zero.mp cont) in
+-- section quantities
+
+local instance (s : ℝ≥0) [NeZero s] : NeZero s⁻¹ := .mk fun cont ↦ NeZero.out (inv_eq_zero.mp cont) in
+
 /--
 η
 -/
@@ -167,57 +200,12 @@ def smoothing_parameter (ε : ℝ≥0) [NeZero ε]
   := ⨅ (s : ℝ≥0) (_ : NeZero s)
   (_ : gaussianMeasure' (dualLattice Λ) s⁻¹ 0 (Set.compl {0}) ≤ ε), s
 
-def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
-
--- justifies changing infinity_norm
-example {ι} [Fintype ι] : (⟨fun x ↦ (PiLp.instNorm ∞ (fun (_ : ι) ↦ ℝ)).norm (WithLp.toLp ∞ x)⟩ : Norm (ι → ℝ)) = Pi.normedAddGroup.toNorm := by
-  simp only [PiLp.norm_toLp]
-
-/-- λ₁∞ -/
-def minimum_distance_sup := @minimum_distance ι _ Λ (infinity_norm)
-
-theorem minimum_distance.positive
-  -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
-  (h : Λ ≠ ⊥) : NeZero (minimum_distance Λ) := by
-  -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
-  constructor
-  unfold minimum_distance
-  have tw (x : ι → ℝ) : ‖x‖₊ = 0 → x = 0 := nnnorm_eq_zero.mp
-  #check IsZLattice
-
-  simp only [ne_eq]
-  #check NNReal.instConditionallyCompleteLinearOrderBot
-  #check ConditionallyCompleteLinearOrderBot
-  #check ConditionallyCompleteLattice
-  change ¬(⨅x, ⨅ (_ : x ∈ Λ), ⨅ (_ : ¬x = 0), ‖x‖₊) = 0
-
-  intro asm
-  #check InfSet
-
-
-
-
-  sorry
-
--- what log base?
-theorem Lemma_2_6 (ε : ℝ≥0) [NeZero ε] [DiscreteTopology ↥Λ] [IsZLattice ℝ Λ]
-  [Nonempty ι] --
-  : smoothing_parameter Λ ε ≤
-  (√ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
-  / minimum_distance_sup (dualLattice Λ) := by
-    unfold smoothing_parameter
-
-    sorry
 
 #check EuclideanSpace
-
 -- todo: Norm is just a notation class. theorems about defs using it need [NormedAddCommGroup]
 #check NormedAddCommGroup
-
 #check ForIn
-
 #check Monad
-
 def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0) (hs : s ≠ 0) (center : (Fin n) → ℝ) (DZ : {s' : ℝ // s' > 0} → ℝ → PMF (ℤ)) : PMF ( Fin n → ℝ)  := do {
   let mut v : ((Fin n) → ℝ)  := 0;
   let mut c : ((Fin n) → ℝ) := center;
@@ -241,6 +229,8 @@ def SampleD {n : ℕ} {m : ℕ} (hn : 0 < n) (gs_b : Basis (Fin n)) (s : ℝ≥0
 open Asymptotics MeasureTheory
 open ProbabilityTheory
 #check ℙ
+
+section statistic
 
 -- f(x) = ω(g(x))
 notation:100 f " =ω[" l "] " g:100 => g =o[l] f
@@ -283,22 +273,32 @@ def statistically_close {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)]
 
 -- #check Mathlib.Testing.SlimCheck
 
-def mHyp (m n q : ℕ) : Prop := (2 * n * Real.log q) ≤ m
 
 def sqrt_log : ℕ → ℝ≥0 := (Real.toNNReal ∘ Real.sqrt ∘  Real.log ∘ (↑))
 def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω sqrt_log
 
 abbrev goes_to_infinity (f : ℕ → ℕ) : Prop := Filter.Tendsto f Filter.atTop Filter.atTop
 
--- #check ZMod 2
--- def mod_q ( q : ℕ) := ℤ ⧸ (AddSubgroup.closure {(q : ℤ)})
--- lemma mod_q.isFinite {q : ℕ} : Finite (ZMod q) := by
---   apply?
---   sorry
+end statistic
 
--- seems like Fin q is the integers mod q
-#eval (7 : Fin 6)
--- ZMod q is Fin q if q is positive
+section hypotheses
+
+def mHyp (m n q : ℕ) : Prop := (2 * n * Real.log q) ≤ m
+
+end hypotheses
+
+section Lemma_2_6
+
+-- what log base?
+theorem Lemma_2_6 (ε : ℝ≥0) [NeZero ε] [DiscreteTopology ↥Λ] [IsZLattice ℝ Λ]
+  [Nonempty ι] --
+  : smoothing_parameter Λ ε ≤
+  (√ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
+  / minimum_distance_sup (dualLattice Λ) := by
+    unfold smoothing_parameter
+
+    sorry
+
 
 /--
 stronger than what the paper literally says, I think, since the dimension is not n, but instead just goes to infinity alongside n
@@ -321,8 +321,10 @@ theorem Lemma_2_6_then'
 
 -- note: NeZero allows this to be inferred, while h : q > 0 doesn't
 example  {q : ℕ} [NeZero q] : Finite (ZMod q) := inferInstance
-
 -- instance {q : ℕ} : Zero (ZMod q) where zero := 0
+end Lemma_2_6
+
+section A_Matrix
 
 def A_Matrix (n m q : ℕ) : Type := Matrix (Fin n) (Fin m) (ZMod q)
 
@@ -332,14 +334,14 @@ instance {n m q : ℕ} [NeZero q] : Nonempty (A_Matrix n m q) := Equiv.nonempty 
 -- set_option trace.Meta.synthInstance true in
 example (q)  [NeZero q] : Algebra ℤ (ZMod q) := inferInstance
 
-def toZModLin (q) : ℤ →ₗ[ℤ] (ZMod q) := Algebra.linearMap ℤ (ZMod q)
+#eval (List.range 10).map ((↑) : _ → ℤ) |>.map (Algebra.linearMap ℤ (ZMod 3))
 
-#eval
-  (List.range 10).map ((↑) : _ → ℤ) |>.map (toZModLin 3)
 
 def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) →ₗ[ℤ] (Fin n → ZMod q) := by
   -- have := Matrix.toLin (m := Fin n) (n := Fin m) (R := ZMod q) sorry sorry
   let vl:= Matrix.mulVecLin A
+
+  let toZModLin (q) : ℤ →ₗ[ℤ] (ZMod q) := Algebra.linearMap ℤ (ZMod q)
   -- have this be →ₗ[ℤ] as well
   -- is converting to ZMod q the same before or after "this"?
   let : (Fin m → ℤ) →ₗ[ℤ] (Fin m → ZMod q) := by
@@ -397,6 +399,7 @@ def A_Matrix.uniform {n m q : ℕ} [NeZero q] : ProbabilityMeasure (A_Matrix n m
 instance {n m q : ℕ} [NeZero q] : MeasureSpace (A_Matrix n m q) where
   volume := @A_Matrix.uniform n m q _
 
+end A_Matrix
 
 def uniform_over_Zqn (n q : ℕ) [NeZero q] : ProbabilityMeasure (Fin n → ZMod q) :=
   ⟨ProbabilityTheory.uniformOn Set.univ,
@@ -416,6 +419,8 @@ def lemma_5_1_statement {n m q : ℕ} (A : A_Matrix n m q) : Prop :=
 -- wait, is q_prime
 theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : ℙ (lemma_5_1_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
 
+section A_Matrix
+
 -- {e | Ae mod q = 0 }
 def A_Matrix.Λ_ortho {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ℤ) := A.syndrome_map.toAddMonoidHom.ker
 
@@ -426,6 +431,7 @@ def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup
   := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
+-- todo: once Lattice is a definition, change this
 def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : Submodule ℤ (Fin m → ℝ) := (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L).toIntSubmodule
 
 def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Submodule ℤ (Fin m → ℝ) := to_R A.Λ_ortho
@@ -482,6 +488,8 @@ def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
   (e : ProbabilityMeasure (Fin m → ℤ))
   := e.map (f := A.syndrome_map) (AEMeasurable.of_discrete)
 
+end A_Matrix
+
 theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0) [Fintype (Fin m)]
   (s_prop : s ≥ smoothing_parameter (A.Λ_ortho') ε) :
@@ -505,6 +513,8 @@ def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
 abbrev N := ℕ
 abbrev M := ℕ
 abbrev Q := ℕ
+
+section hypotheses
 
 def mHyp' (m : N → M) (q : N → Q) : Prop := ∀n, (2 * n * Real.log (q n)) ≤ m n
 
@@ -535,6 +545,8 @@ lemma mHyp'_ge_id (m : N → M) (q : N → Q) (q_prime : ∀n, Nat.Prime (q n)) 
 
 lemma mHyp'_tendsTo (m : N → M) (q : N → Q) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   : Filter.Tendsto m Filter.atTop Filter.atTop := sorry -- use [mHyp'_ge_id]
+
+end hypotheses
 
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
   : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry

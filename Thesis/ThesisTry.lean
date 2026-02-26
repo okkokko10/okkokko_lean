@@ -15,16 +15,19 @@ open scoped NNReal ENNReal
 variable {ι : Type*} [Fintype ι] --(B : Basis ι)
 
 
-abbrev 𝓛 ι := {L : Submodule ℤ (ι → ℝ) // sorry}
+abbrev 𝓛 ι := {L : AddSubgroup (ι → ℝ) // sorry}
 
 
-
-variable (Λ : 𝓛 ι) [DiscreteTopology Λ] [IsZLattice ℝ Λ.val]
+variable (Λ : 𝓛 ι) --[DiscreteTopology Λ.val] [IsZLattice ℝ Λ.val]
 
 section lattices
 
 
-abbrev 𝓛.toModule : Submodule ℤ (ι → ℝ) := Λ.val
+abbrev 𝓛.toModule : Submodule ℤ (ι → ℝ) := Λ.val.toIntSubmodule
+
+abbrev 𝓛.ofSubgroup (L : AddSubgroup (ι → ℝ)) (hL : false) : 𝓛 ι := Subtype.mk L sorry
+
+
 
 instance : Membership (ι → ℝ) (𝓛 ι) where
   mem L x := x ∈ L.toModule
@@ -42,7 +45,7 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
   neg_mem' := by
     simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
 
-def 𝓛.dualLattice : 𝓛 ι := .mk (dualLattice_basic Λ).toIntSubmodule sorry
+def 𝓛.dualLattice : 𝓛 ι := .ofSubgroup (dualLattice_basic Λ) sorry
 
 theorem 𝓛.dualLattice.involution : Function.Involutive (𝓛.dualLattice (ι := ι)) := sorry
 
@@ -96,7 +99,7 @@ theorem 𝓛.minimum_distance.positive
 
   sorry
 
-def 𝓛.mul_nat (q : ℕ) [NeZero q] : 𝓛 ι := .mk (Λ.toModule.map (LinearMap.lsmul ℤ _ q)) sorry
+def 𝓛.mul_nat (q : ℕ) [NeZero q] : 𝓛 ι := .ofSubgroup (Λ.toModule.map (LinearMap.lsmul ℤ _ q)).toAddSubgroup sorry
 
 
 end lattices
@@ -169,7 +172,7 @@ lemma 𝓛.gaussianDistribution.eq [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] 
 
 def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] : Measure (Fin m → ℝ)
   :=
-  𝓛.gaussianDistribution ⟨(AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft (Fin m)).range )), sorry⟩ s 0
+  𝓛.gaussianDistribution (𝓛.ofSubgroup ((((Int.castAddHom ℝ).compLeft (Fin m)).range )) sorry) s 0
 
 
 
@@ -508,7 +511,7 @@ def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup
   := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
-def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : 𝓛 (Fin m) := .mk (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L).toIntSubmodule sorry
+def to_R {m} (L : AddSubgroup (Fin m → ℤ) ) : 𝓛 (Fin m) := 𝓛.ofSubgroup (AddSubgroup.map ((Int.castAddHom ℝ).compLeft (Fin m)) L) sorry
 
 def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_ortho
 def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_main

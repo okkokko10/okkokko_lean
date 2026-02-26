@@ -15,7 +15,16 @@ open scoped NNReal ENNReal
 variable {ι : Type*} [Fintype ι] --(B : Basis ι)
 
 
-abbrev 𝓛 ι := {L : AddSubgroup (ι → ℝ) // sorry}
+def 𝓛 ι := {L : AddSubgroup (ι → ℝ) // sorry}
+
+-- instance : Coe (𝓛 ι) (AddSubgroup (ι → ℝ)) where
+--   coe L := L.val
+
+instance : SetLike (𝓛 ι) (ι → ℝ) where
+  coe L := L.val
+  coe_injective' := Function.Injective.comp SetLike.coe_injective' Subtype.val_injective
+
+
 
 
 variable (Λ : 𝓛 ι) --[DiscreteTopology Λ.val] [IsZLattice ℝ Λ.val]
@@ -23,9 +32,9 @@ variable (Λ : 𝓛 ι) --[DiscreteTopology Λ.val] [IsZLattice ℝ Λ.val]
 section lattices
 
 
-abbrev 𝓛.toModule : Submodule ℤ (ι → ℝ) := Λ.val.toIntSubmodule
+def 𝓛.toModule : Submodule ℤ (ι → ℝ) := Λ.val.toIntSubmodule
 
-abbrev 𝓛.ofSubgroup (L : AddSubgroup (ι → ℝ)) (hL : false) : 𝓛 ι := Subtype.mk L sorry
+def 𝓛.ofSubgroup (L : AddSubgroup (ι → ℝ)) (hL : false) : 𝓛 ι := Subtype.mk L sorry
 
 
 
@@ -528,7 +537,7 @@ lemma A_Matrix.Λ_ortho'.has_qZn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   ∀i, Pi.single i q ∈ (A.Λ_ortho') := by
     intro i
     refine (Submodule.mem_toAddSubgroup A.Λ_ortho'.toModule).mp ?_
-    unfold Λ_ortho' to_R 𝓛.toModule
+    unfold Λ_ortho' to_R 𝓛.toModule 𝓛.ofSubgroup
     simp only [AddSubgroup.toIntSubmodule_toAddSubgroup, AddSubgroup.mem_map]
     unfold Λ_ortho
     simp only [AddMonoidHom.mem_ker, LinearMap.toAddMonoidHom_coe]

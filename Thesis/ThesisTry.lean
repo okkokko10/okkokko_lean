@@ -67,24 +67,35 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
 def dotProductBiHom : (ι → ℝ) →+ (ι → ℝ) →+ ℝ :=
   LinearMap.toAddMonoidHom'.comp (dotProductBilin ℤ ℤ (m := ι)).toAddMonoidHom
 
--- @[simp]
-def dotProductBiHom_apply_apply (x y : ι → ℝ) : dotProductBiHom x y = x ⬝ᵥ y := by rfl
+@[simp]
+theorem dotProductBiHom_apply_apply (x y : ι → ℝ) : dotProductBiHom x y = x ⬝ᵥ y := by rfl
+
+theorem dotProductBiHom_comm (x y : ι → ℝ) : dotProductBiHom x y = dotProductBiHom y x := dotProduct_comm x y
+
+lemma 𝓛.dualLattice_basic.mem_def' (x : ι → ℝ) :
+  x ∈ (dualLattice_basic Λ) ↔
+  ∀ v ∈ Λ.toSubgroup,  x ∈ (AddSubgroup.zmultiples (1 : ℝ)).comap (dotProductBiHom v) := by
+    unfold dualLattice_basic
+    simp only [Int.range_castAddHom, AddSubgroup.mem_mk, AddSubmonoid.mem_mk,
+      AddSubsemigroup.mem_mk, Set.mem_setOf_eq, AddSubgroup.mem_comap, dotProductBiHom_apply_apply,
+      dotProduct_comm]
+
 
 def 𝓛.dualLattice : 𝓛 ι := 𝓛.mk (dualLattice_basic Λ)
   (by
 
-    have ⟨ε_min, ε_pos,smt⟩: criteria_minimum Λ.toSubgroup := Λ.property.left
+    have ⟨ε, ε_pos,smt⟩: criteria_minimum Λ.toSubgroup := Λ.property.left
+    by_contra! cont
+
     unfold criteria_minimum at *
-    refine ⟨ε_min,ε_pos,?_⟩ -- not correct
-    intro x x_mem x_ne0
+    let ε' : ℝ≥0 := sorry
+    have ε'_pos : NeZero ε' := sorry
+    obtain ⟨x, x_mem, x_n0, x_bound⟩ := cont ε' ε'_pos
     unfold dualLattice_basic at x_mem
-    simp only [Int.range_castAddHom, AddSubgroup.mem_mk, AddSubmonoid.mem_mk,
-      AddSubsemigroup.mem_mk, Set.mem_setOf_eq] at x_mem
-    #check dotProductBilin_apply_apply
-    change ∀ v ∈ Λ.toSubgroup, dotProductBiHom x v ∈ AddSubgroup.zmultiples 1
-    at x_mem
-    change ∀ v ∈ Λ.toSubgroup,  v ∈ (AddSubgroup.zmultiples (1 : ℝ)).comap (dotProductBiHom x)
-    at x_mem
+    simp at x_mem
+
+    -- refine ⟨ε_min,ε_pos,?_⟩ -- not correct
+    -- intro x x_mem x_ne0
 
     #check AddSubgroup.comap
 
@@ -463,16 +474,16 @@ example (q)  [NeZero q] : Algebra ℤ (ZMod q) := inferInstance
 #eval (List.range 10).map ((↑) : _ → ℤ) |>.map (Algebra.linearMap ℤ (ZMod 3))
 
 
-def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) →ₗ[ℤ] (Fin n → ZMod q) := by
+def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) →+ (Fin n → ZMod q) := by
   -- have := Matrix.toLin (m := Fin n) (n := Fin m) (R := ZMod q) sorry sorry
-  let vl:= Matrix.mulVecLin A
+  let vl := (Matrix.mulVecLin A).toAddMonoidHom
 
-  let toZModLin (q) : ℤ →ₗ[ℤ] (ZMod q) := Algebra.linearMap ℤ (ZMod q)
+  -- let toZModLin (q) : ℤ →+ (ZMod q) := Int.castAddHom (ZMod q)
   -- have this be →ₗ[ℤ] as well
   -- is converting to ZMod q the same before or after "this"?
-  let : (Fin m → ℤ) →ₗ[ℤ] (Fin m → ZMod q) := by
-    exact (toZModLin q).compLeft (Fin m)
-  exact Fintype.linearCombination ℤ fun a a_1 ↦ A a_1 a
+  let : (Fin m → ℤ) →+ (Fin m → ZMod q) := by
+    exact (Int.castAddHom (ZMod q)).compLeft (Fin m)
+  exact vl.comp this
 
   -- refine ((LinearMap.comp this vl) )
 
@@ -484,6 +495,20 @@ example (q : ℕ) (a b : ℤ) : ((a : ZMod q) * (b : ZMod q)) = ↑(a * b) := by
 def A_Matrix.syndrome_map' {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) → (Fin n → ZMod q) := by
   intro x
   apply A.mulVec <| Int.cast ∘ x
+
+theorem A_Matrix.syndrome_map_linearCombination {n m q : ℕ} (A : A_Matrix n m q) (x) :
+  A.syndrome_map x = (Fintype.linearCombination ℤ fun a a_1 ↦ A a_1 a) x := by
+  unfold syndrome_map
+
+  simp only [AddMonoidHom.coe_comp, LinearMap.toAddMonoidHom_coe, Function.comp_apply,
+    Matrix.mulVecBilin_apply]
+  ext i
+  simp [Fintype.linearCombination_apply ]
+  simp [Matrix.mulVec, dotProduct]
+  congr 1
+  ext j
+  exact Eq.symm (Int.cast_comm (x j) (A i j))
+
 
 section testing
 open Plausible
@@ -548,13 +573,13 @@ theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHy
 section A_Matrix
 
 -- {e | Ae mod q = 0 }
-def A_Matrix.Λ_ortho {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ℤ) := A.syndrome_map.toAddMonoidHom.ker
+def A_Matrix.Λ_ortho {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ℤ) := A.syndrome_map.ker
 
 -- does it matter that this is ZMod q?
 -- I wonder, a philosophical idea about a sense in which ℕ is equivalent to {0 mod 2, 1 mod 2}
-def A_Matrix.Λ_main_base {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ZMod q) := (A_Matrix.syndrome_map (A.transpose : A_Matrix m n q)).toAddMonoidHom.range
+def A_Matrix.Λ_main_base {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ZMod q) := (A_Matrix.syndrome_map (A.transpose : A_Matrix m n q)).range
 def A_Matrix.Λ_main {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : AddSubgroup (Fin m → ℤ)
-  := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
+  := (A_Matrix.syndrome_map A.transpose).range.comap
   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
 -- TODO: this sorry is not valid
@@ -566,7 +591,18 @@ def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin 
 theorem A_Matrix.Λ_dual {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
   (A.Λ_ortho') = (𝓛.dualLattice <| A.Λ_main').mul_nat q
-  := by sorry
+  := by
+    apply SetLike.ext
+    intro x
+
+    unfold Λ_ortho' Λ_main' Λ_ortho Λ_main to_R 𝓛.ofSubgroup
+
+
+
+
+
+
+    sorry
 theorem A_Matrix.Λ_dual' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   (A.Λ_main') = (𝓛.dualLattice <| A.Λ_ortho').mul_nat q
   := by sorry
@@ -582,10 +618,9 @@ lemma A_Matrix.Λ_ortho'.has_qZn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
     use Pi.single i q
     constructor
     {
-      ext j
-      unfold syndrome_map
-      simp only [Fintype.linearCombination_apply_single, Pi.smul_apply, zsmul_eq_mul,
-        Int.cast_natCast, CharP.cast_eq_zero, zero_mul, Pi.zero_apply]
+      ext jacobiSum
+      simp only [syndrome_map_linearCombination, Fintype.linearCombination_apply_single,
+        Pi.smul_apply, zsmul_eq_mul, Int.cast_natCast, CharP.cast_eq_zero, zero_mul, Pi.zero_apply]
     }
     ext j
     simp only [AddMonoidHom.compLeft_apply, Int.coe_castAddHom, Function.comp_apply]

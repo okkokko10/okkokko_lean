@@ -49,6 +49,18 @@ lemma 𝓛.dualLattice.mem_def' (x : ι → ℝ) :
       dotProduct_comm]
     rfl
 
+lemma 𝓛.dualLattice.mem_def''.step1 (v : ι → ℝ) :
+  Submodule.comap (dotProductBilin ℤ ℤ v) (AddSubgroup.zmultiples (1 : ℝ)).toIntSubmodule
+  = ZLattice.comap ℝ (AddSubgroup.zmultiples (1 : ℝ)).toIntSubmodule (dotProductBilin ℝ ℝ v)
+  := by
+    apply SetLike.coe_set_eq.mp
+    ext y
+    simp only [Submodule.comap_coe, AddSubgroup.coe_toIntSubmodule, Set.mem_preimage,
+      dotProductBilin_apply_apply, SetLike.mem_coe, ZLattice.coe_comap]
+
+#check instIsZLatticeComap
+
+
 
 
 theorem 𝓛.dualLattice.involution : Function.Involutive (𝓛.dualLattice (ι := ι)) := sorry

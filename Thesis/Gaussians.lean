@@ -15,8 +15,10 @@ section gaussians
 open ProbabilityTheory
 open MeasureTheory
 
+#check EuclideanSpace
 
-def gaussianFunction [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ)  := gaussianPDF 0 s ∘ (‖· - c‖)
+def gaussianFunction (s : ℝ≥0) [NeZero s] (c : ι → ℝ) : (ι → ℝ) → ℝ≥0∞
+  := gaussianPDF 0 s ∘ (fun x ↦ ‖(WithLp.toLp 2 (x - c) : EuclideanSpace ℝ ι)‖)
 
 #check MeasureTheory.Measure.count
 -- #check Measure.comap
@@ -26,21 +28,21 @@ def gaussianFunction [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → �
 2.4 Gaussians on Lattices
 ρ s c
 -/
-def gaussianMeasure [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ) := Measure.count.withDensity (gaussianFunction s c)
+def gaussianMeasure (s : ℝ≥0) [NeZero s] (c : ι → ℝ) := Measure.count.withDensity (gaussianFunction s c)
 
 #check ProbabilityMeasure
 
 
-def 𝓛.gaussianMeasure' [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ)  := (gaussianMeasure s c).restrict Λ
+def 𝓛.gaussianMeasure' (s : ℝ≥0) [NeZero s] (c : ι → ℝ)  := (gaussianMeasure s c).restrict Λ
 
 
-lemma 𝓛.gaussianMeasure'_finite [Norm (ι → ℝ)]  (s : ℝ≥0) [NeZero s]  (c : ι → ℝ) : IsFiniteMeasure (𝓛.gaussianMeasure' Λ s c) := sorry
+lemma 𝓛.gaussianMeasure'_finite (s : ℝ≥0) [NeZero s]  (c : ι → ℝ) : IsFiniteMeasure (𝓛.gaussianMeasure' Λ s c) := sorry
 -- def gaussianMeasure'_total [Norm (ι → ℝ)] (c : ι → ℝ) {s : ℝ≥0} (hs : s ≠ 0) := (gaussianMeasure' Λ c hs) Set.univ
 
 -- def gaussianDistribution [Norm (ι → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  (c : ι → ℝ) := ((gaussianMeasure' Λ hs c) Set.univ)⁻¹ • gaussianMeasure' Λ hs c
-def 𝓛.gaussianDistribution [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s]  (c : ι → ℝ) := (𝓛.gaussianMeasure' Λ s c)[|Set.univ]
+def 𝓛.gaussianDistribution (s : ℝ≥0) [NeZero s]  (c : ι → ℝ) := (𝓛.gaussianMeasure' Λ s c)[|Set.univ]
 
-lemma 𝓛.gaussianDistribution_prob [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ) : IsProbabilityMeasure (𝓛.gaussianDistribution Λ s c) := by
+lemma 𝓛.gaussianDistribution_prob (s : ℝ≥0) [NeZero s] (c : ι → ℝ) : IsProbabilityMeasure (𝓛.gaussianDistribution Λ s c) := by
   unfold 𝓛.gaussianDistribution
   -- refine cond_isProbabilityMeasure ?_
   refine isProbabilityMeasure_iff.mpr ?_
@@ -69,14 +71,14 @@ lemma 𝓛.gaussianDistribution_prob [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s
   exact this.1.ne
 
 
-lemma 𝓛.gaussianDistribution.eq [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] (c : ι → ℝ)
+lemma 𝓛.gaussianDistribution.eq (s : ℝ≥0) [NeZero s] (c : ι → ℝ)
   : 𝓛.gaussianDistribution Λ s c = (gaussianMeasure s c)[|Λ] := by
     unfold 𝓛.gaussianDistribution 𝓛.gaussianMeasure'
     simp only [ProbabilityTheory.cond, MeasurableSet.univ, Measure.restrict_apply, Set.univ_inter,
       Measure.restrict_univ]
 
 
-def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] : Measure (Fin m → ℝ)
+def int_gaussian_real_measure (m) (s : ℝ≥0) [NeZero s] : Measure (Fin m → ℝ)
   :=
   𝓛.gaussianDistribution (Casts.Zn (Fin m)) s 0
 
@@ -84,17 +86,17 @@ def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s
 
 -- def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : Measure (Fin m → ℤ)
 --   :=  (gaussianMeasure hs 0)[| (s2.Zn (Fin m))].comap ((↑) ∘ ·)
-def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] (c : Fin m → ℝ)  : Measure (Fin m → ℤ)
+def int_gaussian_int_measure (m) (s : ℝ≥0) [NeZero s] (c : Fin m → ℝ)  : Measure (Fin m → ℤ)
   :=  ((gaussianMeasure s c).comap Casts.Zn_to_Rn)[|Set.univ]
 
 /-- D_{Zᵐ,s} -/
-def int_gaussian (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s]  : ProbabilityMeasure (Fin m → ℤ) :=
+def int_gaussian (m) (s : ℝ≥0) [NeZero s]  : ProbabilityMeasure (Fin m → ℤ) :=
   ⟨
     int_gaussian_int_measure m s 0
     , sorry
   ⟩
 
-def int_gaussian_sublattice (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] (Λ : AddSubgroup (Fin m → ℤ)) (c : Fin m → ℤ) : ProbabilityMeasure (Fin m → ℤ) :=
+def int_gaussian_sublattice (m) (s : ℝ≥0) [NeZero s] (Λ : AddSubgroup (Fin m → ℤ)) (c : Fin m → ℤ) : ProbabilityMeasure (Fin m → ℤ) :=
   ⟨
     (int_gaussian_int_measure m s (Casts.Zn_to_Rn c))[|Λ]
     , sorry

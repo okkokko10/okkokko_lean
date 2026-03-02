@@ -1,5 +1,5 @@
 import Mathlib
-
+import Thesis.Casts
 section A_Matrix
 
 def A_Matrix (n m q : ℕ) : Type := Matrix (Fin n) (Fin m) (ZMod q)
@@ -17,14 +17,7 @@ def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) �
   -- have := Matrix.toLin (m := Fin n) (n := Fin m) (R := ZMod q) sorry sorry
   let vl:= (Matrix.mulVecLin A).toAddMonoidHom.toIntLinearMap
 
-  let toZModLin (q) : ℤ →ₗ[ℤ] (ZMod q) := Algebra.linearMap ℤ (ZMod q)
-  -- have this be →ₗ[ℤ] as well
-  -- is converting to ZMod q the same before or after "this"?
-  let : (Fin m → ℤ) →ₗ[ℤ] (Fin m → ZMod q) := by
-    exact (toZModLin q).compLeft (Fin m)
-
-
-  refine vl.comp this
+  refine vl.comp Casts.Zn_to_Zqn
 
 
 -- this shows that modulo can be done before or after

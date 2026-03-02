@@ -78,14 +78,14 @@ lemma 𝓛.gaussianDistribution.eq [Norm (ι → ℝ)] (s : ℝ≥0) [NeZero s] 
 
 def int_gaussian_real_measure (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] : Measure (Fin m → ℝ)
   :=
-  𝓛.gaussianDistribution (AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft (Fin m)).range )) s 0
+  𝓛.gaussianDistribution (Casts.Zn (Fin m)) s 0
 
 
 
 -- def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] {s : ℝ≥0} (hs : s ≠ 0)  : Measure (Fin m → ℤ)
 --   :=  (gaussianMeasure hs 0)[| (s2.Zn (Fin m))].comap ((↑) ∘ ·)
 def int_gaussian_int_measure (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] (c : Fin m → ℝ)  : Measure (Fin m → ℤ)
-  :=  ((gaussianMeasure s c).comap ((Int.cast : ℤ → ℝ) ∘ ·))[|Set.univ]
+  :=  ((gaussianMeasure s c).comap Casts.Zn_to_Rn)[|Set.univ]
 
 /-- D_{Zᵐ,s} -/
 def int_gaussian (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s]  : ProbabilityMeasure (Fin m → ℤ) :=
@@ -96,7 +96,7 @@ def int_gaussian (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s]  : Probabil
 
 def int_gaussian_sublattice (m) [Norm (Fin m → ℝ)] (s : ℝ≥0) [NeZero s] (Λ : AddSubgroup (Fin m → ℤ)) (c : Fin m → ℤ) : ProbabilityMeasure (Fin m → ℤ) :=
   ⟨
-    (int_gaussian_int_measure m s ((↑) ∘ c))[|Λ]
+    (int_gaussian_int_measure m s (Casts.Zn_to_Rn c))[|Λ]
     , sorry
   ⟩
 

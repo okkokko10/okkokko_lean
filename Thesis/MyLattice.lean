@@ -1,5 +1,5 @@
 import Mathlib
-
+import Thesis.Casts
 
 noncomputable section
 
@@ -20,7 +20,7 @@ section lattices
 
 
 def dualLattice_basic : AddSubgroup (ι → ℝ) where
-  carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ (Int.castAddHom ℝ |>.range)}
+  carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ Casts.IntSubmodule}
   add_mem' := by
     intro a b ha hb v hL
     specialize ha v hL
@@ -37,15 +37,14 @@ def 𝓛.dualLattice : 𝓛 ι := (dualLattice_basic Λ).toIntSubmodule
 
 lemma 𝓛.dualLattice.mem_def' (x : ι → ℝ) :
   x ∈ (dualLattice Λ) ↔
-  ∀ v ∈ Λ,  x ∈ (AddSubgroup.zmultiples (1 : ℝ)).toIntSubmodule.comap (dotProductBilin ℤ ℤ v) := by
+  ∀ v ∈ Λ,  x ∈ Casts.IntSubmodule.comap (dotProductBilin ℤ ℤ v) := by
     unfold dualLattice dualLattice_basic
-    simp only [Int.range_castAddHom, Submodule.mem_comap, dotProductBilin_apply_apply,
-      dotProduct_comm]
+    simp only [Submodule.mem_comap, dotProductBilin_apply_apply, dotProduct_comm]
     rfl
 
 lemma 𝓛.dualLattice.mem_def''.step1 (v : ι → ℝ) :
-  Submodule.comap (dotProductBilin ℤ ℤ v) (AddSubgroup.zmultiples (1 : ℝ)).toIntSubmodule
-  = ZLattice.comap ℝ (AddSubgroup.zmultiples (1 : ℝ)).toIntSubmodule (dotProductBilin ℝ ℝ v)
+  Submodule.comap (dotProductBilin ℤ ℤ v) Casts.IntSubmodule
+  = ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)
   := by
     apply SetLike.coe_set_eq.mp
     ext y

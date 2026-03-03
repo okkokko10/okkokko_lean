@@ -195,6 +195,7 @@ end basis_matrix
 
 abbrev 𝓛.ofBasis (B : Basis ι ℝ (ι → ℝ)) := Submodule.span ℤ (Set.range B)
 
+-- temp name
 theorem 𝓛.dualLattice.limit_basis (B : Basis ι ℝ (ι → ℝ)) (x : ι → ℝ) :
   x ∈ (dualLattice (𝓛.ofBasis B)) ↔
   ∀ i, x ⬝ᵥ (B i) ∈ Casts.IntSubmodule
@@ -225,8 +226,9 @@ theorem 𝓛.dualLattice.limit_basis (B : Basis ι ℝ (ι → ℝ)) (x : ι →
 
 lemma 𝓛.dualLattice.limit_basis' (B : Basis ι ℝ (ι → ℝ)) (x : ι → ℝ) :
   x ∈ (dualLattice (𝓛.ofBasis B)) ↔
-  (basis_matrix B).transpose.mulVec x ∈ Submodule.pi Set.univ fun _ ↦ Casts.IntSubmodule
+  (basis_matrix B).transpose.mulVec x ∈ Casts.Zn ι
   := by
+    rw [Casts.Zn.eq_pi]
     set wp: Submodule ℤ (ι → ℝ) := Submodule.pi Set.univ (fun _ => Casts.IntSubmodule)
     rw [limit_basis]
     simp_rw [basis_matrix_list B]
@@ -241,6 +243,33 @@ lemma 𝓛.dualLattice.limit_basis' (B : Basis ι ℝ (ι → ℝ)) (x : ι → 
     intro a i
     simp_all only [Submodule.mem_pi, Set.mem_univ, forall_const, wp, B']
 
+lemma 𝓛.dualLattice.limit_basis'' (B : Basis ι ℝ (ι → ℝ)) :
+  (dualLattice (𝓛.ofBasis B)) =
+  ZLattice.comap ℝ (Casts.Zn ι) ((basis_matrix B).transpose.toLinearEquiv' inferInstance)
+  := by
+    ext x
+    exact limit_basis' B x
+
+
+
+lemma 𝓛.dualLattice.limit_basis''' (B : Basis ι ℝ (ι → ℝ)) :
+  (dualLattice (𝓛.ofBasis B)) =
+  (Casts.Zn ι).comap ((basis_matrix B).transpose.toLinearEquiv' inferInstance).toIntLinearEquiv
+  := by
+    #check Submodule.map
+    ext x
+    exact limit_basis' B x
+
+lemma 𝓛.dualLattice.basis_ (B : Basis ι ℝ (ι → ℝ)) :
+  𝓛.ofBasis B = (Casts.Zn ι).map ((basis_matrix B).toLinearEquiv' inferInstance).toIntLinearEquiv
+  := by
+
+    -- simp only [AddSubgroup.toIntSubmodule_toAddSubgroup, AddSubgroup.mem_map,
+    --   AddMonoidHom.mem_range, AddMonoidHom.coe_coe, exists_exists_eq_and]
+    -- #check Submodule.map
+    -- ext x
+    -- exact limit_basis' B x
+    sorry
 
 example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 

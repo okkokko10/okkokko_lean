@@ -17,7 +17,9 @@ theorem IntSubmodule.exist (x) : x ∈ IntSubmodule ↔ ∃i : ℤ, i = x := by
   change x ∈ (Set.range fun x ↦ x • 1) ↔ ∃ i : ℤ, ↑i = x
   simp only [zsmul_eq_mul, mul_one, Set.mem_range]
 
-theorem Zn_pi {ι : Type*} : Zn ι = Submodule.pi Set.univ (fun _ => Casts.IntSubmodule) := by
+theorem Zn.eq_compLeftRange {ι : Type*} : Zn ι = (AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft ι).range )) := by rfl
+
+theorem Zn.eq_pi {ι : Type*} : Zn ι = Submodule.pi Set.univ (fun _ => Casts.IntSubmodule) := by
   unfold Zn IntSubmodule IntSubgroup
   ext w
   simp only [Submodule.mem_pi, Set.mem_univ, forall_const]
@@ -26,8 +28,13 @@ theorem Zn_pi {ι : Type*} : Zn ι = Submodule.pi Set.univ (fun _ => Casts.IntSu
       ∀ (i : ι), w i ∈ (AddSubgroup.zmultiples 1)
   simp only [AddMonoidHom.mem_range]
   constructor
-  intro ⟨x,xw⟩ i
-  sorry
-
-
-  sorry
+  · intro ⟨x,xw⟩ i
+    rw [←funext_iff.mp xw i]
+    simp only [AddMonoidHom.compLeft_apply, Int.coe_castAddHom, Function.comp_apply,
+      AddSubgroup.intCast_mem_zmultiples_one]
+  intro aw
+  use fun i ↦ (aw i).choose
+  funext i
+  rw [←(aw i).choose_spec]
+  simp only [zsmul_eq_mul, mul_one, AddMonoidHom.compLeft_apply, Int.coe_castAddHom,
+    Function.comp_apply]

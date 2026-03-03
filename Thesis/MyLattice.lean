@@ -19,7 +19,7 @@ section lattices
 
 
 
-def dualLattice_basic : AddSubgroup (ι → ℝ) where
+def dualLattice_basic (Λ : 𝓛 ι) : AddSubgroup (ι → ℝ) where
   carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ Casts.IntSubmodule}
   add_mem' := by
     intro a b ha hb v hL
@@ -35,7 +35,7 @@ def dualLattice_basic : AddSubgroup (ι → ℝ) where
 def 𝓛.dualLattice : 𝓛 ι := (dualLattice_basic Λ).toIntSubmodule
 
 
-lemma 𝓛.dualLattice.mem_def' (x : ι → ℝ) :
+lemma 𝓛.dualLattice.mem_def' (Λ : 𝓛 ι) (x : ι → ℝ) :
   x ∈ (dualLattice Λ) ↔
   ∀ v ∈ Λ,  x ∈ Casts.IntSubmodule.comap (dotProductBilin ℤ ℤ v) := by
     unfold dualLattice dualLattice_basic
@@ -54,6 +54,33 @@ lemma 𝓛.dualLattice.mem_def''.step1 (v : ι → ℝ) :
 #check instIsZLatticeComap
 
 
+
+
+lemma Continuous_dotProduct (v : ι → ℝ) : Continuous (dotProductBilin ℝ ℝ v)
+  := LinearMap.continuous_on_pi (dotProductBilin ℝ ℝ v)
+
+-- I'm an idiot, this obviously isn't discrete
+-- #check ZLattice.comap_discreteTopology
+-- instance (v : ι → ℝ) : DiscreteTopology (ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)) := by
+--   have : DiscreteTopology ↥Casts.IntSubmodule := by
+--     sorry
+--   apply ZLattice.comap_discreteTopology
+--   exact Continuous_dotProduct v
+
+
+--   sorry
+
+-- example (v : ι → ℝ)  : IsZLattice ℝ (ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)) := by
+
+--   sorry
+
+instance [DiscreteTopology Λ] [IsZLattice ℝ Λ] : DiscreteTopology (Λ.dualLattice) := by
+
+
+  sorry
+
+instance [DiscreteTopology Λ] [IsZLattice ℝ Λ] : IsZLattice ℝ (Λ.dualLattice) := by
+  sorry
 
 
 theorem 𝓛.dualLattice.involution : Function.Involutive (𝓛.dualLattice (ι := ι)) := sorry
@@ -102,6 +129,68 @@ theorem 𝓛.minimum_distance.positive
 
   intro asm
   #check InfSet
+
+
+
+
+  sorry
+
+-- shows that for a Λ, there exists a ℝⁿ basis B that generates Λ.
+example :
+  let B : Module.Basis ι ℝ (ι → ℝ) := (IsZLattice.basis Λ).ofZLatticeBasis ℝ Λ;
+  Submodule.span ℤ (Set.range B) = Λ
+  := (IsZLattice.basis Λ).ofZLatticeBasis_span ℝ
+
+#check Module.Basis.invertibleToMatrix
+
+example : Module.Basis ι ℝ (ι → ℝ) := Pi.basisFun ℝ ι
+
+example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
+
+  let iden : Module.Basis ι ℝ (ι → ℝ) := Pi.basisFun ℝ ι
+  let B' := iden.toMatrix B
+  -- example: B as a function goes through the columns of B' (columns are of the same shape as Bx)
+  have examp t : B'.col t = B t := by
+    ext w
+    unfold B' iden
+    unfold Module.Basis.toMatrix
+    simp only [Pi.basisFun_repr, Matrix.col_apply]
+
+
+  have : Invertible (B') := Module.Basis.invertibleToMatrix iden B
+  let B'_dual := this.invOf.transpose
+
+  have B'_dual_invertible : Invertible (B'_dual) := (⅟B').invertibleTranspose
+  have B'_tr_invertible : Invertible (B'.transpose) := by exact B'.invertibleTranspose
+
+
+  let tt := Matrix.toLinearEquiv' B'_dual B'_dual_invertible
+
+  let B_dual : Module.Basis ι ℝ (ι → ℝ) := by
+    apply Module.Basis.ofRepr
+    apply LinearEquiv.trans tt.symm (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm
+
+  have B_dual_spec : iden.toMatrix B_dual = B'_dual := by
+    unfold iden B_dual tt B'_dual
+    unfold Module.Basis.toMatrix
+    simp only [Module.Basis.coe_ofRepr, LinearEquiv.trans_symm, LinearEquiv.symm_symm,
+      LinearEquiv.trans_apply, Finsupp.linearEquivFunOnFinite_single, Pi.basisFun_repr,
+      Matrix.invOf_eq_nonsing_inv]
+    ext i j
+    change ((⅟B').transpose.toLinearEquiv' B'_dual_invertible : Module.End ℝ (_ → _)) (Pi.single j 1) i = B'⁻¹ j i
+    rw [Matrix.toLinearEquiv'_apply (⅟B').transpose B'_dual_invertible]
+    simp only [Matrix.invOf_eq_nonsing_inv, Matrix.toLin'_apply, Matrix.mulVec_single,
+      MulOpposite.op_one, Matrix.col_transpose, Pi.smul_apply, Matrix.row_apply, one_smul]
+
+
+
+
+
+  let Λ := Submodule.span ℤ (Set.range B)
+  let Λ_dual := Submodule.span ℤ (Set.range B_dual)
+  have key : 𝓛.dualLattice Λ = Λ_dual := by
+
+    sorry
 
 
 

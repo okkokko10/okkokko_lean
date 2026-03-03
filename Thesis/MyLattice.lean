@@ -143,9 +143,7 @@ example :
   Submodule.span ℤ (Set.range B) = Λ
   := (IsZLattice.basis Λ).ofZLatticeBasis_span ℝ
 
-#check Module.Basis.invertibleToMatrix
 
-example : Module.Basis ι ℝ (ι → ℝ) := Pi.basisFun ℝ ι
 
 abbrev basis_matrix (B : Module.Basis ι ℝ (ι → ℝ)) : Matrix ι ι ℝ := (Pi.basisFun ℝ ι).toMatrix B
 
@@ -153,17 +151,15 @@ instance basis_matrix.Invertible (B : Module.Basis ι ℝ (ι → ℝ)) : Invert
   (Pi.basisFun ℝ ι).invertibleToMatrix B
 
 -- temp name
-def matrix_basis (B' : Matrix ι ι ℝ) [inv : Invertible B'] : Module.Basis ι ℝ (ι → ℝ) := by
-    apply Module.Basis.ofRepr
-    exact LinearEquiv.trans (Matrix.toLinearEquiv' B' inv).symm (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm
+def matrix_basis (B' : Matrix ι ι ℝ) [inv : Invertible B'] : Module.Basis ι ℝ (ι → ℝ) :=
+  Basis.map (Pi.basisFun ℝ ι) (Matrix.toLinearEquiv' B' inv)
 
 theorem matrix_basis_spec (B' : Matrix ι ι ℝ) [inv : Invertible B']
   : basis_matrix (matrix_basis B') = B' := by
     unfold matrix_basis
     unfold basis_matrix Module.Basis.toMatrix
     ext i j
-    simp only [Module.Basis.coe_ofRepr, LinearEquiv.trans_symm, LinearEquiv.symm_symm,
-      LinearEquiv.trans_apply, Finsupp.linearEquivFunOnFinite_single, Pi.basisFun_repr]
+    simp only [Basis.map_apply, Pi.basisFun_apply, Pi.basisFun_repr]
     change (B'.toLinearEquiv' inferInstance : Module.End ℝ (ι → ℝ)) (Pi.single j 1) i = B' i j
     rw [Matrix.toLinearEquiv'_apply B' inferInstance]
     simp only [Matrix.toLin'_apply, Matrix.mulVec_single, MulOpposite.op_one, Pi.smul_apply,
@@ -173,8 +169,7 @@ theorem matrix_basis_spec (B' : Matrix ι ι ℝ) [inv : Invertible B']
 theorem matrix_basis_spec_list
   (B' : Matrix ι ι ℝ) [Invertible B'] (i) : matrix_basis B' i = B'.col i := by
     unfold matrix_basis
-    simp only [Module.Basis.coe_ofRepr, LinearEquiv.trans_symm, LinearEquiv.symm_symm,
-      LinearEquiv.trans_apply, Finsupp.linearEquivFunOnFinite_single]
+    simp only [Basis.map_apply, Pi.basisFun_apply]
     ext j
     change (B'.toLinearEquiv' inferInstance : Module.End ℝ (ι → ℝ)) (Pi.single i 1) j = B' j i
     simp only [Matrix.toLinearEquiv'_apply, Matrix.toLin'_apply, Matrix.mulVec_single,
@@ -185,7 +180,7 @@ theorem matrix_basis_spec_list
 theorem basis_matrix_spec (B : Module.Basis ι ℝ (ι → ℝ))
   : matrix_basis (basis_matrix B ) = B := by
     ext i j
-    simp [matrix_basis_spec_list]
+    simp only [matrix_basis_spec_list, Matrix.col_apply]
     unfold basis_matrix  Module.Basis.toMatrix
     simp only [Pi.basisFun_repr]
 
@@ -218,10 +213,6 @@ example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
   have B_dual_spec : iden.toMatrix B_dual = B'_dual := by
     exact matrix_basis_spec B'_dual
 
-
-  let alt : Basis ι ℝ (ι → ℝ) := Basis.map (Pi.basisFun ℝ ι) (Matrix.toLinearEquiv' B' this)
-
-  have : alt = matrix_basis B' := by rfl
 
 
   #check Finsupp.linearCombination

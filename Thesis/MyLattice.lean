@@ -143,7 +143,7 @@ example :
   Submodule.span ℤ (Set.range B) = Λ
   := (IsZLattice.basis Λ).ofZLatticeBasis_span ℝ
 
-
+section basis_matrix
 
 abbrev basis_matrix (B : Module.Basis ι ℝ (ι → ℝ)) : Matrix ι ι ℝ := (Pi.basisFun ℝ ι).toMatrix B
 
@@ -166,7 +166,7 @@ theorem matrix_basis_spec (B' : Matrix ι ι ℝ) [inv : Invertible B']
       Matrix.col_apply, one_smul]
 
 -- shows that the basis is the columns
-theorem matrix_basis_spec_list
+theorem matrix_basis_list
   (B' : Matrix ι ι ℝ) [Invertible B'] (i) : matrix_basis B' i = B'.col i := by
     unfold matrix_basis
     simp only [Basis.map_apply, Pi.basisFun_apply]
@@ -180,11 +180,66 @@ theorem matrix_basis_spec_list
 theorem basis_matrix_spec (B : Module.Basis ι ℝ (ι → ℝ))
   : matrix_basis (basis_matrix B ) = B := by
     ext i j
-    simp only [matrix_basis_spec_list, Matrix.col_apply]
+    simp only [matrix_basis_list, Matrix.col_apply]
     unfold basis_matrix  Module.Basis.toMatrix
     simp only [Pi.basisFun_repr]
 
+theorem basis_matrix_list (B : Module.Basis ι ℝ (ι → ℝ)) (i)
+  : B i = (basis_matrix B ).col i  := by
+    rw [←basis_matrix_spec B]
+    rw [matrix_basis_list]
+    congr
+    exact Eq.symm (basis_matrix_spec B)
 
+end basis_matrix
+
+abbrev 𝓛.ofBasis (B : Basis ι ℝ (ι → ℝ)) := Submodule.span ℤ (Set.range B)
+
+theorem 𝓛.dualLattice.limit_basis (B : Basis ι ℝ (ι → ℝ)) (x : ι → ℝ) :
+  x ∈ (dualLattice (𝓛.ofBasis B)) ↔
+  ∀ i, x ⬝ᵥ (B i) ∈ Casts.IntSubmodule
+  := by
+    change (∀ v ∈ (𝓛.ofBasis B), x ⬝ᵥ v ∈ Casts.IntSubmodule) ↔ ∀ (i : ι), x ⬝ᵥ B i ∈ Casts.IntSubmodule
+    refine ⟨?_,?_⟩
+    intro aa i
+    apply aa (B i) ?_
+    exact Submodule.mem_span_of_mem (Set.mem_range_self i)
+
+    intro q
+    apply Submodule.span_induction
+    simp only [Set.mem_range, forall_exists_index, forall_apply_eq_imp_iff]
+    exact q
+    simp only [dotProduct_zero, zero_mem]
+    intro x_1 y hx hy a a_1
+    simp_all only [dotProduct_add]
+    apply AddMemClass.add_mem
+    · simp_all only
+    · simp_all only
+    intro z a aB pa
+    simp only [dotProduct_smul _ _]
+    rw [Casts.IntSubmodule.exist _] at pa ⊢
+    obtain ⟨i, pa'⟩ := pa
+    refine ⟨z * i, ?_⟩
+    simp_all only [Int.cast_mul, zsmul_eq_mul]
+
+
+lemma 𝓛.dualLattice.limit_basis' (B : Basis ι ℝ (ι → ℝ)) (x : ι → ℝ) :
+  x ∈ (dualLattice (𝓛.ofBasis B)) ↔
+  (basis_matrix B).transpose.mulVec x ∈ Submodule.pi Set.univ fun _ ↦ Casts.IntSubmodule
+  := by
+    set wp: Submodule ℤ (ι → ℝ) := Submodule.pi Set.univ (fun _ => Casts.IntSubmodule)
+    rw [limit_basis]
+    simp_rw [basis_matrix_list B]
+    set B' := basis_matrix B
+    simp_rw [dotProduct_comm x _]
+
+    change (∀ (i : ι), B'.transpose.mulVec x i ∈ Casts.IntSubmodule) ↔ _
+
+    constructor
+    intro ww
+    simp_all only [Submodule.mem_pi, Set.mem_univ, imp_self, implies_true, B', wp]
+    intro a i
+    simp_all only [Submodule.mem_pi, Set.mem_univ, forall_const, wp, B']
 
 
 example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by

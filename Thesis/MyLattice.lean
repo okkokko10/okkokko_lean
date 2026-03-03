@@ -6,7 +6,7 @@ noncomputable section
 
 open scoped NNReal ENNReal
 
-variable {ι : Type*} [Fintype ι] --(B : Basis ι)
+variable {ι : Type*} [Fintype ι] [DecidableEq ι] --(B : Basis ι)
 
 
 abbrev 𝓛 ι := Submodule ℤ (ι → ℝ)
@@ -135,6 +135,8 @@ theorem 𝓛.minimum_distance.positive
 
   sorry
 
+open Module
+
 -- shows that for a Λ, there exists a ℝⁿ basis B that generates Λ.
 example :
   let B : Module.Basis ι ℝ (ι → ℝ) := (IsZLattice.basis Λ).ofZLatticeBasis ℝ Λ;
@@ -145,16 +147,20 @@ example :
 
 example : Module.Basis ι ℝ (ι → ℝ) := Pi.basisFun ℝ ι
 
--- temp name
-def matrix_basis [Fintype ι] [DecidableEq ι]
-  (B' : Matrix ι ι ℝ) [Invertible B'] : Module.Basis ι ℝ (ι → ℝ) := by
-    apply Module.Basis.ofRepr
-    exact LinearEquiv.trans (Matrix.toLinearEquiv' B' inferInstance).symm (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm
+abbrev basis_matrix (B : Module.Basis ι ℝ (ι → ℝ)) : Matrix ι ι ℝ := (Pi.basisFun ℝ ι).toMatrix B
 
-theorem matrix_basis_spec [DecidableEq ι] (B' : Matrix ι ι ℝ) [Invertible B']
-  : (Pi.basisFun ℝ ι).toMatrix (matrix_basis B') = B' := by
+instance basis_matrix.Invertible (B : Module.Basis ι ℝ (ι → ℝ)) : Invertible (basis_matrix B) :=
+  (Pi.basisFun ℝ ι).invertibleToMatrix B
+
+-- temp name
+def matrix_basis (B' : Matrix ι ι ℝ) [inv : Invertible B'] : Module.Basis ι ℝ (ι → ℝ) := by
+    apply Module.Basis.ofRepr
+    exact LinearEquiv.trans (Matrix.toLinearEquiv' B' inv).symm (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm
+
+theorem matrix_basis_spec (B' : Matrix ι ι ℝ) [inv : Invertible B']
+  : basis_matrix (matrix_basis B') = B' := by
     unfold matrix_basis
-    unfold Module.Basis.toMatrix
+    unfold basis_matrix Module.Basis.toMatrix
     ext i j
     simp only [Module.Basis.coe_ofRepr, LinearEquiv.trans_symm, LinearEquiv.symm_symm,
       LinearEquiv.trans_apply, Finsupp.linearEquivFunOnFinite_single, Pi.basisFun_repr]
@@ -164,7 +170,7 @@ theorem matrix_basis_spec [DecidableEq ι] (B' : Matrix ι ι ℝ) [Invertible B
       Matrix.col_apply, one_smul]
 
 -- shows that the basis is the columns
-theorem matrix_basis_spec_list [DecidableEq ι]
+theorem matrix_basis_spec_list
   (B' : Matrix ι ι ℝ) [Invertible B'] (i) : matrix_basis B' i = B'.col i := by
     unfold matrix_basis
     simp only [Module.Basis.coe_ofRepr, LinearEquiv.trans_symm, LinearEquiv.symm_symm,
@@ -174,6 +180,14 @@ theorem matrix_basis_spec_list [DecidableEq ι]
     simp only [Matrix.toLinearEquiv'_apply, Matrix.toLin'_apply, Matrix.mulVec_single,
       MulOpposite.op_one, Pi.smul_apply, Matrix.col_apply, one_smul]
 
+
+
+theorem basis_matrix_spec (B : Module.Basis ι ℝ (ι → ℝ))
+  : matrix_basis (basis_matrix B ) = B := by
+    ext i j
+    simp [matrix_basis_spec_list]
+    unfold basis_matrix  Module.Basis.toMatrix
+    simp only [Pi.basisFun_repr]
 
 
 
@@ -205,7 +219,14 @@ example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
     exact matrix_basis_spec B'_dual
 
 
+  let alt : Basis ι ℝ (ι → ℝ) := Basis.map (Pi.basisFun ℝ ι) (Matrix.toLinearEquiv' B' this)
+
+  have : alt = matrix_basis B' := by rfl
+
+
   #check Finsupp.linearCombination
+
+  #check Module.Basis.map
 
 
   let Λ := Submodule.span ℤ (Set.range B)

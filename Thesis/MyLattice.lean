@@ -145,6 +145,39 @@ example :
 
 example : Module.Basis ι ℝ (ι → ℝ) := Pi.basisFun ℝ ι
 
+-- temp name
+def matrix_basis [Fintype ι] [DecidableEq ι]
+  (B' : Matrix ι ι ℝ) [Invertible B'] : Module.Basis ι ℝ (ι → ℝ) := by
+    apply Module.Basis.ofRepr
+    exact LinearEquiv.trans (Matrix.toLinearEquiv' B' inferInstance).symm (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm
+
+theorem matrix_basis_spec [DecidableEq ι] (B' : Matrix ι ι ℝ) [Invertible B']
+  : (Pi.basisFun ℝ ι).toMatrix (matrix_basis B') = B' := by
+    unfold matrix_basis
+    unfold Module.Basis.toMatrix
+    ext i j
+    simp only [Module.Basis.coe_ofRepr, LinearEquiv.trans_symm, LinearEquiv.symm_symm,
+      LinearEquiv.trans_apply, Finsupp.linearEquivFunOnFinite_single, Pi.basisFun_repr]
+    change (B'.toLinearEquiv' inferInstance : Module.End ℝ (ι → ℝ)) (Pi.single j 1) i = B' i j
+    rw [Matrix.toLinearEquiv'_apply B' inferInstance]
+    simp only [Matrix.toLin'_apply, Matrix.mulVec_single, MulOpposite.op_one, Pi.smul_apply,
+      Matrix.col_apply, one_smul]
+
+-- shows that the basis is the columns
+theorem matrix_basis_spec_list [DecidableEq ι]
+  (B' : Matrix ι ι ℝ) [Invertible B'] (i) : matrix_basis B' i = B'.col i := by
+    unfold matrix_basis
+    simp only [Module.Basis.coe_ofRepr, LinearEquiv.trans_symm, LinearEquiv.symm_symm,
+      LinearEquiv.trans_apply, Finsupp.linearEquivFunOnFinite_single]
+    ext j
+    change (B'.toLinearEquiv' inferInstance : Module.End ℝ (ι → ℝ)) (Pi.single i 1) j = B' j i
+    simp only [Matrix.toLinearEquiv'_apply, Matrix.toLin'_apply, Matrix.mulVec_single,
+      MulOpposite.op_one, Pi.smul_apply, Matrix.col_apply, one_smul]
+
+
+
+
+
 example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 
   let iden : Module.Basis ι ℝ (ι → ℝ) := Pi.basisFun ℝ ι
@@ -166,29 +199,20 @@ example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 
   let tt := Matrix.toLinearEquiv' B'_dual B'_dual_invertible
 
-  let B_dual : Module.Basis ι ℝ (ι → ℝ) := by
-    apply Module.Basis.ofRepr
-    apply LinearEquiv.trans tt.symm (Finsupp.linearEquivFunOnFinite ℝ ℝ ι).symm
+  let B_dual : Module.Basis ι ℝ (ι → ℝ) := matrix_basis B'_dual
 
   have B_dual_spec : iden.toMatrix B_dual = B'_dual := by
-    unfold iden B_dual tt B'_dual
-    unfold Module.Basis.toMatrix
-    simp only [Module.Basis.coe_ofRepr, LinearEquiv.trans_symm, LinearEquiv.symm_symm,
-      LinearEquiv.trans_apply, Finsupp.linearEquivFunOnFinite_single, Pi.basisFun_repr,
-      Matrix.invOf_eq_nonsing_inv]
-    ext i j
-    change ((⅟B').transpose.toLinearEquiv' B'_dual_invertible : Module.End ℝ (_ → _)) (Pi.single j 1) i = B'⁻¹ j i
-    rw [Matrix.toLinearEquiv'_apply (⅟B').transpose B'_dual_invertible]
-    simp only [Matrix.invOf_eq_nonsing_inv, Matrix.toLin'_apply, Matrix.mulVec_single,
-      MulOpposite.op_one, Matrix.col_transpose, Pi.smul_apply, Matrix.row_apply, one_smul]
+    exact matrix_basis_spec B'_dual
 
 
-
+  #check Finsupp.linearCombination
 
 
   let Λ := Submodule.span ℤ (Set.range B)
   let Λ_dual := Submodule.span ℤ (Set.range B_dual)
   have key : 𝓛.dualLattice Λ = Λ_dual := by
+
+
 
     sorry
 

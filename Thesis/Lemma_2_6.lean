@@ -4,19 +4,21 @@ import Thesis.Statistic
 
 noncomputable section
 open scoped NNReal ENNReal
-variable {ι : Type*} [Fintype ι]
+variable {ι : Type*} [Fintype ι] [Nonempty ι]
 
 section Lemma_2_6
+
+
+def lemma_2_6_upper (ε : ℝ≥0) [NeZero ε]  (n : ℕ) : ℝ≥0 :=
+  (√ (Real.log (2 * n / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
+
 
 variable (Λ : 𝓛 ι) [DiscreteTopology Λ] [IsZLattice ℝ Λ]
 -- what log base?
 theorem Lemma_2_6 (ε : ℝ≥0) [NeZero ε]
-  [Nonempty ι] --
   : 𝓛.smoothing_parameter Λ ε ≤
-  (√ (Real.log (2 * Fintype.card ι / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
+  lemma_2_6_upper ε (Fintype.card ι)
   / 𝓛.minimum_distance_sup (𝓛.dualLattice Λ) := by
-    unfold 𝓛.smoothing_parameter
-
     sorry
 
 
@@ -38,6 +40,54 @@ theorem Lemma_2_6_then'
             𝓛.smoothing_parameter (Λ n) (ε n) ≤ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n))
 
     sorry
+
+
+/--
+for any s, there is a ε such that η_ε * λ ≤ s
+
+if there is a function ε, there is a negligible such function?
+
+-/
+
+theorem Lemma_2_6_then''
+  {m : (n : ℕ) → ℕ} (m_top : id ≤ m) (m_pos : ∀n, NeZero (m n)) (Λ : (n : ℕ) → 𝓛 (Fin (m n))) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+  (s : (n : ℕ) → ℝ≥0) (hs : ω_sqrt_log s)
+  : ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), ∀n,
+  𝓛.smoothing_parameter (Λ n) (ε n) ≤ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n))
+  := by
+    #check Lemma_2_6
+    -- have ttt n ε (ε_pos : ε ≠ 0) := Lemma_2_6 (Λ n) ε_pos
+
+    suffices
+        ∃(ε : (n : ℕ) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)),
+        ∀n, lemma_2_6_upper (ε n) (m n) ≤ s n by
+      obtain ⟨ε, negl_ε,ε_pos,w⟩ := this
+      refine ⟨ε, negl_ε,ε_pos,?_⟩
+      intro n
+      specialize w n
+      trans
+      apply Lemma_2_6 (Λ n)
+      simp only [Fintype.card_fin]
+      refine (div_le_div_iff_of_pos_right ?_).mpr w
+
+      have := 𝓛.minimum_distance_sup.positive ((Λ n).dualLattice)
+      exact NeZero.pos (Λ n).dualLattice.minimum_distance_sup
+
+    -- lemma_2_6_upper is monotone on ε
+
+    suffices
+      ∃ ε : ℕ → ℝ≥0,
+        ∃ (ε_pos : ∀ (n : ℕ), NeZero (ε n)),
+          ∀ (n : ℕ), lemma_2_6_upper (ε n) (m n) ≤ s n by
+      obtain ⟨ε,ε_pos,w⟩ := this
+
+
+      sorry
+
+
+
+    sorry
+
 
 -- note: NeZero allows this to be inferred, while h : q > 0 doesn't
 example  {q : ℕ} [NeZero q] : Finite (ZMod q) := inferInstance

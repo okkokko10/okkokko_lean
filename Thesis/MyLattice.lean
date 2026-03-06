@@ -112,6 +112,8 @@ def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
 /-- λ₁∞ -/
 def 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
 
+-- issue: the norm is already implied
+-- IsZLattice alongside Nonempty ι should imply Λ ≠ ⊥
 theorem 𝓛.minimum_distance.positive
   -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
   (h : Λ ≠ ⊥) : NeZero (𝓛.minimum_distance Λ) := by
@@ -134,6 +136,9 @@ theorem 𝓛.minimum_distance.positive
 
 
   sorry
+
+theorem 𝓛.minimum_distance_sup.positive [Nonempty ι] : NeZero (𝓛.minimum_distance_sup Λ) := by sorry
+
 
 open Module
 
@@ -263,7 +268,6 @@ lemma 𝓛.dualLattice.limit_basis''' (B : Basis ι ℝ (ι → ℝ)) :
 lemma 𝓛.dualLattice.basis_ (B : Basis ι ℝ (ι → ℝ)) :
   𝓛.ofBasis B = (Casts.Zn ι).map ((basis_matrix B).toLinearEquiv' inferInstance).toIntLinearEquiv
   := by
-
     -- simp only [AddSubgroup.toIntSubmodule_toAddSubgroup, AddSubgroup.mem_map,
     --   AddMonoidHom.mem_range, AddMonoidHom.coe_coe, exists_exists_eq_and]
     -- #check Submodule.map
@@ -317,6 +321,7 @@ example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 
   sorry
 
-
+-- this actually is related
+#check Module.Dual
 
 end lattices

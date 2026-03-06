@@ -12,7 +12,123 @@ noncomputable section statistic
 notation:100 f " =ω[" l "] " g:100 => g =o[l] f
 notation:100 f " =ω " g:100 => g =o[Filter.atTop] f
 
+section negligible
+
 def negligible {R : Type*} [Norm R] (f : ℕ → R) := ∀(c : ℕ), c > 0 → f =o[Filter.atTop] (fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ)))
+
+
+
+-- issue in Mathlib: Asymptotics.IsBigO.trans_isLittleO requires [SeminormedAddCommGroup F']
+--  (through Asymptotics.IsBigOWith.weaken),
+-- even though it actually only needs [Norm F'] such that ∀x : F', 0 ≤ ‖x‖
+section IsBigO_fix
+
+variable {α E F G : Type*} [Norm E]
+  [Norm F] [Norm G] {l : Filter α} {f : α → E} {g' : α → F} {k : α → G}
+  {c c' : ℝ}
+
+open Asymptotics Filter
+
+
+lemma fix.weaken (hF : ∀x : F, 0 ≤ ‖x‖) (h : IsBigOWith c l f g') (hc : c ≤ c') : IsBigOWith c' l f g' :=
+  IsBigOWith.of_bound <|
+    mem_of_superset h.bound fun x hx =>
+      calc
+        ‖f x‖ ≤ c * ‖g' x‖ := hx
+        _ ≤ _ := by
+          gcongr
+          exact hF (g' x)
+
+
+lemma fix.exists_pos (hF : ∀x : F, 0 ≤ ‖x‖) (h : IsBigOWith c l f g') :
+    ∃ c' > 0, IsBigOWith c' l f g' :=
+  ⟨max c 1, lt_of_lt_of_le zero_lt_one (le_max_right c 1), weaken hF h <| le_max_left c 1⟩
+
+
+lemma fix.exists_pos' (hF : ∀x : F, 0 ≤ ‖x‖) (h : f =O[l] g') : ∃ c > 0, IsBigOWith c l f g' :=
+  let ⟨_c, hc⟩ := h.isBigOWith
+  fix.exists_pos hF hc
+
+
+@[trans]
+theorem _root_.Asymptotics.IsBigO.trans_isLittleO' (hF : ∀x : F, 0 ≤ ‖x‖) {f : α → E} {g : α → F} {k : α → G} (hfg : f =O[l] g)
+    (hgk : g =o[l] k) : f =o[l] k :=
+  let ⟨_c, cpos, hc⟩ := fix.exists_pos' hF hfg
+  hc.trans_isLittleO hgk cpos
+
+
+end IsBigO_fix
+
+theorem negligible.bigO {R R' : Type*} [Norm R] [Norm R'] (hR' : ∀x : R', 0 ≤ ‖x‖)
+    {f : ℕ → R} {g : ℕ → R'} (le : f =O[Filter.atTop] g) (g_negl : negligible g) : negligible f := by
+  unfold negligible at *
+  intro c c_pos
+  apply le.trans_isLittleO' hR' (g_negl c c_pos)
+
+
+instance : Norm ℝ≥0 := ⟨(↑)⟩
+
+theorem negligible.bigO_nnreal {R : Type*} [Norm R]
+    {f : ℕ → R} {g : ℕ → ℝ≥0} (le : f =O[Filter.atTop] g) (g_negl : negligible g) : negligible f := by
+  refine negligible.bigO ?_ le g_negl
+  intro x
+  exact zero_le x
+
+theorem negligible.of_le {a b : ℕ → ℝ≥0} (le : a ≤ b) (b_negl : negligible b) : negligible a := by
+  unfold negligible at *
+  intro c c_pos
+  specialize b_negl c c_pos
+  set w := fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ))
+  have : IsBigOWith 1 Filter.atTop a b := isBigOWith_of_le Filter.atTop le
+  -- have : a =O[Filter.atTop] b := by exact Asymptotics.isBigO_of_le Filter.atTop le
+  -- have := IsLittleO.trans_le
+  exact this.trans_isLittleO b_negl (g := b) (Real.zero_lt_one)
+
+
+
+-- todo: find an example
+def negligible.examp : ℕ → ℝ≥0 := sorry
+theorem negligible.example_spec : negligible examp := sorry
+theorem negligible.example_pos : ∀n, NeZero (examp n) := sorry
+
+#check NeZero.of_pos
+#check NeZero.pos
+
+-- theorem negligible.exists_smaller (f : ℕ → ℝ≥0) (f_pos : ∀ (n : ℕ), NeZero (f n)) :
+--   ∃(ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀ (n : ℕ), NeZero (ε n)), ε ≤ f := by
+
+--   refine ⟨fun n ↦ f n ⊓ examp n,?_,?_,?_⟩
+--   · exact of_le (b := examp) inf_le_right example_spec
+--   · intro n
+--     apply NeZero.of_pos
+--     refine lt_min (a := 0) ?_ ?_
+--     exact NeZero.pos (f n)
+--     exact negligible.example_pos n |>.pos
+--   intro n
+--   simp only [inf_le_left]
+
+
+def negligible.smaller (f : ℕ → ℝ≥0) := fun n ↦ f n ⊓ examp n
+
+theorem negligible.smaller_pos {f : ℕ → ℝ≥0}
+  (f_pos : ∀ (n : ℕ), NeZero (f n)) (n) : NeZero (smaller f n)
+  := by
+  apply NeZero.of_pos
+  refine lt_min ?_ ?_
+  exact NeZero.pos (f n)
+  exact negligible.example_pos n |>.pos
+
+theorem negligible.smaller_le (f : ℕ → ℝ≥0) :
+  smaller f ≤ f
+  := by
+  intro n
+  exact min_le_left (f n) (examp n)
+
+
+
+
+end negligible
+
 
 -- #check ProbabilityTheory.HasPDF
 #check MeasureTheory.pdf
@@ -39,7 +155,6 @@ lemma statistical_distance_finite_2 {D : Type*} [MeasurableSpace D] (X Y : Proba
 
 def statistical_distance {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D) : ℝ≥0 := statistical_distance' X Y |>.toNNReal
 
-instance : Norm ℝ≥0 := ⟨(↑)⟩
 #check EMetricSpace
 example {D : Type*} [MeasurableSpace D] : PseudoMetricSpace (ProbabilityMeasure D) where
   dist := (statistical_distance' · · |>.toReal)

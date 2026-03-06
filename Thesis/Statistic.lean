@@ -2,7 +2,7 @@ import Mathlib
 
 #check Asymptotics.IsLittleO
 open Asymptotics MeasureTheory
-open ProbabilityTheory
+open ProbabilityTheory Filter
 open scoped NNReal ENNReal
 #check ℙ
 
@@ -85,10 +85,16 @@ theorem negligible.of_le {a b : ℕ → ℝ≥0} (le : a ≤ b) (b_negl : neglig
   exact this.trans_isLittleO b_negl (g := b) (Real.zero_lt_one)
 
 
-
--- todo: find an example
-def negligible.examp : ℕ → ℝ≥0 := sorry
-theorem negligible.example_spec : negligible examp := sorry
+open Asymptotics
+-- it's clear the inverse exponential is negligible.
+def negligible.examp : ℕ → ℝ≥0 := fun n ↦ (Real.exp (-n)).toNNReal
+theorem negligible.example_spec : negligible examp := by
+  intro c c_pos
+  unfold examp
+  simp only [Real.rpow_neg_natCast, zpow_neg, zpow_natCast]
+  rw [IsLittleO_def]
+  intro c' c'_pos
+  sorry
 theorem negligible.example_pos : ∀n, NeZero (examp n) := sorry
 
 #check NeZero.of_pos
@@ -123,6 +129,28 @@ theorem negligible.smaller_le (f : ℕ → ℝ≥0) :
   := by
   intro n
   exact min_le_left (f n) (examp n)
+
+
+
+-- ah, I should have looked at this earlier
+
+#check SuperpolynomialDecay
+
+theorem negligible.superpolynomialDecay (f : ℕ → ℝ) : SuperpolynomialDecay atTop (Nat.cast) f ↔ negligible f := by
+  constructor
+  · intro sup
+    unfold negligible
+    intro c c_pos
+    have tt:= superpolynomialDecay_iff_isLittleO f (tendsto_natCast_atTop_atTop) |>.mp sup
+    have ttt := tt (-c)
+    -- simp_all only [gt_iff_lt, zpow_natCast, Real.rpow_neg_natCast, zpow_neg]
+    convert ttt
+    norm_num
+  rw [superpolynomialDecay_iff_isLittleO f (tendsto_natCast_atTop_atTop)]
+
+
+  sorry
+
 
 
 

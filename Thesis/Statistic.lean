@@ -124,6 +124,10 @@ theorem negligible.smaller_pos {f : ℕ → ℝ≥0}
   exact NeZero.pos (f n)
   exact negligible.example_pos n |>.pos
 
+
+theorem negligible.smaller_negligible (f : ℕ → ℝ≥0) :
+  negligible (smaller f) := of_le inf_le_right example_spec
+
 theorem negligible.smaller_le (f : ℕ → ℝ≥0) :
   smaller f ≤ f
   := by

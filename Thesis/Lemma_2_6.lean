@@ -8,9 +8,14 @@ variable {ι : Type*} [Fintype ι] [Nonempty ι]
 
 section Lemma_2_6
 
-
+-- this doesn't seem correct. if ε is low enough it's going to have a square root of a negative
 def lemma_2_6_upper (ε : ℝ≥0) [NeZero ε]  (n : ℕ) : ℝ≥0 :=
   (√ (Real.log (2 * n / (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
+
+theorem lemma_2_6_upper.mono (ε : ℝ≥0) (ε' : ℝ≥0) [NeZero ε] [NeZero ε']
+  (le : ε ≤ ε') (n : ℕ) : lemma_2_6_upper ε n ≤ lemma_2_6_upper ε' n := by
+    -- it's clear from the definition
+    sorry
 
 
 variable (Λ : 𝓛 ι) [DiscreteTopology Λ] [IsZLattice ℝ Λ]
@@ -40,6 +45,8 @@ theorem Lemma_2_6_then'
             𝓛.smoothing_parameter (Λ n) (ε n) ≤ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n))
 
     sorry
+
+
 
 
 /--
@@ -80,9 +87,17 @@ theorem Lemma_2_6_then''
         ∃ (ε_pos : ∀ (n : ℕ), NeZero (ε n)),
           ∀ (n : ℕ), lemma_2_6_upper (ε n) (m n) ≤ s n by
       obtain ⟨ε,ε_pos,w⟩ := this
+      let sma := negligible.smaller ε
+      refine ⟨sma, ?_,?_,?_⟩
+      exact negligible.smaller_negligible ε
+      exact negligible.smaller_pos ε_pos
+      intro n
+      specialize w n
+      apply le_trans _ w
+      have := negligible.smaller_pos ε_pos
+      apply lemma_2_6_upper.mono _ _ ?_ (m n)
+      apply negligible.smaller_le ε
 
-
-      sorry
 
 
 

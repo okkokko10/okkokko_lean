@@ -74,17 +74,6 @@ lemma Continuous_dotProduct (v : ι → ℝ) : Continuous (dotProductBilin ℝ �
 
 --   sorry
 
-instance [DiscreteTopology Λ] [IsZLattice ℝ Λ] : DiscreteTopology (Λ.dualLattice) := by
-
-
-  sorry
-
-instance [DiscreteTopology Λ] [IsZLattice ℝ Λ] : IsZLattice ℝ (Λ.dualLattice) := by
-  sorry
-
-
-theorem 𝓛.dualLattice.involution : Function.Involutive (𝓛.dualLattice (ι := ι)) := sorry
-
 -- #check ZSpan
 
 def 𝓛.minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖₊
@@ -197,9 +186,30 @@ theorem basis_matrix_list (B : Module.Basis ι ℝ (ι → ℝ)) (i)
     congr
     exact Eq.symm (basis_matrix_inverse B)
 
+theorem matrix_basis_refl (A : Matrix ι ι ℝ) (B : Matrix ι ι ℝ) (h : A = B)
+  [invA : Invertible A] [inv : Invertible B]
+  : matrix_basis A = matrix_basis B := by
+    subst h
+    ext i x : 2
+    rfl
+
+theorem basis_matrix_injective : Function.Injective (basis_matrix (ι := ι) )  := by
+  intro b b' bb'
+  rw [←basis_matrix_inverse b]
+  rw [←basis_matrix_inverse b']
+  exact matrix_basis_refl _ _ bb'
+
 end basis_matrix
 
-abbrev 𝓛.ofBasis (B : Basis ι ℝ (ι → ℝ)) := Submodule.span ℤ (Set.range B)
+abbrev 𝓛.ofBasis (B : Basis ι ℝ (ι → ℝ)) : 𝓛 ι := Submodule.span ℤ (Set.range B)
+
+/--arbitrary basis -/
+noncomputable def 𝓛.toBasis : Basis ι ℝ (ι → ℝ) := (IsZLattice.basis Λ).ofZLatticeBasis ℝ
+@[simp]
+theorem 𝓛.ofBasis_of_toBasis : ofBasis Λ.toBasis = Λ := Basis.ofZLatticeBasis_span ℝ Λ (IsZLattice.basis Λ)
+
+
+
 
 -- temp name
 theorem 𝓛.dualLattice.limit_basis (B : Basis ι ℝ (ι → ℝ)) (x : ι → ℝ) :
@@ -267,8 +277,8 @@ lemma 𝓛.dualLattice.limit_basis''' (B : Basis ι ℝ (ι → ℝ)) :
     exact limit_basis' B x
 
 
-theorem 𝓛.Zn_ofBasis : Casts.Zn ι = 𝓛.ofBasis (Pi.basisFun ℝ ι) := by
-  unfold ofBasis
+theorem Casts.Zn_ofBasis : Casts.Zn ι = 𝓛.ofBasis (Pi.basisFun ℝ ι) := by
+  unfold 𝓛.ofBasis
   rw [Casts.Zn.eq_pi] -- todo: change to use Zn.exist
   ext x
   rw [Basis.mem_span_iff_repr_mem]
@@ -291,7 +301,7 @@ lemma 𝓛.basis_matrix_map (B : Basis ι ℝ (ι → ℝ)) :
   𝓛.ofBasis B = (Casts.Zn ι).map ((basis_matrix B).toLinearEquiv' inferInstance).toIntLinearEquiv
   := by
     ext x
-    rw [Zn_ofBasis]
+    rw [Casts.Zn_ofBasis]
     simp only [Submodule.mem_map, AddEquiv.coe_toIntLinearEquiv, AddEquiv.coe_mk,
       Matrix.toLinearEquiv'_apply, AddHom.toFun_eq_coe, LinearMap.coe_toAddHom,
       LinearEquiv.invFun_eq_symm, Equiv.coe_fn_mk, Matrix.toLin'_apply]
@@ -337,6 +347,66 @@ theorem 𝓛.dualBasis_spec (B : Basis ι ℝ (ι → ℝ)) :
     simp_all only [Submodule.mem_map, AddEquiv.coe_toIntLinearEquiv, AddEquiv.coe_mk, Matrix.toLinearEquiv'_apply,
       Matrix.invOf_eq_nonsing_inv, AddHom.toFun_eq_coe, LinearMap.coe_toAddHom, LinearEquiv.invFun_eq_symm,
       Equiv.coe_fn_mk, Matrix.toLin'_apply, matrix_basis_inverse]
+
+
+theorem 𝓛.dualLattice_by_basis :
+  Λ.dualLattice =
+  𝓛.ofBasis (𝓛.dualBasis Λ.toBasis) := by
+  rw [←𝓛.dualBasis_spec, ofBasis_of_toBasis]
+
+
+
+theorem 𝓛.dualBasis_involutive : Function.Involutive (𝓛.dualBasis (ι := ι)) := by
+  intro B
+  unfold dualBasis
+
+  set Y := (⅟(basis_matrix B)).transpose
+  change matrix_basis (⅟(basis_matrix (matrix_basis Y))).transpose = B
+  let B' := basis_matrix B
+  apply basis_matrix_injective
+  simp only [matrix_basis_inverse, Matrix.invOf_eq_nonsing_inv]
+  subst Y
+
+  rw [Matrix.transpose_invOf (basis_matrix B)]
+  simp only [Matrix.invOf_eq_nonsing_inv, Matrix.inv_inv_of_invertible, Matrix.transpose_transpose]
+
+-- theorem 𝓛.dualLattice.involutive : Function.Involutive (𝓛.dualLattice (ι := ι)) := by
+  -- intro Λ
+
+  -- refine Function.symmetric_apply_eq_iff.mp ?_
+  -- intro X Y xy
+  -- ext z
+  -- rw [SetLike.ext_iff] at xy
+  -- change z ∈ { x : ι → ℝ | ∀ v ∈ Y, x ⬝ᵥ v ∈ Casts.IntSubmodule} ↔ z ∈ X
+  -- change ∀z, z ∈ {x | ∀ v ∈ X, x ⬝ᵥ v ∈ Casts.IntSubmodule} ↔ z ∈ Y at xy
+  -- simp only [Set.mem_setOf_eq] at xy ⊢
+  -- simp_rw [dotProduct_comm z _]
+  -- constructor
+  -- intro ww
+  -- sorry
+
+
+instance : DiscreteTopology (Λ.dualLattice) := by
+  rw [𝓛.dualLattice_by_basis Λ]
+  exact ZSpan.instDiscreteTopologySubtypeMemSubmoduleIntSpanRangeCoeBasisRealOfFinite
+      (𝓛.dualBasis Λ.toBasis)
+
+
+instance [DiscreteTopology Λ] [IsZLattice ℝ Λ] : IsZLattice ℝ (Λ.dualLattice) := by
+  convert instIsZLatticeRealSpan (𝓛.dualBasis Λ.toBasis)
+  exact 𝓛.dualLattice_by_basis Λ
+
+
+theorem 𝓛.dualLattice_involutive : Λ.dualLattice.dualLattice = Λ := by
+  nth_rw 2 [dualLattice_by_basis]
+  rw [dualBasis_spec, dualBasis_involutive]
+  exact ofBasis_of_toBasis Λ
+
+theorem 𝓛.dualLattice_involutive' (L : 𝓛 ι) [DiscreteTopology ↥L]
+  [IsZLattice ℝ L] : Λ.dualLattice = L ↔ L.dualLattice = Λ := by
+  constructor <;>
+  · intro rfl
+    exact dualLattice_involutive _
 
 
 

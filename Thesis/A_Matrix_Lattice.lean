@@ -24,10 +24,10 @@ def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin 
 
 theorem A_Matrix.Λ_dual {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
-  (A.Λ_ortho') = (𝓛.dualLattice <| A.Λ_main').map (LinearMap.lsmul ℤ _ q)
+  (A.Λ_ortho') = q • (𝓛.dualLattice <| A.Λ_main')
   := by sorry
 theorem A_Matrix.Λ_dual' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  (A.Λ_main') = (𝓛.dualLattice <| A.Λ_ortho').map (LinearMap.lsmul ℤ _ q)
+  (A.Λ_main') = q • (𝓛.dualLattice <| A.Λ_ortho')
   := by sorry
 
 lemma A_Matrix.Λ_ortho'.has_qZn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :

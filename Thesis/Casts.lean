@@ -17,6 +17,7 @@ theorem IntSubmodule.exist (x) : x ∈ IntSubmodule ↔ ∃i : ℤ, i = x := by
   change x ∈ (Set.range fun x ↦ x • 1) ↔ ∃ i : ℤ, ↑i = x
   simp only [zsmul_eq_mul, mul_one, Set.mem_range]
 
+
 theorem Zn.eq_compLeftRange {ι : Type*} : Zn ι = (AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft ι).range )) := by rfl
 
 theorem Zn.eq_pi {ι : Type*} : Zn ι = Submodule.pi Set.univ (fun _ => Casts.IntSubmodule) := by
@@ -38,3 +39,15 @@ theorem Zn.eq_pi {ι : Type*} : Zn ι = Submodule.pi Set.univ (fun _ => Casts.In
   rw [←(aw i).choose_spec]
   simp only [zsmul_eq_mul, mul_one, AddMonoidHom.compLeft_apply, Int.coe_castAddHom,
     Function.comp_apply]
+
+theorem Zn.exist {ι : Type*} (x) : x ∈ Zn ι ↔ ∀i, ∃z : ℤ, z = x i := by
+  rw [Zn.eq_pi]
+  simp only [Submodule.mem_pi, Set.mem_univ, forall_const]
+  simp_rw [IntSubmodule.exist]
+
+theorem Zn.pi_single_mem {ι : Type*} [DecidableEq ι] (i i' : ι) : ((Pi.single (M := fun _ => ℝ) i (1 : ℝ) i') : ℝ) ∈ Casts.IntSubmodule := by
+  rw [Pi.single_apply]
+  change _ ∈ IntSubgroup
+  split
+  exact AddSubgroup.mem_zmultiples 1
+  exact AddSubgroup.zero_mem IntSubgroup

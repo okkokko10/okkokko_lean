@@ -159,7 +159,8 @@ instance basis_matrix.Invertible (B : Module.Basis ι ℝ (ι → ℝ)) : Invert
 def matrix_basis (B' : Matrix ι ι ℝ) [inv : Invertible B'] : Module.Basis ι ℝ (ι → ℝ) :=
   Basis.map (Pi.basisFun ℝ ι) (Matrix.toLinearEquiv' B' inv)
 
-theorem matrix_basis_spec (B' : Matrix ι ι ℝ) [inv : Invertible B']
+@[simp]
+theorem matrix_basis_inverse (B' : Matrix ι ι ℝ) [inv : Invertible B']
   : basis_matrix (matrix_basis B') = B' := by
     unfold matrix_basis
     unfold basis_matrix Module.Basis.toMatrix
@@ -181,8 +182,8 @@ theorem matrix_basis_list
       MulOpposite.op_one, Pi.smul_apply, Matrix.col_apply, one_smul]
 
 
-
-theorem basis_matrix_spec (B : Module.Basis ι ℝ (ι → ℝ))
+@[simp]
+theorem basis_matrix_inverse (B : Module.Basis ι ℝ (ι → ℝ))
   : matrix_basis (basis_matrix B ) = B := by
     ext i j
     simp only [matrix_basis_list, Matrix.col_apply]
@@ -191,10 +192,10 @@ theorem basis_matrix_spec (B : Module.Basis ι ℝ (ι → ℝ))
 
 theorem basis_matrix_list (B : Module.Basis ι ℝ (ι → ℝ)) (i)
   : B i = (basis_matrix B ).col i  := by
-    rw [←basis_matrix_spec B]
+    rw [←basis_matrix_inverse B]
     rw [matrix_basis_list]
     congr
-    exact Eq.symm (basis_matrix_spec B)
+    exact Eq.symm (basis_matrix_inverse B)
 
 end basis_matrix
 
@@ -265,15 +266,79 @@ lemma 𝓛.dualLattice.limit_basis''' (B : Basis ι ℝ (ι → ℝ)) :
     ext x
     exact limit_basis' B x
 
-lemma 𝓛.dualLattice.basis_ (B : Basis ι ℝ (ι → ℝ)) :
+
+theorem 𝓛.Zn_ofBasis : Casts.Zn ι = 𝓛.ofBasis (Pi.basisFun ℝ ι) := by
+  unfold ofBasis
+  rw [Casts.Zn.eq_pi] -- todo: change to use Zn.exist
+  ext x
+  rw [Basis.mem_span_iff_repr_mem]
+  simp only [Submodule.mem_pi, Set.mem_univ, forall_const, algebraMap_int_eq, Int.coe_castRingHom,
+    Pi.basisFun_repr, Set.mem_range]
+  simp_rw [Casts.IntSubmodule.exist]
+
+
+theorem 𝓛.basis_matrix_repr_leftInverse (B : Basis ι ℝ (ι → ℝ)) : Function.LeftInverse (basis_matrix B).mulVec (B.repr ·) := by
+  refine Function.leftInverse_iff_comp.mpr ?_
+  funext x i
+  simp only [Function.comp_apply, Basis.toMatrix_mulVec_repr, Pi.basisFun_repr, id_eq]
+
+theorem 𝓛.basis_matrix_repr_rightInverse (B : Basis ι ℝ (ι → ℝ)) : Function.RightInverse (basis_matrix B).mulVec (B.repr · ) := by
+  refine Function.rightInverse_of_injective_of_leftInverse ?_ ?_
+  exact Matrix.mulVec_injective_of_invertible (basis_matrix B)
+  exact basis_matrix_repr_leftInverse B
+
+lemma 𝓛.basis_matrix_map (B : Basis ι ℝ (ι → ℝ)) :
   𝓛.ofBasis B = (Casts.Zn ι).map ((basis_matrix B).toLinearEquiv' inferInstance).toIntLinearEquiv
   := by
-    -- simp only [AddSubgroup.toIntSubmodule_toAddSubgroup, AddSubgroup.mem_map,
-    --   AddMonoidHom.mem_range, AddMonoidHom.coe_coe, exists_exists_eq_and]
-    -- #check Submodule.map
-    -- ext x
-    -- exact limit_basis' B x
-    sorry
+    ext x
+    rw [Zn_ofBasis]
+    simp only [Submodule.mem_map, AddEquiv.coe_toIntLinearEquiv, AddEquiv.coe_mk,
+      Matrix.toLinearEquiv'_apply, AddHom.toFun_eq_coe, LinearMap.coe_toAddHom,
+      LinearEquiv.invFun_eq_symm, Equiv.coe_fn_mk, Matrix.toLin'_apply]
+    have tt y : (basis_matrix B).mulVec y = x ↔ (B).repr x = y := by
+      constructor
+      intro rfl
+      apply 𝓛.basis_matrix_repr_rightInverse B
+      intro rfl
+      apply 𝓛.basis_matrix_repr_leftInverse B
+    simp_rw [tt]
+    simp_rw [Basis.mem_span_iff_repr_mem]
+    simp only [algebraMap_int_eq, Int.coe_castRingHom, Set.mem_range, ↓existsAndEq,
+      Pi.basisFun_repr, and_true]
+
+
+lemma 𝓛.dualLattice.limit_basis'''' (B : Basis ι ℝ (ι → ℝ)) :
+  (dualLattice (𝓛.ofBasis B)) =
+  (Casts.Zn ι).map ((⅟(basis_matrix B)).transpose.toLinearEquiv' inferInstance).toIntLinearEquiv
+  := by
+    convert_to
+      dualLattice (ofBasis B) =
+        Submodule.map
+          (((basis_matrix B).transpose).toLinearEquiv' inferInstance).toAddEquiv.toIntLinearEquiv.symm
+          (Casts.Zn ι)
+
+    rw [limit_basis''' B]
+    set pp := ((basis_matrix B).transpose.toLinearEquiv' inferInstance).toAddEquiv.toIntLinearEquiv
+    apply SetLike.ext'_iff.mpr
+
+    rw [Submodule.comap_coe]
+    rw [Submodule.map_coe]
+    exact Eq.symm (LinearEquiv.image_symm_eq_preimage pp ↑(Casts.Zn ι))
+
+def 𝓛.dualBasis (B : Basis ι ℝ (ι → ℝ)) := (matrix_basis (⅟(basis_matrix B)).transpose)
+
+theorem 𝓛.dualBasis_spec (B : Basis ι ℝ (ι → ℝ)) :
+  (dualLattice (𝓛.ofBasis B)) =
+  𝓛.ofBasis (𝓛.dualBasis B) := by
+    unfold dualBasis
+
+    rw [𝓛.dualLattice.limit_basis'''', basis_matrix_map]
+    ext x : 1
+    simp_all only [Submodule.mem_map, AddEquiv.coe_toIntLinearEquiv, AddEquiv.coe_mk, Matrix.toLinearEquiv'_apply,
+      Matrix.invOf_eq_nonsing_inv, AddHom.toFun_eq_coe, LinearMap.coe_toAddHom, LinearEquiv.invFun_eq_symm,
+      Equiv.coe_fn_mk, Matrix.toLin'_apply, matrix_basis_inverse]
+
+
 
 example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 
@@ -299,7 +364,7 @@ example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
   let B_dual : Module.Basis ι ℝ (ι → ℝ) := matrix_basis B'_dual
 
   have B_dual_spec : iden.toMatrix B_dual = B'_dual := by
-    exact matrix_basis_spec B'_dual
+    exact matrix_basis_inverse B'_dual
 
 
 

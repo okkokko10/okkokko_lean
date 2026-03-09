@@ -21,33 +21,46 @@ theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prim
   : ∃ (ε : (n : N) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), -- change
   ∀n : N, 𝓛.smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n := by
 
-  #check Lemma_2_6_then'
-  #check A_Matrix.Λ_dual'
-  let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then' (ι := (Fin <| m ·)) ?_ (fun n ↦ (A n).Λ_ortho') (s) ?_
-  use ε, negl_ε, ε_pos
-  intro n
-  specialize so n
-  -- simp only [Function.comp_apply] at so
-  specialize hA n
-  set ww := 𝓛.smoothing_parameter (A n).Λ_ortho' (ε n)
-  -- change ww ≤ _ at so
-  apply le_trans so
 
 
-  unfold lemma_5_3_statement at hA
-  -- nth_rw 2 [A_Matrix.Λ_dual] at so
+  -- change
+  --   ∃ ε,
+  --     ∃ (_ : negligible ε) (ε_pos : ∀ (n : N), NeZero (ε n)),
+  --       ∀ (n : N), (A n).Λ_ortho'.smoothing_parameter (ε n) ≤ s n
+
+  -- have ww n ε (_ : NeZero ε) :
+  --   (A n).Λ_ortho'.smoothing_parameter ε = (A n).Λ_main'.smoothing_parameter ε
+
+  -- #check 2 • (𝓛.dualLattice <| (A 0).Λ_ortho')
+
+  -- #check IsZLattice
+  -- #check Lemma_2_6_then''
+  -- #check A_Matrix.Λ_dual'
+  -- let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then' (ι := (Fin <| m ·)) ?_ (fun n ↦ (A n).Λ_ortho') (s) ?_
+  -- use ε, negl_ε, ε_pos
+  -- intro n
+  -- specialize so n
+  -- -- simp only [Function.comp_apply] at so
+  -- specialize hA n
+  -- set ww := 𝓛.smoothing_parameter (A n).Λ_ortho' (ε n)
+  -- -- change ww ≤ _ at so
+  -- apply le_trans so
+
+
+  -- unfold lemma_5_3_statement at hA
+  -- -- nth_rw 2 [A_Matrix.Λ_dual] at so
 
 
 
 
 
-  sorry
-  sorry
-  have m_top := mHyp'_tendsTo _ _ q_prime m_hyp
-  #check Asymptotics.IsLittleO.comp_tendsto
-  unfold ω_sqrt_log at *
-  #check Asymptotics.IsBigO.trans_isLittleO
-  have : s =O[Filter.atTop] (s ∘ m) := by sorry
-  -- refine IsBigO.trans_isLittleO ?_ ?_
+  -- sorry
+  -- sorry
+  -- have m_top := mHyp'_tendsTo _ _ q_prime m_hyp
+  -- #check Asymptotics.IsLittleO.comp_tendsto
+  -- unfold ω_sqrt_log at *
+  -- #check Asymptotics.IsBigO.trans_isLittleO
+  -- have : s =O[Filter.atTop] (s ∘ m) := by sorry
+  -- -- refine IsBigO.trans_isLittleO ?_ ?_
 
   sorry

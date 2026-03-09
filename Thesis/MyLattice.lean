@@ -279,12 +279,10 @@ lemma 𝓛.dualLattice.limit_basis''' (B : Basis ι ℝ (ι → ℝ)) :
 
 theorem Casts.Zn_ofBasis : Casts.Zn ι = 𝓛.ofBasis (Pi.basisFun ℝ ι) := by
   unfold 𝓛.ofBasis
-  rw [Casts.Zn.eq_pi] -- todo: change to use Zn.exist
   ext x
-  rw [Basis.mem_span_iff_repr_mem]
-  simp only [Submodule.mem_pi, Set.mem_univ, forall_const, algebraMap_int_eq, Int.coe_castRingHom,
-    Pi.basisFun_repr, Set.mem_range]
-  simp_rw [Casts.IntSubmodule.exist]
+  rw [Casts.Zn.exist]
+  rw [Module.Basis.mem_span_iff_repr_mem]
+  simp only [algebraMap_int_eq, Int.coe_castRingHom, Pi.basisFun_repr, Set.mem_range]
 
 
 theorem 𝓛.basis_matrix_repr_leftInverse (B : Basis ι ℝ (ι → ℝ)) : Function.LeftInverse (basis_matrix B).mulVec (B.repr ·) := by
@@ -369,21 +367,6 @@ theorem 𝓛.dualBasis_involutive : Function.Involutive (𝓛.dualBasis (ι := �
 
   rw [Matrix.transpose_invOf (basis_matrix B)]
   simp only [Matrix.invOf_eq_nonsing_inv, Matrix.inv_inv_of_invertible, Matrix.transpose_transpose]
-
--- theorem 𝓛.dualLattice.involutive : Function.Involutive (𝓛.dualLattice (ι := ι)) := by
-  -- intro Λ
-
-  -- refine Function.symmetric_apply_eq_iff.mp ?_
-  -- intro X Y xy
-  -- ext z
-  -- rw [SetLike.ext_iff] at xy
-  -- change z ∈ { x : ι → ℝ | ∀ v ∈ Y, x ⬝ᵥ v ∈ Casts.IntSubmodule} ↔ z ∈ X
-  -- change ∀z, z ∈ {x | ∀ v ∈ X, x ⬝ᵥ v ∈ Casts.IntSubmodule} ↔ z ∈ Y at xy
-  -- simp only [Set.mem_setOf_eq] at xy ⊢
-  -- simp_rw [dotProduct_comm z _]
-  -- constructor
-  -- intro ww
-  -- sorry
 
 
 instance : DiscreteTopology (Λ.dualLattice) := by

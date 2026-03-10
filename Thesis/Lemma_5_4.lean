@@ -28,7 +28,7 @@ open scoped NNReal
 
 -- this collection of subsets have all but 2q^-n values
 def corollary_5_4_condition {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (subsets : (n : N) → Set (A_Matrix n (m n) (q n)))
-  := (∀n, ℙ (subsets n) ≤ 2 * ((q n) ^ (- n : ℝ)))
+  := (∀n, ℙ (subsets n)ᶜ ≤ 2 * ((q n) ^ (- n : ℝ)))
 
 
 def corollary_5_4_statement (q : N → Q) [∀n, NeZero (q n)]  (m : N → M)
@@ -38,11 +38,30 @@ def corollary_5_4_statement (q : N → Q) [∀n, NeZero (q n)]  (m : N → M)
       (fun n ↦ uniform_over_Zqn n (q n))
 
 /-- an example for the proof -/
-def corollary_5_4.valid_subsets (q : N → Q) [∀n, NeZero (q n)] (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
-  : (n : N) → Set (A_Matrix n (m n) (q n)) := sorry
+def corollary_5_4.valid_subsets (q : N → Q) [∀n, NeZero (q n)] (m : N → M)
+  : (n : N) → Set (A_Matrix n (m n) (q n)) := by
+    intro n
+    let w := (lemma_5_1_statement : Set (A_Matrix n (m n) (q n)))
+    let ww := (lemma_5_3_statement : Set (A_Matrix n (m n) (q n)))
+    exact ww ∩ w
+    -- have ww n := fun (A : A_Matrix n (m n) (q n)) ↦ ∀(s : (n : N) → ℝ≥0) (hs : s =ω (sqrt_log ∘ m)), (lemma_5_3_also_statement A (s n))
+
 
 def corollary_5_4.valid_subsets_spec (q : N → Q) [∀n, NeZero (q n)] (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
-  : corollary_5_4_condition (valid_subsets q m q_hyp m_hyp) := sorry
+  : corollary_5_4_condition (valid_subsets q m) := by
+    unfold corollary_5_4_condition
+    intro n
+    unfold valid_subsets
+    simp only
+    have o1 : (ℙ (lemma_5_1_statementᶜ : Set (A_Matrix n (m n) (q n))) ≤ (q n) ^ (-n : ℝ))
+      := lemma_5_1 (q_hyp n) (m_hyp n)
+    have o3 : (ℙ (lemma_5_3_statementᶜ : Set (A_Matrix n (m n) (q n))) ≤ (q n) ^ (-n : ℝ))
+      := lemma_5_3 (q_hyp n) (m_hyp n)
+    trans  (ℙ (lemma_5_3_statementᶜ : Set (A_Matrix n (m n) (q n))) + ℙ (lemma_5_1_statementᶜ : Set (A_Matrix n (m n) (q n))))
+    rw [Set.compl_inter]
+    exact measure_union_le lemma_5_3_statementᶜ lemma_5_1_statementᶜ
+    rw [two_mul]
+    exact add_le_add o3 o1
 
 theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   : ∃(subsets : (n : N) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
@@ -50,11 +69,16 @@ theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp :
   ∀(s : N → ℝ≥0)(_ : s =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n)) , -- ≥ω is the same as =ω, right?
   corollary_5_4_statement q m A s s_pos
   := by
-  refine ⟨corollary_5_4.valid_subsets _ _ q_hyp m_hyp, corollary_5_4.valid_subsets_spec _ _ _ _, ?_⟩
+  refine ⟨corollary_5_4.valid_subsets q m, corollary_5_4.valid_subsets_spec _ _ q_hyp m_hyp, ?_⟩
   intro A A_spec s s_LittleO s_pos
 
-  have key_5_1 n: lemma_5_1_statement (A n) := sorry
-  obtain ⟨ε, negl_ε, ε_pos,key_5_3⟩ : (lemma_5_3_also_statement A s) := sorry
+  have A_mem n := Set.mem_inter_iff _ _ _ |>.mp (A_spec n)
+  have key_5_1 n : lemma_5_1_statement (A n) := (A_mem n).right
+  obtain ⟨ε, negl_ε, ε_pos,key_5_3⟩ : (lemma_5_3_also_statement A s) :=
+    have ee n: lemma_5_3_statement (A n) := (A_mem n).left
+    lemma_5_3_also q_hyp m_hyp A ee s s_LittleO
+
+  clear A_spec s_LittleO
 
   unfold lemma_5_3_relationship at key_5_3
   let sε {n m q : ℕ} {_ : NeZero q} (A : A_Matrix n m q) (ε) {_ : NeZero ε} (s) := (A).Λ_ortho'.smoothing_parameter (ε) ≤ s

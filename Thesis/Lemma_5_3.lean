@@ -14,12 +14,19 @@ def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
   : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
 
+def lemma_5_3_relationship {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (A : (n : N) → (A_Matrix n (m n) (q n)))
+  (s : (n : N) → ℝ≥0) (ε : (n : N) → ℝ≥0) [∀n, NeZero (ε n)]
+  := ∀n : N, 𝓛.smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n
 
-theorem lemma_5_3_also (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+def lemma_5_3_also_statement {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (A : (n : N) → (A_Matrix n (m n) (q n)))
+  (s : (n : N) → ℝ≥0) :=
+  ∃ (ε : (n : N) → ℝ≥0) (_ : negligible ε) (_ : ∀n, NeZero (ε n)), -- change
+  lemma_5_3_relationship A s ε
+
+theorem lemma_5_3_also {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   (A : (n : N) → (A_Matrix n (m n) (q n)))(hA : ∀n, lemma_5_3_statement (A n))
   (s : (n : N) → ℝ≥0) (hs : s =ω (sqrt_log ∘ m))
-  : ∃ (ε : (n : N) → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), -- change
-  ∀n : N, 𝓛.smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n := by
+  : lemma_5_3_also_statement A s := by
 
 
 

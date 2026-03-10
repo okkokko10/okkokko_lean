@@ -156,6 +156,9 @@ theorem negligible.superpolynomialDecay (f : ℕ → ℝ) : SuperpolynomialDecay
   sorry
 
 
+theorem negligible.smul {c : ℝ≥0} {f : ℕ → ℝ≥0} (negl: negligible f)  : negligible (c • f)
+  := by
+  sorry
 
 
 

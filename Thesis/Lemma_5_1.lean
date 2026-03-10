@@ -3,7 +3,7 @@ import Thesis.Hypotheses
 
 open ProbabilityTheory
 
--- "the subset-sums of the columns of A generate Zqn"
+/-- "the subset-sums of the columns of A generate Zqn" -/
 def lemma_5_1_statement {n m q : ℕ} (A : A_Matrix n m q) : Prop :=
   A.syndrome_map '' {e | ∀i, e i = 0 ∨ e i = 1} = Set.univ
 

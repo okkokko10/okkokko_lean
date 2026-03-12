@@ -70,18 +70,6 @@ noncomputable def 𝓛.mod_distribution (e : ProbabilityMeasure Λ) : Probabilit
 
 #check HasQuotient
 
--- todo: move to Gaussians
-noncomputable def 𝓛.gaussianProbability (s : ℝ≥0) [NeZero s] (c : ι → ℝ)
-  : ProbabilityMeasure (ι → ℝ)
-  := .mk (𝓛.gaussianDistribution Λ s c) (gaussianDistribution_prob Λ s c)
-
-noncomputable def 𝓛.gaussianProbability_subtype (s : ℝ≥0) [NeZero s] (c : ι → ℝ)
-  : ProbabilityMeasure (Λ)
-  := by
-    have := Λ.gaussianProbability s c
-
-    sorry
-
 
 theorem corollary_2_8 (Λ' : 𝓛 ι) [DiscreteTopology Λ'] [IsZLattice ℝ Λ']
   (sub : Λ' ≤ Λ)
@@ -89,5 +77,5 @@ theorem corollary_2_8 (Λ' : 𝓛 ι) [DiscreteTopology Λ'] [IsZLattice ℝ Λ'
   (s_prop :  Λ'.smoothing_parameter ε ≤ s)
   (c : ι → ℝ) :
   have : NeZero s := sorry; -- by s_prop which states s is ≥ a positive value
-  statistical_distance ( 𝓛.mod_distribution Λ' (𝓛.gaussianProbability_subtype Λ s c)) (𝓛.quot_uniform _ _ sub) ≤ 2 * ε
+  statistical_distance ( 𝓛.mod_distribution Λ' (𝓛.discreteGaussianProbability Λ s c)) (𝓛.quot_uniform _ _ sub) ≤ 2 * ε
   := sorry

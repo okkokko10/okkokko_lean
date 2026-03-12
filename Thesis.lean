@@ -13,3 +13,4 @@ import Thesis.Zqn
 import Thesis.A_Matrix
 import Thesis.A_Matrix_Lattice
 import Thesis.Gaussians
+import Thesis.Lemma_2_8

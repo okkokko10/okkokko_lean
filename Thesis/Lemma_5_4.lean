@@ -94,3 +94,17 @@ theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp :
   apply negligible.of_le key_5_2
   change negligible ((2 : ℝ≥0) • ε)
   exact negligible.smul negl_ε
+
+-- maybe also do this?
+theorem corollary_5_4_prob (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+  (s : N → ℝ≥0)(s_growth : s =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n)) :
+  let A_is n := ProbabilityTheory.uniformOn_isProbabilityMeasure ( s:= (Set.univ : Set (A_Matrix n (m n) (q n)))) sorry sorry
+  let A n : ProbabilityMeasure _ := ⟨_,A_is n⟩
+  let x := fun n ↦ (int_gaussian (m n) (s n))
+  let A_x n := ProbabilityMeasure.prod (A n) (x n)
+  let A_Ax n := ProbabilityMeasure.map (A_x n) (f :=
+    fun ⟨A,x⟩ ↦ (⟨A,A.syndrome_map x⟩ : _ × _)
+    ) sorry
+
+
+  False := sorry

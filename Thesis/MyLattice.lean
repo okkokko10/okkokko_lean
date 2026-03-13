@@ -76,7 +76,7 @@ lemma Continuous_dotProduct (v : ι → ℝ) : Continuous (dotProductBilin ℝ �
 
 -- #check ZSpan
 
-def 𝓛.minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := ⨅ (x ∈ Λ) (_ : x ≠ 0), ‖x‖₊
+def 𝓛.minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := sInf  { ‖x‖₊ | (x ∈ Λ) (_ : x ≠ 0) }
 
 /-
 paper:
@@ -116,7 +116,7 @@ theorem 𝓛.minimum_distance.positive
   #check NNReal.instConditionallyCompleteLinearOrderBot
   #check ConditionallyCompleteLinearOrderBot
   #check ConditionallyCompleteLattice
-  change ¬(⨅x, ⨅ (_ : x ∈ Λ), ⨅ (_ : ¬x = 0), ‖x‖₊) = 0
+  -- change ¬(⨅x, ⨅ (_ : x ∈ Λ), ⨅ (_ : ¬x = 0), ‖x‖₊) = 0
 
   intro asm
   #check InfSet
@@ -125,8 +125,6 @@ theorem 𝓛.minimum_distance.positive
 
 
   sorry
-
-theorem 𝓛.minimum_distance_sup.positive [Nonempty ι] : NeZero (𝓛.minimum_distance_sup Λ) := by sorry
 
 
 open Module
@@ -441,5 +439,44 @@ example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 
 -- this actually is related
 #check Module.Dual
+
+
+theorem 𝓛.basis_ind'
+  {motive : (Λ : 𝓛 ι) → (_ : DiscreteTopology ↥Λ) → (IsZLattice ℝ Λ) → Prop}
+  : ((a : Basis ι ℝ (ι → ℝ)) → motive (𝓛.ofBasis a) (
+    ZSpan.instDiscreteTopologySubtypeMemSubmoduleIntSpanRangeCoeBasisRealOfFinite a) (instIsZLatticeRealSpan a)
+    )
+  → (Λ : 𝓛 ι) → (dt : DiscreteTopology ↥Λ) → (zl: IsZLattice ℝ Λ) → motive Λ dt zl :=
+  sorry
+
+#check Quotient.ind
+theorem 𝓛.basis_ind
+  {motive : (Λ : 𝓛 ι) → Prop}
+  (Λ : 𝓛 ι) [dt : DiscreteTopology ↥Λ] [zl: IsZLattice ℝ Λ]
+  (prf : (B : Basis ι ℝ (ι → ℝ)) → motive (𝓛.ofBasis B))
+  : motive Λ := Λ.ofBasis_of_toBasis ▸ prf (Λ.toBasis)
+
+
+theorem 𝓛.minimum_distance_sup.positive [Nonempty ι] : NeZero (𝓛.minimum_distance_sup Λ) := by
+  constructor
+  apply pos_iff_ne_zero.mp
+  apply basis_ind Λ
+  -- apply basis_ind (motive := fun Λ ↦ 0 < Λ.minimum_distance_sup)
+  intro B
+  unfold minimum_distance_sup minimum_distance
+  have := 𝓛.ofBasis_of_toBasis Λ
+  let e : ℝ≥0 := sorry -- shortest basis vector length
+  have e_pos : 0 < e := sorry
+  apply lt_of_lt_of_le e_pos
+
+  set p := {y | ∃ x ∈ ofBasis B, ∃ (_ : x ≠ 0), ‖x‖₊ = y}
+
+  have e_bound : ∀y ∈ p, e ≤ y := sorry
+  have p_nonempty : p.Nonempty := sorry
+  exact ConditionallyCompleteLattice.le_csInf p e p_nonempty e_bound
+
+
+
+
 
 end lattices

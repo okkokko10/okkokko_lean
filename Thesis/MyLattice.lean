@@ -138,9 +138,15 @@ theorem 𝓛.basis_matrix_repr_rightInverse (B : Basis ι ℝ (ι → ℝ)) : Fu
   exact Matrix.mulVec_injective_of_invertible (basis_matrix B)
   exact basis_matrix_repr_leftInverse B
 
-lemma 𝓛.basis_matrix_map (B : Basis ι ℝ (ι → ℝ)) :
-  𝓛.ofBasis B = (Casts.Zn ι).map ((basis_matrix B).toLinearEquiv' inferInstance).toIntLinearEquiv
+def 𝓛.basisEquivalence (B : Basis ι ℝ (ι → ℝ)) : (ι → ℝ) ≃ₗ[ℤ] ι → ℝ :=
+  ((basis_matrix B).toLinearEquiv' inferInstance).toIntLinearEquiv
+def 𝓛.basisMap (B : Basis ι ℝ (ι → ℝ)) : (ι → ℝ) →ₗ[ℤ] ι → ℝ :=
+  𝓛.basisEquivalence B
+
+theorem 𝓛.ofBasis_basisEquivalence (B : Basis ι ℝ (ι → ℝ)) :
+  𝓛.ofBasis B = (Casts.Zn ι).map (𝓛.basisEquivalence B)
   := by
+    unfold 𝓛.basisEquivalence
     ext x
     rw [Casts.Zn_ofBasis]
     simp only [Submodule.mem_map, AddEquiv.coe_toIntLinearEquiv, AddEquiv.coe_mk,
@@ -310,7 +316,7 @@ theorem 𝓛.dualBasis_spec (B : Basis ι ℝ (ι → ℝ)) :
   𝓛.ofBasis (𝓛.dualBasis B) := by
     unfold dualBasis
 
-    rw [𝓛.dualLattice.limit_basis'''', basis_matrix_map]
+    rw [𝓛.dualLattice.limit_basis'''', 𝓛.ofBasis_basisEquivalence, 𝓛.basisEquivalence]
     ext x : 1
     simp_all only [Submodule.mem_map, AddEquiv.coe_toIntLinearEquiv, AddEquiv.coe_mk, Matrix.toLinearEquiv'_apply,
       Matrix.invOf_eq_nonsing_inv, AddHom.toFun_eq_coe, LinearMap.coe_toAddHom, LinearEquiv.invFun_eq_symm,
@@ -418,6 +424,11 @@ example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 section minimum_distance
 
 def 𝓛.minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := sInf  { ‖x‖₊ | (x ∈ Λ) (_ : x ≠ 0) }
+omit [DecidableEq ι] in
+theorem 𝓛.minimum_distance_def (Λ : 𝓛 ι) [NormedAddCommGroup (ι → ℝ)] : Λ.minimum_distance = sInf { y | ∃x ∈ Λ, (x ≠ 0) ∧ ‖x‖₊ = y } := by
+  unfold minimum_distance
+  simp only [ne_eq, exists_prop]
+
 
 /-
 paper:
@@ -442,30 +453,49 @@ def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
 /-- λ₁∞ -/
 def 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
 
+#check Eq.rec
+
+#check Quotient.ind
+def 𝓛.basis_ind''
+  {motive : (𝓛 ι) → Sort*}
+  (prf : (B : Basis ι ℝ (ι → ℝ)) → motive (𝓛.ofBasis B))
+  : motive Λ := Λ.ofBasis_of_toBasis ▸ prf (Λ.toBasis)
+
+
+
 -- issue: the norm is already implied
 -- IsZLattice alongside Nonempty ι should imply Λ ≠ ⊥
 theorem 𝓛.minimum_distance.positive
   -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
-  (h : Λ ≠ ⊥) : NeZero (𝓛.minimum_distance Λ) := by
+  : NeZero (𝓛.minimum_distance Λ) := by
   -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
-  constructor
-  unfold 𝓛.minimum_distance
-  have tw (x : ι → ℝ) : ‖x‖₊ = 0 → x = 0 := nnnorm_eq_zero.mp
-  #check IsZLattice
+  apply NeZero.of_pos
 
-  simp only [ne_eq]
-  #check NNReal.instConditionallyCompleteLinearOrderBot
-  #check ConditionallyCompleteLinearOrderBot
-  #check ConditionallyCompleteLattice
-  -- change ¬(⨅x, ⨅ (_ : x ∈ Λ), ⨅ (_ : ¬x = 0), ‖x‖₊) = 0
 
-  intro asm
-  #check InfSet
+  induction Λ using basis_ind'' with | _ B =>
+  rw [minimum_distance_def]
+  -- rw [ofBasis_basisEquivalence]
+  -- simp only [Submodule.mem_map, ne_eq, exists_exists_and_eq_and, EmbeddingLike.map_eq_zero_iff]
 
 
 
 
-  sorry
+
+  let e : ℝ≥0 :=
+
+    sorry -- shortest basis vector length
+  have e_pos : 0 < e := sorry
+  apply lt_of_lt_of_le e_pos
+
+  set p := {y | ∃ x ∈ ofBasis B, x ≠ 0 ∧ ‖x‖₊ = y}
+
+  have e_bound : ∀y ∈ p, e ≤ y := sorry
+  have p_nonempty : p.Nonempty := sorry
+  exact ConditionallyCompleteLattice.le_csInf p e p_nonempty e_bound
+
+
+
+
 
 
 

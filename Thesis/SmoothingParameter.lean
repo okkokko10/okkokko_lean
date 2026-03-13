@@ -13,7 +13,7 @@ local instance (s : ℝ≥0) [NeZero s] : NeZero s⁻¹ := .mk fun cont ↦ NeZe
 η
 -/
 def 𝓛.smoothing_parameter (ε : ℝ≥0) [NeZero ε] : ℝ≥0
-  := sInf ({s | ∃(_ : NeZero s), 𝓛.gaussianMeasure' (𝓛.dualLattice Λ) s⁻¹ 0 {0}ᶜ ≤ ε})
+  := sInf ({s | ∃(_ : NeZero s), 𝓛.latticeGaussianMeasure (𝓛.dualLattice Λ) s⁻¹ 0 {0}ᶜ ≤ ε})
 
 theorem 𝓛.smoothing_parameter.positive (ε : ℝ≥0) [NeZero ε] : NeZero (Λ.smoothing_parameter ε) := by
   -- definition 2.5 asserts this.
@@ -35,6 +35,6 @@ theorem 𝓛.smoothing_parameter.antitone (ε : ℝ≥0) (ε' : ℝ≥0) [NeZero
     simp only [Set.setOf_subset_setOf, forall_exists_index]
     intro s ns p
     use ns
-    set w := (Λ.dualLattice.gaussianMeasure' s⁻¹ 0) {0}ᶜ
+    set w := (Λ.dualLattice.latticeGaussianMeasure s⁻¹ 0) {0}ᶜ
     have : (ε : ℝ≥0∞ ) ≤ ε' := by exact ENNReal.coe_le_coe.mpr le
     exact Std.IsPreorder.le_trans w (↑ε) (↑ε') p this

@@ -111,11 +111,16 @@ theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1
 
     -- todo: show A.Λ_ortho' ≤ Casts.Zn _
 
+    have sub : A.Λ_ortho' ≤ Casts.Zn _ := sorry
 
-
-    have isomorphic_ver : statistical_distance ( e_modΛt_distribution ) (𝓛.quot_uniform (Casts.Zn _) Λt sorry) ≤ 2 * ε := sorry
+    have isomorphic_ver : statistical_distance ( e_modΛt_distribution ) (𝓛.quot_uniform (Casts.Zn _) Λt sub) ≤ 2 * ε := sorry
 
     -- todo: statistical distance is conserved by maps?
+    have : ∃equi : (𝓛.quot (Casts.Zn (Fin m)) Λt) ≃ᵐ (Fin n → ZMod q),
+      (𝓛.quot_uniform (Casts.Zn (Fin m)) Λt sub).map (f := equi) (AEMeasurable.of_discrete) = (uniform_over_Zqn n q) := by
+
+        sorry
+
 
     -- plan: implement Zqn as a quotient of Zn
 

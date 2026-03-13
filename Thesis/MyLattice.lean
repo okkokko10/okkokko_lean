@@ -19,113 +19,6 @@ section lattices
 
 
 
-def dualLattice_basic (Λ : 𝓛 ι) : AddSubgroup (ι → ℝ) where
-  carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ Casts.IntSubmodule}
-  add_mem' := by
-    intro a b ha hb v hL
-    specialize ha v hL
-    specialize hb v hL
-    rw [add_dotProduct]
-    exact AddMemClass.add_mem ha hb
-  zero_mem' := by
-    simp only [Set.mem_setOf_eq, zero_dotProduct, zero_mem, implies_true]
-  neg_mem' := by
-    simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
-
-def 𝓛.dualLattice : 𝓛 ι := (dualLattice_basic Λ).toIntSubmodule
-
-
-lemma 𝓛.dualLattice.mem_def' (Λ : 𝓛 ι) (x : ι → ℝ) :
-  x ∈ (dualLattice Λ) ↔
-  ∀ v ∈ Λ,  x ∈ Casts.IntSubmodule.comap (dotProductBilin ℤ ℤ v) := by
-    unfold dualLattice dualLattice_basic
-    simp only [Submodule.mem_comap, dotProductBilin_apply_apply, dotProduct_comm]
-    rfl
-
-lemma 𝓛.dualLattice.mem_def''.step1 (v : ι → ℝ) :
-  Submodule.comap (dotProductBilin ℤ ℤ v) Casts.IntSubmodule
-  = ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)
-  := by
-    apply SetLike.coe_set_eq.mp
-    ext y
-    simp only [Submodule.comap_coe, AddSubgroup.coe_toIntSubmodule, Set.mem_preimage,
-      dotProductBilin_apply_apply, SetLike.mem_coe, ZLattice.coe_comap]
-
-#check instIsZLatticeComap
-
-
-
-
-lemma Continuous_dotProduct (v : ι → ℝ) : Continuous (dotProductBilin ℝ ℝ v)
-  := LinearMap.continuous_on_pi (dotProductBilin ℝ ℝ v)
-
--- I'm an idiot, this obviously isn't discrete
--- #check ZLattice.comap_discreteTopology
--- instance (v : ι → ℝ) : DiscreteTopology (ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)) := by
---   have : DiscreteTopology ↥Casts.IntSubmodule := by
---     sorry
---   apply ZLattice.comap_discreteTopology
---   exact Continuous_dotProduct v
-
-
---   sorry
-
--- example (v : ι → ℝ)  : IsZLattice ℝ (ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)) := by
-
---   sorry
-
--- #check ZSpan
-
-def 𝓛.minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := sInf  { ‖x‖₊ | (x ∈ Λ) (_ : x ≠ 0) }
-
-/-
-paper:
-The minimum distance λ1(Λ) of a lattice Λ is the length (in the Euclidean `2 norm, unless otherwise
-indicated) of its shortest nonzero vector: λ1(Λ) = min06=x∈Λkxk. More generally, the ith successive
-minimum λi(Λ) is the smallest radius r such that Λ contains i linearly independent vectors of norm at
-most r. We write λ∞
-1
-to denote the minimum distance measured in the ∞ norm (which is defined as ‖x‖∞ = max |xᵢ|).
--/
--- i or more
-def successive_minimum_distance [Norm (ι → ℝ)] (i : ℕ)
-  := ⨅ (r : ℝ≥0) (_ : ∃s ⊆ (Λ.carrier), LinearIndependent ℝ (Subtype.val : s → _) ∧ s.encard ≤ i ∧ ∀x ∈ s, ‖x‖ ≤ r), r
--- note: for i := 0 this is ⊥ and i := 1 this is 0
-def successive_minimum_distance' [Norm (ι → ℝ)] (i : ℕ)
-  := ⨅ (s ⊆ (Λ.carrier)) (_ : LinearIndependent ℝ (Subtype.val : s → _)) (_ : s.encard ≤ i), ⨆x ∈ s, ‖x‖
-
--- def dualLattice
-
-def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
-
-/-- λ₁∞ -/
-def 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
-
--- issue: the norm is already implied
--- IsZLattice alongside Nonempty ι should imply Λ ≠ ⊥
-theorem 𝓛.minimum_distance.positive
-  -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
-  (h : Λ ≠ ⊥) : NeZero (𝓛.minimum_distance Λ) := by
-  -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
-  constructor
-  unfold 𝓛.minimum_distance
-  have tw (x : ι → ℝ) : ‖x‖₊ = 0 → x = 0 := nnnorm_eq_zero.mp
-  #check IsZLattice
-
-  simp only [ne_eq]
-  #check NNReal.instConditionallyCompleteLinearOrderBot
-  #check ConditionallyCompleteLinearOrderBot
-  #check ConditionallyCompleteLattice
-  -- change ¬(⨅x, ⨅ (_ : x ∈ Λ), ⨅ (_ : ¬x = 0), ‖x‖₊) = 0
-
-  intro asm
-  #check InfSet
-
-
-
-
-  sorry
-
 
 open Module
 
@@ -134,6 +27,39 @@ example :
   let B : Module.Basis ι ℝ (ι → ℝ) := (IsZLattice.basis Λ).ofZLatticeBasis ℝ Λ;
   Submodule.span ℤ (Set.range B) = Λ
   := (IsZLattice.basis Λ).ofZLatticeBasis_span ℝ
+
+section ofBasis
+
+abbrev 𝓛.ofBasis (B : Basis ι ℝ (ι → ℝ)) : 𝓛 ι := Submodule.span ℤ (Set.range B)
+
+/--arbitrary basis -/
+noncomputable def 𝓛.toBasis : Basis ι ℝ (ι → ℝ) := (IsZLattice.basis Λ).ofZLatticeBasis ℝ
+@[simp]
+theorem 𝓛.ofBasis_of_toBasis : ofBasis Λ.toBasis = Λ := Basis.ofZLatticeBasis_span ℝ Λ (IsZLattice.basis Λ)
+
+theorem Casts.Zn_ofBasis : Casts.Zn ι = 𝓛.ofBasis (Pi.basisFun ℝ ι) := by
+  unfold 𝓛.ofBasis
+  ext x
+  rw [Casts.Zn.exist]
+  rw [Module.Basis.mem_span_iff_repr_mem]
+  simp only [algebraMap_int_eq, Int.coe_castRingHom, Pi.basisFun_repr, Set.mem_range]
+
+
+#check Quotient.ind
+theorem 𝓛.basis_ind
+  {motive : (𝓛 ι) → Prop}
+  (prf : (B : Basis ι ℝ (ι → ℝ)) → motive (𝓛.ofBasis B))
+  : motive Λ := Λ.ofBasis_of_toBasis ▸ prf (Λ.toBasis)
+
+theorem 𝓛.basis_ind'
+  {motive : (Λ : 𝓛 ι) → (_ : DiscreteTopology ↥Λ) → (IsZLattice ℝ Λ) → Prop}
+  : ((a : Basis ι ℝ (ι → ℝ)) → motive (𝓛.ofBasis a) (
+    ZSpan.instDiscreteTopologySubtypeMemSubmoduleIntSpanRangeCoeBasisRealOfFinite a) (instIsZLatticeRealSpan a)
+    )
+  → (Λ : 𝓛 ι) → (dt : DiscreteTopology ↥Λ) → (zl: IsZLattice ℝ Λ) → motive Λ dt zl :=
+  sorry
+
+end ofBasis
 
 section basis_matrix
 
@@ -199,14 +125,98 @@ theorem basis_matrix_injective : Function.Injective (basis_matrix (ι := ι) )  
 
 end basis_matrix
 
-abbrev 𝓛.ofBasis (B : Basis ι ℝ (ι → ℝ)) : 𝓛 ι := Submodule.span ℤ (Set.range B)
-
-/--arbitrary basis -/
-noncomputable def 𝓛.toBasis : Basis ι ℝ (ι → ℝ) := (IsZLattice.basis Λ).ofZLatticeBasis ℝ
-@[simp]
-theorem 𝓛.ofBasis_of_toBasis : ofBasis Λ.toBasis = Λ := Basis.ofZLatticeBasis_span ℝ Λ (IsZLattice.basis Λ)
+section basis_matrix
 
 
+theorem 𝓛.basis_matrix_repr_leftInverse (B : Basis ι ℝ (ι → ℝ)) : Function.LeftInverse (basis_matrix B).mulVec (B.repr ·) := by
+  refine Function.leftInverse_iff_comp.mpr ?_
+  funext x i
+  simp only [Function.comp_apply, Basis.toMatrix_mulVec_repr, Pi.basisFun_repr, id_eq]
+
+theorem 𝓛.basis_matrix_repr_rightInverse (B : Basis ι ℝ (ι → ℝ)) : Function.RightInverse (basis_matrix B).mulVec (B.repr · ) := by
+  refine Function.rightInverse_of_injective_of_leftInverse ?_ ?_
+  exact Matrix.mulVec_injective_of_invertible (basis_matrix B)
+  exact basis_matrix_repr_leftInverse B
+
+lemma 𝓛.basis_matrix_map (B : Basis ι ℝ (ι → ℝ)) :
+  𝓛.ofBasis B = (Casts.Zn ι).map ((basis_matrix B).toLinearEquiv' inferInstance).toIntLinearEquiv
+  := by
+    ext x
+    rw [Casts.Zn_ofBasis]
+    simp only [Submodule.mem_map, AddEquiv.coe_toIntLinearEquiv, AddEquiv.coe_mk,
+      Matrix.toLinearEquiv'_apply, AddHom.toFun_eq_coe, LinearMap.coe_toAddHom,
+      LinearEquiv.invFun_eq_symm, Equiv.coe_fn_mk, Matrix.toLin'_apply]
+    have tt y : (basis_matrix B).mulVec y = x ↔ (B).repr x = y := by
+      constructor
+      intro rfl
+      apply 𝓛.basis_matrix_repr_rightInverse B
+      intro rfl
+      apply 𝓛.basis_matrix_repr_leftInverse B
+    simp_rw [tt]
+    simp_rw [Basis.mem_span_iff_repr_mem]
+    simp only [algebraMap_int_eq, Int.coe_castRingHom, Set.mem_range, ↓existsAndEq,
+      Pi.basisFun_repr, and_true]
+
+end basis_matrix
+
+section dualLattice
+
+def dualLattice_basic (Λ : 𝓛 ι) : AddSubgroup (ι → ℝ) where
+  carrier := { x : ι → ℝ | ∀ v ∈ Λ, x ⬝ᵥ v ∈ Casts.IntSubmodule}
+  add_mem' := by
+    intro a b ha hb v hL
+    specialize ha v hL
+    specialize hb v hL
+    rw [add_dotProduct]
+    exact AddMemClass.add_mem ha hb
+  zero_mem' := by
+    simp only [Set.mem_setOf_eq, zero_dotProduct, zero_mem, implies_true]
+  neg_mem' := by
+    simp only [Set.mem_setOf_eq, neg_dotProduct, neg_mem_iff, imp_self, implies_true]
+
+def 𝓛.dualLattice : 𝓛 ι := (dualLattice_basic Λ).toIntSubmodule
+
+
+lemma 𝓛.dualLattice.mem_def' (Λ : 𝓛 ι) (x : ι → ℝ) :
+  x ∈ (dualLattice Λ) ↔
+  ∀ v ∈ Λ,  x ∈ Casts.IntSubmodule.comap (dotProductBilin ℤ ℤ v) := by
+    unfold dualLattice dualLattice_basic
+    simp only [Submodule.mem_comap, dotProductBilin_apply_apply, dotProduct_comm]
+    rfl
+
+lemma 𝓛.dualLattice.mem_def''.step1 (v : ι → ℝ) :
+  Submodule.comap (dotProductBilin ℤ ℤ v) Casts.IntSubmodule
+  = ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)
+  := by
+    apply SetLike.coe_set_eq.mp
+    ext y
+    simp only [Submodule.comap_coe, AddSubgroup.coe_toIntSubmodule, Set.mem_preimage,
+      dotProductBilin_apply_apply, SetLike.mem_coe, ZLattice.coe_comap]
+
+#check instIsZLatticeComap
+
+
+
+
+lemma Continuous_dotProduct (v : ι → ℝ) : Continuous (dotProductBilin ℝ ℝ v)
+  := LinearMap.continuous_on_pi (dotProductBilin ℝ ℝ v)
+
+-- I'm an idiot, this obviously isn't discrete
+-- #check ZLattice.comap_discreteTopology
+-- instance (v : ι → ℝ) : DiscreteTopology (ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)) := by
+--   have : DiscreteTopology ↥Casts.IntSubmodule := by
+--     sorry
+--   apply ZLattice.comap_discreteTopology
+--   exact Continuous_dotProduct v
+
+
+--   sorry
+
+-- example (v : ι → ℝ)  : IsZLattice ℝ (ZLattice.comap ℝ Casts.IntSubmodule (dotProductBilin ℝ ℝ v)) := by
+
+--   sorry
+
+-- #check ZSpan
 
 
 -- temp name
@@ -273,44 +283,6 @@ lemma 𝓛.dualLattice.limit_basis''' (B : Basis ι ℝ (ι → ℝ)) :
     #check Submodule.map
     ext x
     exact limit_basis' B x
-
-
-theorem Casts.Zn_ofBasis : Casts.Zn ι = 𝓛.ofBasis (Pi.basisFun ℝ ι) := by
-  unfold 𝓛.ofBasis
-  ext x
-  rw [Casts.Zn.exist]
-  rw [Module.Basis.mem_span_iff_repr_mem]
-  simp only [algebraMap_int_eq, Int.coe_castRingHom, Pi.basisFun_repr, Set.mem_range]
-
-
-theorem 𝓛.basis_matrix_repr_leftInverse (B : Basis ι ℝ (ι → ℝ)) : Function.LeftInverse (basis_matrix B).mulVec (B.repr ·) := by
-  refine Function.leftInverse_iff_comp.mpr ?_
-  funext x i
-  simp only [Function.comp_apply, Basis.toMatrix_mulVec_repr, Pi.basisFun_repr, id_eq]
-
-theorem 𝓛.basis_matrix_repr_rightInverse (B : Basis ι ℝ (ι → ℝ)) : Function.RightInverse (basis_matrix B).mulVec (B.repr · ) := by
-  refine Function.rightInverse_of_injective_of_leftInverse ?_ ?_
-  exact Matrix.mulVec_injective_of_invertible (basis_matrix B)
-  exact basis_matrix_repr_leftInverse B
-
-lemma 𝓛.basis_matrix_map (B : Basis ι ℝ (ι → ℝ)) :
-  𝓛.ofBasis B = (Casts.Zn ι).map ((basis_matrix B).toLinearEquiv' inferInstance).toIntLinearEquiv
-  := by
-    ext x
-    rw [Casts.Zn_ofBasis]
-    simp only [Submodule.mem_map, AddEquiv.coe_toIntLinearEquiv, AddEquiv.coe_mk,
-      Matrix.toLinearEquiv'_apply, AddHom.toFun_eq_coe, LinearMap.coe_toAddHom,
-      LinearEquiv.invFun_eq_symm, Equiv.coe_fn_mk, Matrix.toLin'_apply]
-    have tt y : (basis_matrix B).mulVec y = x ↔ (B).repr x = y := by
-      constructor
-      intro rfl
-      apply 𝓛.basis_matrix_repr_rightInverse B
-      intro rfl
-      apply 𝓛.basis_matrix_repr_leftInverse B
-    simp_rw [tt]
-    simp_rw [Basis.mem_span_iff_repr_mem]
-    simp only [algebraMap_int_eq, Int.coe_castRingHom, Set.mem_range, ↓existsAndEq,
-      Pi.basisFun_repr, and_true]
 
 
 lemma 𝓛.dualLattice.limit_basis'''' (B : Basis ι ℝ (ι → ℝ)) :
@@ -389,7 +361,7 @@ theorem 𝓛.dualLattice_involutive' (L : 𝓛 ι) [DiscreteTopology ↥L]
   · intro rfl
     exact dualLattice_involutive _
 
-
+end dualLattice
 
 example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 
@@ -441,20 +413,60 @@ example [DecidableEq ι] (B : Module.Basis ι ℝ (ι → ℝ)) : False := by
 #check Module.Dual
 
 
-theorem 𝓛.basis_ind'
-  {motive : (Λ : 𝓛 ι) → (_ : DiscreteTopology ↥Λ) → (IsZLattice ℝ Λ) → Prop}
-  : ((a : Basis ι ℝ (ι → ℝ)) → motive (𝓛.ofBasis a) (
-    ZSpan.instDiscreteTopologySubtypeMemSubmoduleIntSpanRangeCoeBasisRealOfFinite a) (instIsZLatticeRealSpan a)
-    )
-  → (Λ : 𝓛 ι) → (dt : DiscreteTopology ↥Λ) → (zl: IsZLattice ℝ Λ) → motive Λ dt zl :=
+
+
+section minimum_distance
+
+def 𝓛.minimum_distance [NormedAddCommGroup (ι → ℝ)] : ℝ≥0 := sInf  { ‖x‖₊ | (x ∈ Λ) (_ : x ≠ 0) }
+
+/-
+paper:
+The minimum distance λ1(Λ) of a lattice Λ is the length (in the Euclidean `2 norm, unless otherwise
+indicated) of its shortest nonzero vector: λ1(Λ) = min06=x∈Λkxk. More generally, the ith successive
+minimum λi(Λ) is the smallest radius r such that Λ contains i linearly independent vectors of norm at
+most r. We write λ∞
+1
+to denote the minimum distance measured in the ∞ norm (which is defined as ‖x‖∞ = max |xᵢ|).
+-/
+-- i or more
+def successive_minimum_distance [Norm (ι → ℝ)] (i : ℕ)
+  := ⨅ (r : ℝ≥0) (_ : ∃s ⊆ (Λ.carrier), LinearIndependent ℝ (Subtype.val : s → _) ∧ s.encard ≤ i ∧ ∀x ∈ s, ‖x‖ ≤ r), r
+-- note: for i := 0 this is ⊥ and i := 1 this is 0
+def successive_minimum_distance' [Norm (ι → ℝ)] (i : ℕ)
+  := ⨅ (s ⊆ (Λ.carrier)) (_ : LinearIndependent ℝ (Subtype.val : s → _)) (_ : s.encard ≤ i), ⨆x ∈ s, ‖x‖
+
+-- def dualLattice
+
+def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
+
+/-- λ₁∞ -/
+def 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
+
+-- issue: the norm is already implied
+-- IsZLattice alongside Nonempty ι should imply Λ ≠ ⊥
+theorem 𝓛.minimum_distance.positive
+  -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
+  (h : Λ ≠ ⊥) : NeZero (𝓛.minimum_distance Λ) := by
+  -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
+  constructor
+  unfold 𝓛.minimum_distance
+  have tw (x : ι → ℝ) : ‖x‖₊ = 0 → x = 0 := nnnorm_eq_zero.mp
+  #check IsZLattice
+
+  simp only [ne_eq]
+  #check NNReal.instConditionallyCompleteLinearOrderBot
+  #check ConditionallyCompleteLinearOrderBot
+  #check ConditionallyCompleteLattice
+  -- change ¬(⨅x, ⨅ (_ : x ∈ Λ), ⨅ (_ : ¬x = 0), ‖x‖₊) = 0
+
+  intro asm
+  #check InfSet
+
+
+
+
   sorry
 
-#check Quotient.ind
-theorem 𝓛.basis_ind
-  {motive : (Λ : 𝓛 ι) → Prop}
-  (Λ : 𝓛 ι) [dt : DiscreteTopology ↥Λ] [zl: IsZLattice ℝ Λ]
-  (prf : (B : Basis ι ℝ (ι → ℝ)) → motive (𝓛.ofBasis B))
-  : motive Λ := Λ.ofBasis_of_toBasis ▸ prf (Λ.toBasis)
 
 
 theorem 𝓛.minimum_distance_sup.positive [Nonempty ι] : NeZero (𝓛.minimum_distance_sup Λ) := by
@@ -476,7 +488,7 @@ theorem 𝓛.minimum_distance_sup.positive [Nonempty ι] : NeZero (𝓛.minimum_
   exact ConditionallyCompleteLattice.le_csInf p e p_nonempty e_bound
 
 
-
+end minimum_distance
 
 
 end lattices

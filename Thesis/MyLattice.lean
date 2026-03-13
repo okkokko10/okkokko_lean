@@ -429,6 +429,16 @@ theorem 𝓛.minimum_distance_def (Λ : 𝓛 ι) [NormedAddCommGroup (ι → ℝ
   unfold minimum_distance
   simp only [ne_eq, exists_prop]
 
+omit [DecidableEq ι] in
+theorem 𝓛.minimum_distance_def' (Λ : 𝓛 ι) [NormedAddCommGroup (ι → ℝ)]
+  : Λ.minimum_distance = sInf ((fun x ↦ ‖x‖₊) '' (Λ \ {(0 : ι → ℝ)})) := by
+  rw [𝓛.minimum_distance_def]
+  congr 2
+  funext r
+  simp only [ne_eq, Set.mem_diff, SetLike.mem_coe, Set.mem_singleton_iff, eq_iff_iff]
+  exact ⟨fun ⟨x,xL,xn0,xr⟩ ↦ ⟨x,⟨xL,xn0⟩,xr⟩,
+        fun ⟨x,⟨xL,xn0⟩,xr⟩ ↦ ⟨x,xL,xn0,xr⟩ ⟩
+
 
 /-
 paper:
@@ -461,61 +471,67 @@ def 𝓛.basis_ind''
   (prf : (B : Basis ι ℝ (ι → ℝ)) → motive (𝓛.ofBasis B))
   : motive Λ := Λ.ofBasis_of_toBasis ▸ prf (Λ.toBasis)
 
+theorem 𝓛.nontrivial [Nonempty ι] : ∃x ∈ Λ, x ≠ 0 := by
+  -- also note that "Nontrivial" is an equivalent term: [AddSubmonoid.nontrivial_iff_exists_ne_zero]
+  let i : ι := Nonempty.some inferInstance
+  induction Λ using basis_ind'' with | _ B =>
+  simp only [ne_eq]
+  use (B i)
+  constructor
+  · have : B i ∈ Set.range B := by exact Set.mem_range_self i
+    exact Submodule.mem_span_of_mem this
+  exact Basis.ne_zero B i
+theorem 𝓛.nontrivial' [Nonempty ι] : ∃x : Λ, x ≠ 0 := by
+  obtain ⟨x,xL,xn0⟩ := Λ.nontrivial
+  refine ⟨⟨x,xL⟩,?_⟩
+  exact Subtype.coe_ne_coe.mp xn0
+
 
 
 -- issue: the norm is already implied
 -- IsZLattice alongside Nonempty ι should imply Λ ≠ ⊥
-theorem 𝓛.minimum_distance.positive
+theorem 𝓛.minimum_distance.positive [Nonempty ι]
   -- (Λ : Submodule ℤ (ι → ℝ)) [DiscreteTopology ↥Λ]
   : NeZero (𝓛.minimum_distance Λ) := by
   -- relies on the fact that Λ has elements other than 0, and nnnorm_eq_zero, and that Λ is discrete
   apply NeZero.of_pos
 
 
-  induction Λ using basis_ind'' with | _ B =>
-  rw [minimum_distance_def]
+  set p := {y | ∃ x ∈ Λ, x ≠ 0 ∧ ‖x‖₊ = y}
+  have p_nonempty : p.Nonempty := by
+    obtain ⟨b,bΛ,bn0⟩ := Λ.nontrivial
+    refine ⟨‖b‖₊,b,bΛ,bn0,rfl⟩
+
   -- rw [ofBasis_basisEquivalence]
+
   -- simp only [Submodule.mem_map, ne_eq, exists_exists_and_eq_and, EmbeddingLike.map_eq_zero_iff]
 
+  -- AI suggestion: nhds_discrete, IsOpen
+  have open0 : IsOpen {(0 : Λ)}  := isOpen_discrete _
+  obtain ⟨e,(e_pos : 0 < e), e_ball⟩ := Metric.isOpen_iff.mp open0 0 (rfl)
 
 
+  let e' : ℝ≥0 := ⟨e,e_pos.le⟩
 
 
-  let e : ℝ≥0 :=
+  have e_bound : (∀y ∈ p, e' ≤ y)  := by
+    unfold p
+    intro r ⟨x,xΛ,xn0,xr⟩
+    subst xr
+    simp only [Set.subset_singleton_iff, Metric.mem_ball, dist_zero_right,
+      AddSubgroupClass.coe_norm, Subtype.forall, Submodule.mk_eq_zero] at e_ball
+    have := xn0 ∘ (e_ball x xΛ)
+    exact Std.not_lt.mp this
 
-    sorry -- shortest basis vector length
-  have e_pos : 0 < e := sorry
+  -- induction Λ using basis_ind'' with | _ B =>
+  rw [minimum_distance_def]
+
+
   apply lt_of_lt_of_le e_pos
-
-  set p := {y | ∃ x ∈ ofBasis B, x ≠ 0 ∧ ‖x‖₊ = y}
-
-  have e_bound : ∀y ∈ p, e ≤ y := sorry
-  have p_nonempty : p.Nonempty := sorry
-  exact ConditionallyCompleteLattice.le_csInf p e p_nonempty e_bound
+  exact ConditionallyCompleteLattice.le_csInf p e' p_nonempty e_bound
 
 
-
-
-
-
-
-theorem 𝓛.minimum_distance_sup.positive [Nonempty ι] : NeZero (𝓛.minimum_distance_sup Λ) := by
-  constructor
-  apply pos_iff_ne_zero.mp
-  apply basis_ind Λ
-  -- apply basis_ind (motive := fun Λ ↦ 0 < Λ.minimum_distance_sup)
-  intro B
-  unfold minimum_distance_sup minimum_distance
-  have := 𝓛.ofBasis_of_toBasis Λ
-  let e : ℝ≥0 := sorry -- shortest basis vector length
-  have e_pos : 0 < e := sorry
-  apply lt_of_lt_of_le e_pos
-
-  set p := {y | ∃ x ∈ ofBasis B, ∃ (_ : x ≠ 0), ‖x‖₊ = y}
-
-  have e_bound : ∀y ∈ p, e ≤ y := sorry
-  have p_nonempty : p.Nonempty := sorry
-  exact ConditionallyCompleteLattice.le_csInf p e p_nonempty e_bound
+theorem 𝓛.minimum_distance_sup.positive [Nonempty ι] : NeZero (𝓛.minimum_distance_sup Λ) := minimum_distance.positive Λ
 
 
 end minimum_distance

@@ -39,7 +39,6 @@ theorem statisticalDistance_conserve_equiv [DiscreteMeasurableSpace G]
     simp_rw [←aq]
     let f x := Real.nnabs (↑((X.map eme) {x}) - ↑((Y.map eme) {x}))
     change ∑' (x : D), f (e x) = ∑' (x : G), f x
-
     exact Equiv.tsum_eq e.toEquiv f
 
 theorem statisticalDistance_conserve_injective [DiscreteMeasurableSpace G]
@@ -71,6 +70,20 @@ theorem statisticalDistance_conserve_injective [DiscreteMeasurableSpace G]
     simp only [ProbabilityMeasure.coeFn_empty, NNReal.coe_zero, sub_self, le_refl,
       Real.nnabs_of_nonneg, Real.toNNReal_zero]
 
+
+
+theorem statisticalDistance_conserve_injective'  [DiscreteMeasurableSpace D] [DiscreteMeasurableSpace G]
+  (X Y : ProbabilityMeasure D) (e : D → G) (e_inj : Function.Injective e)
+  : statisticalDistance X Y = statisticalDistance (X.map (f := e) AEMeasurable.of_discrete) (Y.map (f := e) AEMeasurable.of_discrete) := by
+  refine statisticalDistance_conserve_injective X Y e ?_ e_inj
+  exact Measurable.of_discrete
+
+-- without need for it to be a measurable equiv
+theorem statisticalDistance_conserve_equiv' [DiscreteMeasurableSpace D] [DiscreteMeasurableSpace G]
+  (X Y : ProbabilityMeasure D) (e : D ≃ G)
+  : statisticalDistance X Y = statisticalDistance (X.map (f := e) AEMeasurable.of_discrete) (Y.map (f := e) AEMeasurable.of_discrete) := by
+    have := statisticalDistance_conserve_injective' X Y e (Equiv.injective e)
+    exact this
 
 
 def statisticallyClose {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)] (X Y : (n : ℕ) → ProbabilityMeasure (D n)) :=
@@ -125,7 +138,7 @@ theorem toPDF_injective [DiscreteMeasurableSpace D] [Countable D] : Function.Inj
 
 
 
-theorem toPDF_apply [DiscreteMeasurableSpace D] [Countable D] (X : ProbabilityMeasure D) x :
+lemma toPDF_apply [DiscreteMeasurableSpace D] (X : ProbabilityMeasure D) x :
   toPDF X x = (X {x}).toReal := by
     unfold toPDF
     let p x :=(X {x}).toReal
@@ -137,8 +150,8 @@ theorem toPDF_apply [DiscreteMeasurableSpace D] [Countable D] (X : ProbabilityMe
 
 
 
--- unused
-def statisticalDistancePseudoMetric {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] : PseudoMetricSpace (ProbabilityMeasure D) := by
+
+instance statisticalDistancePseudoMetric {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] : PseudoMetricSpace (ProbabilityMeasure D) := by
   let met : MetricSpace (D →₁[Measure.count] ℝ) := inferInstance
   exact PseudoMetricSpace.induced toPDF met.toPseudoMetricSpace
 
@@ -148,7 +161,16 @@ instance statisticalDistanceMetric {D : Type*} [MeasurableSpace D] [DiscreteMeas
   let met : MetricSpace (D →₁[Measure.count] ℝ) := inferInstance
   exact (MetricSpace.induced toPDF toPDF_injective met)
 
-theorem statisticalDistanceMetric_eq {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] [Countable D]
+instance statisticalDistancePseudoEMetric {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] : PseudoEMetricSpace (ProbabilityMeasure D) :=
+  statisticalDistancePseudoMetric.toPseudoEMetricSpace
+
+
+example {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] [Countable D] :
+  statisticalDistancePseudoMetric (D := D) = statisticalDistanceMetric.toPseudoMetricSpace := by rfl
+
+
+
+theorem statisticalDistancePseudoMetric_eq {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D]
   (X Y : ProbabilityMeasure D)
   : dist X Y = 2 * statisticalDistance X Y := by
     change dist (toPDF X) (toPDF Y) = 2 * ↑(statisticalDistance X Y)
@@ -173,3 +195,24 @@ theorem statisticalDistanceMetric_eq {D : Type*} [MeasurableSpace D] [DiscreteMe
       rw [←this]
       rfl
     exact Eq.symm NNReal.tsum_eq_toNNReal_tsum
+
+#check IsometryEquiv
+
+-- probably not used, but I wanted to try making this
+theorem statisticalDistance_isometry [DiscreteMeasurableSpace D] [DiscreteMeasurableSpace G]
+  (e : D → G) (e_inj : Function.Injective e)
+  : Isometry (fun ν ↦ ProbabilityMeasure.map ν (f := e) (f_aemble := AEMeasurable.of_discrete)) := by
+    apply isometry_iff_dist_eq.mpr
+    intro X Y
+    simp_rw [statisticalDistancePseudoMetric_eq]
+    simp only [mul_eq_mul_left_iff, NNReal.coe_inj, OfNat.ofNat_ne_zero, or_false]
+    exact Eq.symm (statisticalDistance_conserve_injective' X Y e e_inj)
+
+def statisticalDistance_IsometryEquiv [DiscreteMeasurableSpace D] [DiscreteMeasurableSpace G]
+  (e : D ≃ G)
+  : (ProbabilityMeasure D) ≃ᵢ (ProbabilityMeasure G) := by
+    have := fun ν ↦ ProbabilityMeasure.map ν (f := e) (f_aemble := AEMeasurable.of_discrete)
+
+    refine ⟨?_,?_⟩
+    sorry
+    sorry

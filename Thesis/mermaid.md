@@ -9,3 +9,6 @@ graph TD;
     5.1 --> 1[[ ]];
     2.8 --> 2.7;
 ```
+
+
+set_option trace.Meta.synthInstance true in

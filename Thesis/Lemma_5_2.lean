@@ -7,6 +7,7 @@ import Thesis.Zqn
 import Thesis.Lemma_2_8
 import Thesis.StatisticalDistance
 import Thesis.Casts
+import Thesis.A_Matrix_LatticeQuot
 
 
 noncomputable section
@@ -19,140 +20,8 @@ open MeasureTheory
 
 #check MeasurableEquiv
 
--- def Casts.Zn_int {ι : Type*} [Fintype ι] : Casts.Zn (ι) ≃ₗ[ℤ] (ι → ℤ) := by
---   sorry
 
 
--- temp
-def A_Matrix.syndrome_map_Zn {n m q : ℕ} (A : A_Matrix n m q) : (Casts.Zn (Fin m)) →ₗ[ℤ] (Zqn n q) := by sorry
-
-
-def A_Matrix.syndromes {n m q : ℕ} (A : A_Matrix n m q) : Submodule ℤ (Zqn n q) := LinearMap.range A.syndrome_map_Zn
-
--- temp
-def A_Matrix.Λ_ortho_Zn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Submodule ℤ ↥(Casts.Zn (Fin m)) := (LinearMap.ker A.syndrome_map_Zn)
-
-
-
-theorem A_Matrix.Λ_ortho_Zn_eq {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
-  :
-  A.Λ_ortho' = A.Λ_ortho_Zn.map (Submodule.subtype (Casts.Zn (Fin m))) -- AI suggestion, coerce submodule of submodule
-  := sorry
-
-theorem A_Matrix.Λ_ortho'_submoduleOf {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
-  : A.Λ_ortho'.submoduleOf (Casts.Zn (Fin m)) = A.Λ_ortho_Zn := by
-    rw [Λ_ortho_Zn_eq]
-
-    ext x
-    constructor
-    intro xS
-    sorry
-    intro xA
-
-
-    #check Submodule.submoduleOfEquivOfLe
-    sorry
-
-#check Submodule.Quotient.addCommGroup
-
--- temp
-def A_bijection {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  (𝓛.quot (Casts.Zn (Fin m)) A.Λ_ortho') ≃ A.syndromes := by
-
-  have ww (a b) : (A.Λ_ortho'.submoduleOf (Casts.Zn (Fin m))).quotientRel a b
-    ↔ A.syndrome_map_Zn a = A.syndrome_map_Zn b := by
-    simp_rw [ Submodule.quotientRel_def]
-    rw [A_Matrix.Λ_ortho'_submoduleOf]
-
-    unfold A_Matrix.Λ_ortho_Zn
-    simp only [LinearMap.mem_ker, map_sub]
-    exact sub_eq_zero
-
-  let F : 𝓛.quot (Casts.Zn (Fin m)) A.Λ_ortho' → ↥A.syndromes := by
-    unfold 𝓛.quot
-    refine Quotient.lift ?_ ?_
-    ·
-      intro e
-      refine ⟨A.syndrome_map_Zn e,?_⟩
-      unfold A_Matrix.syndromes
-      exact LinearMap.mem_range_self A.syndrome_map_Zn e
-    -- simp only [Subtype.mk.injEq, Subtype.forall]
-    intro a b ab
-    simp only [Subtype.mk.injEq]
-    simp_rw [HasEquiv.Equiv] at ab
-    exact (ww a b).mp ab
-  have : Function.Bijective F := by
-    constructor
-    ·
-      intro a b FaFb
-      induction a, b using Quotient.ind₂ with | _ a b =>
-      subst F
-      simp only [id_eq, Quotient.lift_mk, Subtype.mk.injEq] at FaFb
-      have := (ww a b).mpr FaFb
-      apply Quotient.eq.mpr this
-    ·
-      apply Quotient.lift_surjective
-      intro ⟨s,sw⟩
-      unfold A_Matrix.syndromes at sw
-      simpa only [Subtype.mk.injEq, Subtype.exists, LinearMap.mem_range] using sw
-  exact Equiv.ofBijective F this
-
-
-
-def A_bijection_equiv {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-
-  let : AddCommGroup (𝓛.quot (Casts.Zn (Fin m)) A.Λ_ortho') :=  Submodule.Quotient.addCommGroup ((A.Λ_ortho'.submoduleOf (Casts.Zn (Fin m))))
-
-  (𝓛.quot (Casts.Zn (Fin m)) A.Λ_ortho') ≃ₗ[ℤ] A.syndromes := by
-
-  let : AddCommGroup (𝓛.quot (Casts.Zn (Fin m)) A.Λ_ortho') :=  Submodule.Quotient.addCommGroup ((A.Λ_ortho'.submoduleOf (Casts.Zn (Fin m))))
-
-  have ww (a b) : (A.Λ_ortho'.submoduleOf (Casts.Zn (Fin m))).quotientRel a b
-    ↔ A.syndrome_map_Zn a = A.syndrome_map_Zn b := by
-    simp_rw [ Submodule.quotientRel_def]
-    rw [A_Matrix.Λ_ortho'_submoduleOf]
-
-    unfold A_Matrix.Λ_ortho_Zn
-    simp only [LinearMap.mem_ker, map_sub]
-    exact sub_eq_zero
-  let F : 𝓛.quot (Casts.Zn (Fin m)) A.Λ_ortho' → ↥A.syndromes := by
-    unfold 𝓛.quot
-    refine Quotient.lift ?_ ?_
-    ·
-      intro e
-      refine ⟨A.syndrome_map_Zn e,?_⟩
-      unfold A_Matrix.syndromes
-      exact LinearMap.mem_range_self A.syndrome_map_Zn e
-    -- simp only [Subtype.mk.injEq, Subtype.forall]
-    intro a b ab
-    simp only [Subtype.mk.injEq]
-    simp_rw [HasEquiv.Equiv] at ab
-    exact (ww a b).mp ab
-  have F_bij: Function.Bijective F := by
-    constructor
-    ·
-      intro a b FaFb
-      induction a, b using Quotient.ind₂ with | _ a b =>
-      subst F
-      simp only [id_eq, Quotient.lift_mk, Subtype.mk.injEq] at FaFb
-      have := (ww a b).mpr FaFb
-      apply Quotient.eq.mpr this
-    ·
-      apply Quotient.lift_surjective
-      intro ⟨s,sw⟩
-      unfold A_Matrix.syndromes at sw
-      simpa only [Subtype.mk.injEq, Subtype.exists, LinearMap.mem_range] using sw
-  let F' : 𝓛.quot (Casts.Zn (Fin m)) A.Λ_ortho' →ₗ[ℤ] ↥A.syndromes := by
-    refine AddMonoidHom.toIntLinearMap ?_
-    apply AddMonoidHom.mk' F
-    intro a b
-    induction a, b using Quotient.ind₂' with | _ a b =>
-    simp_rw [Submodule.Quotient.mk''_eq_mk]
-    rw [←Submodule.Quotient.mk_add]
-    simp_rw [←Submodule.Quotient.mk''_eq_mk]
-    subst F
-    simp only [id_eq, Quotient.lift_mk, map_add, AddMemClass.mk_add_mk]
-  refine LinearEquiv.ofBijective F' F_bij
 
 
 
@@ -197,7 +66,7 @@ theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1
       := by
         refine ⟨?_,?_,?_⟩
         ·
-          apply A_bijection A |>.trans
+          apply (A_bijection_equiv A).toEquiv |>.trans
           apply Equiv.subtypeUnivEquiv
           rw [syndromes_top]
           simp only [Submodule.mem_top, implies_true]
@@ -234,5 +103,6 @@ theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass
   :
   have : NeZero s := sorry;
   -- ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = t +ᵥ (int_gaussian_sublattice m hs A.Λ_ortho (-t))
-  ProbabilityTheory.cond (int_gaussian m s) (A.syndrome_map ⁻¹' {u}) = (int_gaussian_sublattice m s A.Λ_ortho (-t)).map (f := (· + t)) (AEMeasurable.of_discrete)
+  ProbabilityTheory.cond (int_gaussian m s) (A.syndrome_map ⁻¹' {u})
+  = (int_gaussian_sublattice m s sorry (-t)).map (f := (· + t)) (AEMeasurable.of_discrete) -- sorry = A.Λ_ortho
   := sorry

@@ -24,8 +24,11 @@ def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin
 --   := (A_Matrix.syndrome_map A.transpose).toAddMonoidHom.range.comap
 --   ((Int.castAddHom (ZMod q)).compLeft (Fin m))
 
+
+def A_Matrix.syndromes {n m q : ℕ} (A : A_Matrix n m q) : Submodule ℤ (Zqn n q) := LinearMap.range A.syndromeMap
+
 def A_Matrix.Λ_main'' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Submodule ℤ (Fin m → ZMod q)
-  := (LinearMap.range (A_Matrix.syndromeMap A.transpose))
+  := syndromes A.transpose
 
 def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m)
   := coeSubmodule <| A.Λ_main''.comap Casts.ZnToZqn

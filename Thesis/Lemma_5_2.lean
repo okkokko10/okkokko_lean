@@ -171,7 +171,6 @@ theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1
   := by
     simp only
     have syndromes_top: A.syndromes = ⊤ := sorry -- from [ass]
-    #check corollary_2_8
 
     have s_pos : NeZero s := sorry
     -- statisticalDistance (A.syndrome_distributed (int_gaussian m s)) (uniform_over_Zqn _ _) ≤ 2 * ε
@@ -185,29 +184,48 @@ theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1
 
     have sub : A.Λ_ortho' ≤ Casts.Zn _ := sorry
 
-    have isomorphic_ver : statisticalDistance ( e_modΛt_distribution ) (𝓛.quot_uniform (Casts.Zn _) Λt sub) ≤ 2 * ε := sorry
+    have isomorphic_ver : statisticalDistance ( e_modΛt_distribution ) (𝓛.quot_uniform (Casts.Zn _) Λt sub) ≤ 2 * ε := by
+      apply corollary_2_8
+      exact ε_bound
+      exact s_prop
+
+    convert isomorphic_ver using 1
+    #check statisticalDistance_conserve_injective'
+
 
 
 
     -- todo: statistical distance is conserved by maps?
-    have : ∃equi : (𝓛.quot (Casts.Zn (Fin m)) Λt) ≃ᵐ (Fin n → ZMod q),
-      (𝓛.quot_uniform (Casts.Zn (Fin m)) Λt sub).map (f := equi) (AEMeasurable.of_discrete) = (uniform_over_Zqn n q) := by
-        refine ⟨?_,?_⟩
-        · refine ⟨?_,?_,?_⟩
-          ·
-            apply A_bijection A |>.trans
-            apply Equiv.subtypeUnivEquiv
-            rw [syndromes_top]
-            simp only [Submodule.mem_top, implies_true]
-          exact fun ⦃t⦄ a ↦ trivial
-          exact Measurable.of_discrete
+    have : ∃equi : (𝓛.quot (Casts.Zn (Fin m)) Λt) ≃ (Fin n → ZMod q),
+      (𝓛.quot_uniform (Casts.Zn (Fin m)) Λt sub).map (f := equi) (AEMeasurable.of_discrete) = (uniform_over_Zqn n q)
+      ∧
+      (e_modΛt_distribution).map (f := equi) (AEMeasurable.of_discrete) = (A.syndrome_distributed (int_gaussian m s))
+
+      := by
+        refine ⟨?_,?_,?_⟩
+        ·
+          apply A_bijection A |>.trans
+          apply Equiv.subtypeUnivEquiv
+          rw [syndromes_top]
+          simp only [Submodule.mem_top, implies_true]
 
          --using syndromes_top
 
         -- have := Submodule.Quotient.induction_on
+        -- todo: a finite equivalence maps an uniform distribution to another uniform distribution
+        sorry
+        subst e_modΛt_distribution e_distribution
+        unfold 𝓛.mod_distribution
+
+        simp only [Equiv.coe_trans]
+
+
 
 
         sorry
+
+    -- rw [statisticalDistance_conserve_injective' (A.syndrome_distributed (int_gaussian m s)) (uniform_over_Zqn n q) ?_ ?_]
+
 
 
     -- plan: implement Zqn as a quotient of Zn
@@ -216,6 +234,7 @@ theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1
 
     sorry
 
+-- seems to not be used by 5_4
 theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0)
   (s_prop : 𝓛.smoothing_parameter (A.Λ_ortho') ε ≤ s) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)

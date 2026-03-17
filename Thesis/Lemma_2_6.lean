@@ -149,3 +149,101 @@ theorem Lemma_2_6_then''
 -- example  {q : ℕ} [NeZero q] : Finite (ZMod q) := inferInstance
 -- instance {q : ℕ} : Zero (ZMod q) where zero := 0
 end Lemma_2_6
+
+-- this doesn't seem correct. if ε is low enough it's going to have a square root of a negative
+def lemma_2_6_upper' (ε : ℝ≥0) [NeZero ε]  (n : ℕ) : ℝ≥0 :=
+  (√ (Real.log (2 * n * (1 + ε⁻¹)) / Real.pi)).toNNReal -- conversion to ℝ≥0 for convenience
+
+variable (Λ : 𝓛 ι) [DiscreteTopology Λ] [IsZLattice ℝ Λ]
+
+theorem Lemma_2_6' (ε : ℝ≥0) [NeZero ε]
+  : 𝓛.smoothing_parameter Λ ε ≤
+  lemma_2_6_upper' ε (Fintype.card ι)
+  / 𝓛.minimum_distance_sup (𝓛.dualLattice Λ) := by
+    sorry
+
+theorem Lemma_2_6_then'''
+  {m : ℕ → ℕ} (m_top : id ≤ m) (m_pos : ∀n, NeZero (m n)) (Λ : (n : ℕ) → 𝓛 (Fin (m n))) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+  (s : ℕ → ℝ≥0) (hs : s =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n))
+  : ∃(ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), ∀n,
+  𝓛.smoothing_parameter (Λ n) (ε n) ≤ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n))
+  := by
+    -- (√ (Real.log (2 * n * (1 + ε⁻¹)) / Real.pi))
+    -- rexp (s ^ 2 * Real.pi) / (2 * n)
+    let inv (n : ℕ) (s : ℝ≥0) := ((Real.exp ((s ^ 2 * Real.pi))) / (2 * n) - 1)⁻¹.toNNReal
+
+    let inv2 (n : ℕ) (s : ℝ≥0) := ((Real.exp ((s ^ 2 * Real.pi))) / (2 * n))⁻¹.toNNReal
+
+
+    have inv_spec_rev (n) [NeZero n] ε [NeZero ε] : inv n (lemma_2_6_upper' ε n) = ε := by
+      have n_pos : 0 < n := NeZero.pos _
+      -- have nr_pos : 0 < (n : ℝ) := by exact Nat.cast_pos'.mpr n_pos
+      have ε_pos : 0 < ε := NeZero.pos _
+      unfold lemma_2_6_upper' inv
+      simp only [NNReal.coe_inv, Real.coe_toNNReal', Real.sqrt_nonneg, sup_of_le_left]
+      have : 0 ≤ (Real.log (2 * ↑n * (1 + (↑ε)⁻¹)) / Real.pi) := by
+        bound
+      have := Real.sq_sqrt this
+      rw [this]
+      simp only [isUnit_iff_ne_zero, ne_eq, Real.pi_ne_zero, not_false_eq_true,
+        IsUnit.div_mul_cancel]
+      have : 0 < (2 * n * (1 + (ε : ℝ)⁻¹) ) := by
+        apply mul_pos
+        · bound
+        have : 0 ≤ (ε : ℝ) := by exact NNReal.zero_le_coe
+        have : 0 ≤ (ε : ℝ)⁻¹ := by exact inv_nonneg_of_nonneg this
+        bound
+      rw [Real.exp_log this]
+      rw [mul_div_cancel_left₀ (a := 2 * (n : ℝ)) (1 + (ε : ℝ)⁻¹) (by
+        norm_num
+        exact Nat.ne_zero_of_lt n_pos
+        )]
+      simp only [add_sub_cancel_left, inv_inv, Real.toNNReal_coe]
+
+    have inv_pos' (n) [NeZero n] s [NeZero s] : 0 < inv n s := by
+      unfold inv
+
+      simp only [Real.toNNReal_pos, inv_pos, sub_pos]
+
+      have : 0 < n := NeZero.pos _
+      have : 0 < s := NeZero.pos _
+      bound
+
+      sorry
+
+    have inv_pos (n) [NeZero n] s [NeZero s] : NeZero <| inv n s := NeZero.of_pos (inv_pos' n s)
+
+    have inv_spec (n) [NeZero n] s [NeZero s] : lemma_2_6_upper' (inv n s) n ≤ s := by
+      have n_pos : 0 < n := NeZero.pos _
+      have s_pos : 0 < s := NeZero.pos _
+      unfold lemma_2_6_upper' inv
+      simp_all only [NNReal.coe_inv, Real.coe_toNNReal']
+      -- let mx := (Real.exp (↑s ^ 2 * Real.pi / (2 * ↑n)) - 1)⁻¹
+      -- let ma := (max mx 0)
+      have : 0 < (Real.exp (↑s ^ 2 * Real.pi ) / (2 * ↑n) - 1)⁻¹ := Real.toNNReal_pos.mp (inv_pos' n s)
+      simp_rw [max_eq_left_of_lt this]
+      simp only [inv_inv, add_sub_cancel]
+      simp_rw [mul_div_cancel₀ (b := 2 * (n : ℝ)) _ (by
+        norm_num
+        exact Nat.ne_zero_of_lt n_pos
+        )]
+      simp only [Real.log_exp, isUnit_iff_ne_zero, ne_eq, Real.pi_ne_zero, not_false_eq_true,
+        IsUnit.mul_div_cancel_right, NNReal.zero_le_coe, Real.sqrt_sq, Real.toNNReal_coe]
+      rfl
+
+    let ε n := (inv (m n) (s n))
+
+    refine ⟨ε,?_,?_,?_⟩
+    -- negligible ε
+
+    sorry
+    intro n
+    exact inv_pos (m n) (s n)
+    intro n
+    trans
+    exact Lemma_2_6' (Λ n) (ε n)
+    simp only [Fintype.card_fin]
+    unfold ε
+    have := inv_spec (m n) (s n)
+
+    gcongr

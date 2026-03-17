@@ -64,7 +64,8 @@ def corollary_5_4.valid_subsets_spec (q : N → Q) [∀n, NeZero (q n)] (m : N �
     rw [two_mul]
     exact add_le_add o3 o1
 
-theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+-- added that m can't be 0
+theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)] (m : N → M) [∀n, NeZero (m n)] (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   : ∃(subsets : (n : N) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
   ∀(A : (n : N) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
   ∀(s : N → ℝ≥0)(_ : s =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n)) , -- ≥ω is the same as =ω, right?
@@ -77,7 +78,7 @@ theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp :
   have key_5_1 n : lemma_5_1_statement (A n) := (A_mem n).right
   obtain ⟨ε, negl_ε, ε_pos,key_5_3⟩ : (lemma_5_3_also_statement A s) :=
     have ee n: lemma_5_3_statement (A n) := (A_mem n).left
-    lemma_5_3_also q_hyp m_hyp A ee s s_LittleO
+    lemma_5_3_also q_hyp m_hyp A ee s s_LittleO s_pos
 
   clear A_spec s_LittleO
 

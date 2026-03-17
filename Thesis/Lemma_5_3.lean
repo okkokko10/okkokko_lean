@@ -23,53 +23,81 @@ def lemma_5_3_also_statement {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (A
   ∃ (ε : (n : N) → ℝ≥0) (_ : negligible ε) (_ : ∀n, NeZero (ε n)), -- change
   lemma_5_3_relationship A s ε
 
-theorem lemma_5_3_also {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+theorem lemma_5_3_also {q : N → Q} [∀n, NeZero (q n)] {m : N → M} [m_pos : ∀n, NeZero (m n)] (q_prime : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   (A : (n : N) → (A_Matrix n (m n) (q n)))(hA : ∀n, lemma_5_3_statement (A n))
-  (s : (n : N) → ℝ≥0) (hs : s =ω (sqrt_log ∘ m))
+  (s : (n : N) → ℝ≥0) (hs : s =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n))
   : lemma_5_3_also_statement A s := by
 
-  -- have := Lemma_2_6_then'' (m := m)
+  unfold lemma_5_3_also_statement lemma_5_3_relationship
 
-  -- let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then'' (ι := (Fin <| m ·)) ?_ (fun n ↦ (A n).Λ_ortho') (s) ?_
-
-  -- change
-  --   ∃ ε,
-  --     ∃ (_ : negligible ε) (ε_pos : ∀ (n : N), NeZero (ε n)),
-  --       ∀ (n : N), (A n).Λ_ortho'.smoothing_parameter (ε n) ≤ s n
-
-  -- have ww n ε (_ : NeZero ε) :
-  --   (A n).Λ_ortho'.smoothing_parameter ε = (A n).Λ_main'.smoothing_parameter ε
-
-  -- #check 2 • (𝓛.dualLattice <| (A 0).Λ_ortho')
-
-  -- #check IsZLattice
-  -- #check Lemma_2_6_then''
-  -- #check A_Matrix.Λ_dual'
-  -- let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then' (ι := (Fin <| m ·)) ?_ (fun n ↦ (A n).Λ_ortho') (s) ?_
-  -- use ε, negl_ε, ε_pos
-  -- intro n
-  -- specialize so n
-  -- -- simp only [Function.comp_apply] at so
-  -- specialize hA n
-  -- set ww := 𝓛.smoothing_parameter (A n).Λ_ortho' (ε n)
-  -- -- change ww ≤ _ at so
-  -- apply le_trans so
-
-
-  -- unfold lemma_5_3_statement at hA
-  -- -- nth_rw 2 [A_Matrix.Λ_dual] at so
+  -- problem: 2_6 has the dimension match the sequence index, but that doesn't appear here.
+  have nonem n: Nonempty (Fin (m n)) :=by
+    exact instNonemptyOfInhabited
 
 
 
+  -- let Λ n : 𝓛 (Fin (n)) := m_minv n ▸ (A (minv n)).Λ_ortho'
+  let Λ n : 𝓛 (_) := by
+    exact (A (n)).Λ_ortho'
 
 
-  -- sorry
-  -- sorry
-  -- have m_top := mHyp'_tendsTo _ _ q_prime m_hyp
-  -- #check Asymptotics.IsLittleO.comp_tendsto
-  -- unfold ω_sqrt_log at *
-  -- #check Asymptotics.IsBigO.trans_isLittleO
-  -- have : s =O[Filter.atTop] (s ∘ m) := by sorry
-  -- -- refine IsBigO.trans_isLittleO ?_ ?_
+  -- let Λ' n : 𝓛 (Fin (mminv n)) := by
+  --   exact Λ (minv n)
+
+  let s' (n : ℕ) : ℝ≥0 :=  (s n) / 4
+
+
+  obtain ⟨ε,negl_ε, ε_pos, so⟩ := Lemma_2_6_then'' (m := m) (mHyp'_ge_id m q q_prime m_hyp) (m_pos) Λ s' sorry
+  -- subst Λ'
+  refine ⟨(ε),?_,?_,?_⟩
 
   sorry
+  -- simp only [Function.comp_apply]
+  exact fun n ↦ ε_pos (n)
+  -- simp only [Function.comp_apply]
+  intro n
+
+  specialize (so) n
+  subst Λ
+  simp_all only
+  apply le_trans so
+  suffices 1/4 ≤ (A n).Λ_ortho'.dualLattice.minimum_distance_sup by
+    rw [div_le_comm₀]
+    unfold s'
+    trans 1/4
+    ·
+      simp only [one_div, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, NNReal.le_inv_iff_mul_le]
+      ring_nf
+      exact mul_inv_le_one
+    · exact this
+    exact (𝓛.minimum_distance_sup.positive _).pos
+    exact NeZero.pos (s n)
+
+
+
+
+
+
+  clear so negl_ε ε_pos ε
+  unfold lemma_5_3_statement at hA
+  simp_rw [A_Matrix.Λ_dual'] at hA
+  specialize hA n
+
+  have : (q n • (A n).Λ_ortho'.dualLattice).minimum_distance_sup = q n * ((A n).Λ_ortho'.dualLattice).minimum_distance_sup := by
+    -- prove in other file
+    sorry
+  rw [this] at hA
+  clear this
+
+  -- simp only [one_div, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, NNReal.inv_le, ge_iff_le]
+  simp at hA
+  set q'  := ((q n) : ℝ≥0)
+  set md := (A n).Λ_ortho'.dualLattice.minimum_distance_sup
+  have : 0 < q' := by exact NeZero.pos q'
+
+
+  have : q' * (1 / 4) ≤ q' * md := by
+    simp only [one_div]
+    exact hA
+  set fo := (1/4 : ℝ≥0)
+  (expose_names; exact le_of_mul_le_mul_left this this_1)

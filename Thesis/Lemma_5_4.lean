@@ -35,7 +35,7 @@ def corollary_5_4_condition {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (su
 def corollary_5_4_statement (q : N → Q) [∀n, NeZero (q n)]  (m : N → M)
   (A : (n : N) → A_Matrix n (m n) (q n)) (s : N → ℝ≥0) (s_pos : ∀n, NeZero (s n)) :=
     statisticallyClose
-      (fun n ↦ (A n).syndrome_distributed (int_gaussian (m n) (s n)))
+      (fun n ↦ (A n).syndromeDistributed (intGaussian (m n) (s n)))
       (fun n ↦ uniform_over_Zqn n (q n))
 
 /-- an example for the proof -/
@@ -86,7 +86,7 @@ theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp :
   change ∀ (n : N), sε (A n) (ε n) (s n) at key_5_3
 
   unfold corollary_5_4_statement
-  set synd_dist := (fun n ↦ (A n).syndrome_distributed (int_gaussian (m n) (s n)))
+  set synd_dist := (fun n ↦ (A n).syndromeDistributed (intGaussian (m n) (s n)))
   set uni := fun n ↦ uniform_over_Zqn n (q n)
 
 
@@ -101,10 +101,10 @@ theorem corollary_5_4_prob (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_
   (s : N → ℝ≥0)(s_growth : s =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n)) :
   let A_is n := ProbabilityTheory.uniformOn_isProbabilityMeasure ( s:= (Set.univ : Set (A_Matrix n (m n) (q n)))) sorry sorry
   let A n : ProbabilityMeasure _ := ⟨_,A_is n⟩
-  let x := fun n ↦ (int_gaussian (m n) (s n))
+  let x := fun n ↦ (intGaussian (m n) (s n))
   let A_x n := ProbabilityMeasure.prod (A n) (x n)
   let A_Ax n := ProbabilityMeasure.map (A_x n) (f :=
-    fun ⟨A,x⟩ ↦ (⟨A,A.syndrome_map x⟩ : _ × _)
+    fun ⟨A,x⟩ ↦ (⟨A,A.syndromeMap x⟩ : _ × _)
     ) sorry
 
 

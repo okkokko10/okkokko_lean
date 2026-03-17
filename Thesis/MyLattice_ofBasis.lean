@@ -9,7 +9,7 @@ open scoped NNReal ENNReal
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] --(B : Basis ι)
 
 
-abbrev 𝓛 ι := Submodule ℤ (ι → ℝ)
+-- abbrev 𝓛 ι := Submodule ℤ (ι → ℝ)
 
 
 

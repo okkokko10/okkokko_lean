@@ -1,12 +1,14 @@
 import Mathlib
 
+abbrev 𝓛 ι := Submodule ℤ (ι → ℝ)
+
 abbrev Zqn (n q : ℕ) := (Fin n → ZMod q)
 namespace Casts
 
 abbrev IntSubgroup := AddSubgroup.zmultiples (1 : ℝ)
 abbrev IntSubmodule := IntSubgroup.toIntSubmodule
 
-abbrev Zn (ι : Type*) := (AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft ι).range ))
+abbrev Zn (ι : Type*) : 𝓛 ι := (AddSubgroup.toIntSubmodule (((Int.castAddHom ℝ).compLeft ι).range ))
 
 abbrev Intn_to_Zqn {ι : Type*} {q : ℕ} : (ι → ℤ) →ₗ[ℤ] (ι → ZMod q)  := by
   exact (Algebra.linearMap ℤ (ZMod q)).compLeft ι

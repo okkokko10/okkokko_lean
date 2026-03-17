@@ -28,7 +28,9 @@ theorem lemma_5_3_also {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (q_prime
   (s : (n : N) → ℝ≥0) (hs : s =ω (sqrt_log ∘ m))
   : lemma_5_3_also_statement A s := by
 
+  -- have := Lemma_2_6_then'' (m := m)
 
+  -- let ⟨ε, negl_ε, ε_pos, so⟩ := Lemma_2_6_then'' (ι := (Fin <| m ·)) ?_ (fun n ↦ (A n).Λ_ortho') (s) ?_
 
   -- change
   --   ∃ ε,

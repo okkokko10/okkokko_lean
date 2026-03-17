@@ -91,8 +91,8 @@ def statisticallyClose {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)] 
 
 section properties
 
-
-def toPDF [DiscreteMeasurableSpace D] (X : ProbabilityMeasure D) : D →₁[Measure.count] ℝ := by
+-- todo: this isn't a PDF
+def toPMF [DiscreteMeasurableSpace D] (X : ProbabilityMeasure D) : D →₁[Measure.count] ℝ := by
 
   refine MemLp.toLp (fun x ↦ (X {x}).toReal) ?_
   refine mem_L1_toReal_of_lintegral_ne_top AEMeasurable.of_discrete ?_
@@ -105,9 +105,9 @@ def toPDF [DiscreteMeasurableSpace D] (X : ProbabilityMeasure D) : D →₁[Meas
   exact prob_le_one
 
 
-theorem toPDF_injective [DiscreteMeasurableSpace D] [Countable D] : Function.Injective (toPDF (D := D)) := by
+theorem toPMF_injective [DiscreteMeasurableSpace D] [Countable D] : Function.Injective (toPMF (D := D)) := by
   intro X Y
-  unfold toPDF
+  unfold toPMF
   simp only [MemLp.toLp_eq_toLp_iff]
   rw [Filter.EventuallyEq]
   rw [Measure.ae_count_iff]
@@ -138,28 +138,28 @@ theorem toPDF_injective [DiscreteMeasurableSpace D] [Countable D] : Function.Inj
 
 
 
-lemma toPDF_apply [DiscreteMeasurableSpace D] (X : ProbabilityMeasure D) x :
-  toPDF X x = (X {x}).toReal := by
-    unfold toPDF
+lemma toPMF_apply [DiscreteMeasurableSpace D] (X : ProbabilityMeasure D) x :
+  toPMF X x = (X {x}).toReal := by
+    unfold toPMF
     let p x :=(X {x}).toReal
     change (MemLp.toLp p _) x = p x
     revert x
     rw [← Measure.ae_count_iff] -- under the counting measure, ae is everywhere
     rw [← Filter.EventuallyEq]
-    exact MemLp.coeFn_toLp (toPDF._proof_1 X)
+    exact MemLp.coeFn_toLp (toPMF._proof_1 X)
 
 
 
 
 instance statisticalDistancePseudoMetric {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] : PseudoMetricSpace (ProbabilityMeasure D) := by
   let met : MetricSpace (D →₁[Measure.count] ℝ) := inferInstance
-  exact PseudoMetricSpace.induced toPDF met.toPseudoMetricSpace
+  exact PseudoMetricSpace.induced toPMF met.toPseudoMetricSpace
 
 
 /-- metric space where dist is equal to statistical distance times 2 -/
 instance statisticalDistanceMetric {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] [Countable D] : MetricSpace (ProbabilityMeasure D) := by
   let met : MetricSpace (D →₁[Measure.count] ℝ) := inferInstance
-  exact (MetricSpace.induced toPDF toPDF_injective met)
+  exact (MetricSpace.induced toPMF toPMF_injective met)
 
 instance statisticalDistancePseudoEMetric {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] : PseudoEMetricSpace (ProbabilityMeasure D) :=
   statisticalDistancePseudoMetric.toPseudoEMetricSpace
@@ -173,7 +173,7 @@ example {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D] [Countable D
 theorem statisticalDistancePseudoMetric_eq {D : Type*} [MeasurableSpace D] [DiscreteMeasurableSpace D]
   (X Y : ProbabilityMeasure D)
   : dist X Y = 2 * statisticalDistance X Y := by
-    change dist (toPDF X) (toPDF Y) = 2 * ↑(statisticalDistance X Y)
+    change dist (toPMF X) (toPMF Y) = 2 * ↑(statisticalDistance X Y)
     unfold statisticalDistance
     simp only [NNReal.coe_mul, NNReal.coe_inv, NNReal.coe_ofNat, ne_eq, OfNat.ofNat_ne_zero,
       not_false_eq_true, mul_inv_cancel_left₀]
@@ -182,7 +182,7 @@ theorem statisticalDistancePseudoMetric_eq {D : Type*} [MeasurableSpace D] [Disc
     rw [Lp.dist_def]
     rw [eLpNorm_one_eq_lintegral_enorm]
     simp only [Pi.sub_apply]
-    simp_rw [toPDF_apply]
+    simp_rw [toPMF_apply]
 
 
     rw [lintegral_count]

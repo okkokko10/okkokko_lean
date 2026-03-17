@@ -1,6 +1,7 @@
 import Thesis.Hypotheses
 import Thesis.A_Matrix
 import Thesis.Statistic
+import Thesis.StatisticalDistance
 import Thesis.Zqn
 import Thesis.Gaussians
 
@@ -33,7 +34,7 @@ def corollary_5_4_condition {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (su
 
 def corollary_5_4_statement (q : N → Q) [∀n, NeZero (q n)]  (m : N → M)
   (A : (n : N) → A_Matrix n (m n) (q n)) (s : N → ℝ≥0) (s_pos : ∀n, NeZero (s n)) :=
-    statistically_close
+    statisticallyClose
       (fun n ↦ (A n).syndrome_distributed (int_gaussian (m n) (s n)))
       (fun n ↦ uniform_over_Zqn n (q n))
 
@@ -90,7 +91,7 @@ theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp :
 
 
   have key_5_2 n := lemma_5_2 (A n) (key_5_1 n) (ε n) sorry (s n) (key_5_3 n)
-  change ∀n, statistical_distance (synd_dist n) (uni n) ≤ 2 * ε n at key_5_2
+  change ∀n, statisticalDistance (synd_dist n) (uni n) ≤ 2 * ε n at key_5_2
   apply negligible.of_le key_5_2
   change negligible ((2 : ℝ≥0) • ε)
   exact negligible.smul negl_ε

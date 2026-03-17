@@ -13,7 +13,7 @@ example (q)  [NeZero q] : Algebra ℤ (ZMod q) := inferInstance
 #eval (List.range 10).map ((↑) : _ → ℤ) |>.map (Algebra.linearMap ℤ (ZMod 3))
 
 
-def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) →ₗ[ℤ] (Fin n → ZMod q) := by
+def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) →ₗ[ℤ] (Zqn n q) := by
   -- have := Matrix.toLin (m := Fin n) (n := Fin m) (R := ZMod q) sorry sorry
   let vl:= (Matrix.mulVecLin A).toAddMonoidHom.toIntLinearMap
 
@@ -24,7 +24,7 @@ def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) �
 example (q : ℕ) (a b : ℤ) : ((a : ZMod q) * (b : ZMod q)) = ↑(a * b) := by
   simp only [Int.cast_mul]
 
-def A_Matrix.syndrome_map' {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) → (Fin n → ZMod q) := by
+def A_Matrix.syndrome_map' {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) → (Zqn n q) := by
   intro x
   apply A.mulVec <| Int.cast ∘ x
 

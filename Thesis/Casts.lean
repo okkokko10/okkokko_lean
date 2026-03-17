@@ -1,5 +1,6 @@
 import Mathlib
 
+abbrev Zqn (n q : ℕ) := (Fin n → ZMod q)
 namespace Casts
 
 abbrev IntSubgroup := AddSubgroup.zmultiples (1 : ℝ)

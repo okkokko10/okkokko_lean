@@ -6,6 +6,7 @@ import Thesis.Statistic
 import Thesis.Zqn
 import Thesis.Lemma_2_8
 import Thesis.StatisticalDistance
+import Thesis.Casts
 
 
 noncomputable section
@@ -31,10 +32,10 @@ def Casts.Zn_int {ι : Type*} [Fintype ι] : Casts.Zn (ι) ≃ₗ[ℤ] (ι → �
 
 
 -- temp
-def A_Matrix.syndrome_map_Zn {n m q : ℕ} (A : A_Matrix n m q) : (Casts.Zn (Fin m)) →ₗ[ℤ] (Fin n → ZMod q) := by sorry
+def A_Matrix.syndrome_map_Zn {n m q : ℕ} (A : A_Matrix n m q) : (Casts.Zn (Fin m)) →ₗ[ℤ] (Zqn n q) := by sorry
 
 
-def A_Matrix.syndromes {n m q : ℕ} (A : A_Matrix n m q) : Submodule ℤ (Fin n → ZMod q) := LinearMap.range A.syndrome_map_Zn
+def A_Matrix.syndromes {n m q : ℕ} (A : A_Matrix n m q) : Submodule ℤ (Zqn n q) := LinearMap.range A.syndrome_map_Zn
 
 -- temp
 def A_Matrix.Λ_ortho_Zn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Submodule ℤ ↥(Casts.Zn (Fin m)) := (LinearMap.ker A.syndrome_map_Zn)
@@ -196,7 +197,7 @@ theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1
 
 
     -- todo: statistical distance is conserved by maps?
-    have : ∃equi : (𝓛.quot (Casts.Zn (Fin m)) Λt) ≃ (Fin n → ZMod q),
+    have : ∃equi : (𝓛.quot (Casts.Zn (Fin m)) Λt) ≃ (Zqn n q),
       (𝓛.quot_uniform (Casts.Zn (Fin m)) Λt sub).map (f := equi) (AEMeasurable.of_discrete) = (uniform_over_Zqn n q)
       ∧
       (e_modΛt_distribution).map (f := equi) (AEMeasurable.of_discrete) = (A.syndrome_distributed (int_gaussian m s))
@@ -237,7 +238,7 @@ theorem lemma_5_2 {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1
 -- seems to not be used by 5_4
 theorem lemma_5_2_furthermore {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) (ass : lemma_5_1_statement A)
   (ε : ℝ≥0) [NeZero ε] (ε_bound : ε < 2⁻¹) (s : ℝ≥0)
-  (s_prop : 𝓛.smoothing_parameter (A.Λ_ortho') ε ≤ s) (u : Fin n → ZMod q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
+  (s_prop : 𝓛.smoothing_parameter (A.Λ_ortho') ε ≤ s) (u : Zqn n q) (t : Fin m → ℤ) (ht : A.syndrome_map t = u)
   :
   have : NeZero s := sorry;
   -- ProbabilityTheory.cond (int_gaussian m hs) (A.syndrome_map ⁻¹' {u}) = t +ᵥ (int_gaussian_sublattice m hs A.Λ_ortho (-t))

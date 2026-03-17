@@ -1,0 +1,1 @@
+change A.syndrome_map to use Zn

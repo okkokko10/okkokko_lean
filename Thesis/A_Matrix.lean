@@ -1,5 +1,6 @@
 import Mathlib
 import Thesis.Casts
+import Thesis.MyLattice_ofBasis
 section A_Matrix
 
 def A_Matrix (n m q : ℕ) : Type := Matrix (Fin n) (Fin m) (ZMod q)
@@ -17,7 +18,7 @@ def A_Matrix.syndrome_map {n m q : ℕ} (A : A_Matrix n m q) : (Fin m → ℤ) �
   -- have := Matrix.toLin (m := Fin n) (n := Fin m) (R := ZMod q) sorry sorry
   let vl:= (Matrix.mulVecLin A).toAddMonoidHom.toIntLinearMap
 
-  refine vl.comp Casts.Zn_to_Zqn
+  refine vl.comp Casts.Intn_to_Zqn
 
 
 -- this shows that modulo can be done before or after
@@ -91,5 +92,17 @@ open MeasureTheory
 noncomputable def A_Matrix.syndrome_distributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
   (e : ProbabilityMeasure (Fin m → ℤ))
   := e.map (f := A.syndrome_map) (AEMeasurable.of_discrete)
+
+
+noncomputable def A_Matrix.syndromeMap {n m q : ℕ} (A : A_Matrix n m q) : (Casts.Zn (Fin m)) →ₗ[ℤ] (Zqn n q) := by
+  -- have := Matrix.toLin (m := Fin n) (n := Fin m) (R := ZMod q) sorry sorry
+  let vl:= (Matrix.mulVecLin A).toAddMonoidHom.toIntLinearMap
+
+  refine vl.comp Casts.ZnToZqn
+
+noncomputable def A_Matrix.syndromeDistributed {n m q : ℕ} [NeZero q] (A : A_Matrix n m q)
+  (e : ProbabilityMeasure (Casts.Zn (Fin m)))
+  := e.map (f := A.syndromeMap) (AEMeasurable.of_discrete)
+
 
 end A_Matrix

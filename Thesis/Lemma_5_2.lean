@@ -14,21 +14,13 @@ open scoped NNReal ENNReal
 open MeasureTheory
 
 
--- move to other file
-instance (ι : Type*) [Fintype ι] [DecidableEq ι] :  DiscreteTopology (Casts.Zn ι) := by
-  rw [Casts.Zn_ofBasis]
-  exact ZSpan.discreteTopology_pi_basisFun
-instance (ι : Type*) [Fintype ι] [DecidableEq ι] :  IsZLattice ℝ (Casts.Zn ι) := by
-  convert instIsZLatticeRealSpan (Pi.basisFun ℝ ι) -- convert is unreasonably effective
-  exact Casts.Zn_ofBasis
-
 
 
 
 #check MeasurableEquiv
 
-def Casts.Zn_int {ι : Type*} [Fintype ι] : Casts.Zn (ι) ≃ₗ[ℤ] (ι → ℤ) := by
-  sorry
+-- def Casts.Zn_int {ι : Type*} [Fintype ι] : Casts.Zn (ι) ≃ₗ[ℤ] (ι → ℤ) := by
+--   sorry
 
 
 -- temp

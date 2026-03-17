@@ -1,7 +1,7 @@
 import Mathlib
 import Thesis.Casts
 
-noncomputable section
+-- noncomputable section
 
 
 open scoped NNReal ENNReal

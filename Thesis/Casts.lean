@@ -61,18 +61,21 @@ theorem Zn.eq_Intn_to_Rn_range  {ι : Type*} : Zn ι = LinearMap.range Intn_to_R
   rfl
 
 
+noncomputable def RnToIntn {ι : Type*} : (ι → ℝ) → (ι → ℤ) :=
+  fun w i ↦ ⌊w i⌋
+
+lemma Intn_to_Rn_leftInverse {ι : Type*} : Function.LeftInverse (RnToIntn (ι := ι)) Intn_to_Rn := by
+  intro x
+  unfold RnToIntn
+  simp only [LinearMap.compLeft_apply, Function.comp_apply, Algebra.linearMap_apply,
+    algebraMap_int_eq, eq_intCast, Int.floor_intCast]
+
+
 
 noncomputable def IntnToZn {ι : Type*} : (ι → ℤ) ≃ₗ[ℤ] Zn (ι) := by
   rw [Zn.eq_Intn_to_Rn_range]
-  #check LinearEquiv.range
-  apply LinearEquiv.ofInjective (f := Intn_to_Rn)
-  unfold Intn_to_Rn
-  intro a b ab
-  rw [funext_iff] at ab ⊢
-  intro i
-  specialize ab i
-  simpa only [LinearMap.compLeft_apply, Function.comp_apply, Algebra.linearMap_apply,
-    algebraMap_int_eq, eq_intCast, Int.cast_inj] using ab
+  apply LinearEquiv.ofLeftInverse (f := Intn_to_Rn) Intn_to_Rn_leftInverse
+
 
 
 

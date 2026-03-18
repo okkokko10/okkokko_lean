@@ -163,9 +163,6 @@ theorem Lemma_2_6' (ε : ℝ≥0) [NeZero ε]
     sorry
 
 
-def negligible_over {R : Type*} [Norm R] (f : ℕ → R) (m : ℕ → ℕ) := ∀(c : ℕ), c > 0 → f =o[Filter.atTop] ((fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ))) ∘ m)
-
-
 theorem Lemma_2_6_then'''
   {m : ℕ → ℕ} (m_top : id ≤ m) (m_pos : ∀n, NeZero (m n)) (Λ : (n : ℕ) → 𝓛 (Fin (m n))) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
   (s : ℕ → ℝ≥0) (hs : (((↑) : _ → ℝ) ∘ s) =ω (sqrt_log ∘ m))
@@ -215,6 +212,20 @@ theorem Lemma_2_6_then'''
         exact inv_pos (m n) (s n) co
       · exact default_pos
 
+    have m_ge_2_eventually : ∀ᶠ n in Filter.atTop, 2 < m n := by
+      simp only [Filter.eventually_atTop, ge_iff_le]
+      use 4
+      intro b b3
+      trans 3
+      exact Nat.lt_add_one 2
+      exact Nat.lt_of_lt_of_le b3 (m_top b)
+
+
+
+    -- change ((Real.sqrt ∘ Real.log) ∘ Nat.cast ∘ m) =o[Filter.atTop] fun x ↦ (s x : ℝ) at hs
+    -- this is sufficient for cond_eventually:
+    have hs' : Asymptotics.IsBigOWith 1 Filter.atTop (sqrt_log ∘ m) (NNReal.toReal ∘ s) := Asymptotics.IsLittleO.isBigOWith hs
+
     have cond_eventually : ∀ᶠ n in Filter.atTop, cond (m n) (s n) := by
       have erase_multiplier (m : ℕ) (m_ge_2 : 2 ≤ m): √(Real.log (2 * m)) ≤ √2 * √(Real.log m) := by
         rw [←Real.sqrt_mul (x := 2) (zero_le_two)]
@@ -227,18 +238,10 @@ theorem Lemma_2_6_then'''
         gcongr 1
         exact Nat.ofNat_le_cast.mpr m_ge_2
 
-      have m_ge_2_eventually : ∀ᶠ n in Filter.atTop, 2 < m n := by
-        simp only [Filter.eventually_atTop, ge_iff_le]
-        use 4
-        intro b b3
-        trans 3
-        exact Nat.lt_add_one 2
-        exact Nat.lt_of_lt_of_le b3 (m_top b)
-
 
       have s_pos_eventually : ∀ᶠ n in Filter.atTop, 0 < s n := by
 
-        have := Asymptotics.IsLittleO.isBigOWith hs
+        have := hs'
         rw [Asymptotics.IsBigOWith_def] at this
         apply Filter.Eventually.mp this
         apply Filter.Eventually.mp m_ge_2_eventually
@@ -256,11 +259,6 @@ theorem Lemma_2_6_then'''
         simp only [Nat.one_lt_ofNat]
         exact b2
 
-
-      #check hs
-
-      -- rw [Asymptotics.IsLittleO]
-      -- apply Filter.Eventually.mp hs
       have con (m : ℕ) (m_pos : 0 < m) (s : ℝ≥0) : cond m s ↔ ‖√(Real.log (2 * ↑m))‖ < √Real.pi * ‖(s : ℝ)‖ := by
         unfold cond
         have m2_pos: 0 < 2 * (m : ℝ) := by bound [m_pos]
@@ -307,7 +305,6 @@ theorem Lemma_2_6_then'''
         ac_change √2 * ‖√(Real.log ↑m)‖ ≤ √2 * (c * ‖(s : ℝ)‖)
         gcongr
 
-      change ((Real.sqrt ∘ Real.log) ∘ Nat.cast ∘ m) =o[Filter.atTop] fun x ↦ (s x : ℝ) at hs
 
       refine Filter.Eventually.mp (p := fun n ↦ (0 < s n) ∧  ‖√(Real.log (m n))‖ ≤ 1 * ‖(s n : ℝ)‖) ?_ ?_
       rotate_left
@@ -322,14 +319,62 @@ theorem Lemma_2_6_then'''
       apply Filter.Eventually.and
       exact s_pos_eventually
       rw [←Asymptotics.IsBigOWith_def]
-      apply Asymptotics.IsLittleO.isBigOWith
-      exact hs
 
-    refine ⟨ε,?_,?_,?_⟩
+      apply hs'
+
+
+    refine ⟨ε,?_,ε_pos,?_⟩
     ·
-      -- negligible_over ε m
+      have ε_eq_inv_eventually : ((↑) ∘ ε) =ᶠ[Filter.atTop] fun n ↦ (inv (m n) (s n)).toReal := by
+        -- trivial
+        sorry
+      unfold negligible_over
+      simp only [gt_iff_lt, Real.rpow_neg_natCast, zpow_neg, zpow_natCast]
+
+      intro c c_pos
+
+
+      apply Asymptotics.isLittleO_congr ε_eq_inv_eventually (Filter.EventuallyEq.refl _ _) |>.mpr
+
+
+      -- #check Asymptotics.SuperpolynomialDecay
+      unfold inv
+
+      -- hm, is this actually the correct ε?
+      --  [(Real.exp (↑(s n) ^ 2 * Real.pi)] should be =ω m
+      let s' n := Real.exp ((s n) ^ 2 * Real.pi)
+      open Asymptotics in
+      change
+        (fun n ↦ ( (s' n) / (2 * ↑(m n)) - 1)⁻¹.toNNReal.toReal) =o[Filter.atTop]
+          ((fun n ↦ (↑(m n : ℝ) ^ c)⁻¹) )
+
+      simp_rw [Real.toNNReal_inv]
+      simp only [NNReal.coe_inv, Real.coe_toNNReal']
+
+      refine Asymptotics.IsLittleO.inv_rev ?_ ?_
+      rotate_left
+      ·
+        apply Filter.Eventually.of_forall
+        intro x contr
+        exfalso
+        apply (m_pos x).ne
+        simp only [pow_eq_zero_iff', Nat.cast_eq_zero, ne_eq] at contr
+        exact contr.left
+
+
+
+
+
+
+      -- apply Asymptotics.IsLittleO.abs_left
+
+
+      #check Asymptotics.IsLittleO
+
+
+
       sorry
-    · exact ε_pos
+
     apply Filter.Eventually.mp cond_eventually
     apply Filter.Eventually.of_forall
     intro n co

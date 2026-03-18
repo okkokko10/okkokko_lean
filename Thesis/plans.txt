@@ -1,1 +1,3 @@
 change A.syndrome_map to use Zn
+
+make it so lemma_2_6 is an eventually le, not always le. seems like negligible.of_le can be changed to eventually le

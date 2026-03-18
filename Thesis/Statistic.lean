@@ -299,4 +299,17 @@ def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω sqrt_log
 
 abbrev goes_to_infinity (f : ℕ → ℕ) : Prop := Filter.Tendsto f Filter.atTop Filter.atTop
 
+
+
+theorem negligible_over.of_EventuallyLE {a b : ℕ → ℝ≥0} {m : ℕ → ℕ} (le : a ≤ᶠ[Filter.atTop] b) (b_negl : negligible_over b m) : negligible_over a m := by
+  sorry
+
+theorem negligible_over.smul {c : ℝ≥0} {f : ℕ → ℝ≥0} {m : ℕ → ℕ} (negl: negligible_over f m) : negligible_over (c • f) m
+  := by
+  sorry
+
+theorem negligible_over.toNegligible  {f : ℕ → ℝ≥0} {m : ℕ → ℕ} (negl: negligible_over f m) (m_grow : id ≤ m) : negligible (f)
+  := by
+  sorry
+
 end statistic

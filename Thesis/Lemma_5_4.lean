@@ -68,7 +68,7 @@ def corollary_5_4.valid_subsets_spec (q : N → Q) [∀n, NeZero (q n)] (m : N �
 theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)] (m : N → M) [∀n, NeZero (m n)] (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   : ∃(subsets : (n : N) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
   ∀(A : (n : N) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
-  ∀(s : N → ℝ≥0)(_ : s =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n)) , -- ≥ω is the same as =ω, right?
+  ∀(s : N → ℝ≥0)(hs : (NNReal.toReal ∘ s) =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n)) , -- ≥ω is the same as =ω, right?
   corollary_5_4_statement q m A s s_pos
   := by
   refine ⟨corollary_5_4.valid_subsets q m, corollary_5_4.valid_subsets_spec _ _ q_hyp m_hyp, ?_⟩
@@ -84,18 +84,31 @@ theorem corollary_5_4 (q : N → Q) [∀n, NeZero (q n)] (m : N → M) [∀n, Ne
 
   unfold lemma_5_3_relationship at key_5_3
   let sε {n m q : ℕ} {_ : NeZero q} (A : A_Matrix n m q) (ε) {_ : NeZero ε} (s) := (A).Λ_ortho'.smoothing_parameter (ε) ≤ s
-  change ∀ (n : N), sε (A n) (ε n) (s n) at key_5_3
+  change ∀ᶠ (n : N) in Filter.atTop, sε (A n) (ε n) (s n) at key_5_3
 
   unfold corollary_5_4_statement
   set synd_dist := (fun n ↦ (A n).syndromeDistributed (intGaussian (m n) (s n)))
   set uni := fun n ↦ uniform_over_Zqn n (q n)
 
 
-  have key_5_2 n := lemma_5_2 (A n) (key_5_1 n) (ε n) sorry (s n) (key_5_3 n)
-  change ∀n, statisticalDistance (synd_dist n) (uni n) ≤ 2 * ε n at key_5_2
-  apply negligible.of_le key_5_2
-  change negligible ((2 : ℝ≥0) • ε)
-  exact negligible.smul negl_ε
+
+  have key_5_2
+    : ∀ᶠ (n : N) in Filter.atTop, statisticalDistance (synd_dist n) (uni n) ≤ 2 * ε n
+    := by
+      apply Filter.Eventually.mp key_5_3
+      apply Filter.Eventually.of_forall
+      intro n key_5_2_statement
+      exact lemma_5_2 (A n) (key_5_1 n) (ε n) sorry (s n) key_5_2_statement
+
+  have m_top : id ≤ m := by exact mHyp'_ge_id m q q_hyp m_hyp
+  apply negligible_over.toNegligible ?_ m_top
+
+
+  apply negligible_over.of_EventuallyLE key_5_2
+  change negligible_over ((2 : ℝ≥0) • ε) m
+  exact negligible_over.smul negl_ε
+
+
 
 -- maybe also do this?
 theorem corollary_5_4_prob (q : N → Q) [∀n, NeZero (q n)]  (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)

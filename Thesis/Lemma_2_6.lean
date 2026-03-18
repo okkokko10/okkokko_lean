@@ -162,90 +162,76 @@ theorem Lemma_2_6' (ε : ℝ≥0) [NeZero ε]
   / 𝓛.minimum_distance_sup (𝓛.dualLattice Λ) := by
     sorry
 
--- theorem Lemma_2_6_then'''
---   {m : ℕ → ℕ} (m_top : id ≤ m) (m_pos : ∀n, NeZero (m n)) (Λ : (n : ℕ) → 𝓛 (Fin (m n))) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
---   (s : ℕ → ℝ≥0) (hs : s =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n))
---   : ∃(ε : ℕ → ℝ≥0) (negl_ε : negligible ε) (ε_pos : ∀n, NeZero (ε n)), ∀n,
---   𝓛.smoothing_parameter (Λ n) (ε n) ≤ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n))
---   := by
---     -- (√ (Real.log (2 * n * (1 + ε⁻¹)) / Real.pi))
---     -- rexp (s ^ 2 * Real.pi) / (2 * n)
---     let inv0 (n : ℕ) (s : ℝ≥0) := ((Real.exp ((s ^ 2 * Real.pi))) / (2 * n) - 1)
+
+def negligible_over {R : Type*} [Norm R] (f : ℕ → R) (m : ℕ → ℕ) := ∀(c : ℕ), c > 0 → f =o[Filter.atTop] ((fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ))) ∘ m)
 
 
+theorem Lemma_2_6_then'''
+  {m : ℕ → ℕ} (m_top : id ≤ m) (m_pos : ∀n, NeZero (m n)) (Λ : (n : ℕ) → 𝓛 (Fin (m n))) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
+  (s : ℕ → ℝ≥0) (hs : s =ω (sqrt_log ∘ m))
+  : ∃(ε : ℕ → ℝ≥0) (negl_ε : negligible_over ε m) (ε_pos : ∀n, NeZero (ε n)), -- maybe doesn't need to be positive always, but 𝓛.smoothing_parameter depends on it so the
+  (fun n ↦ 𝓛.smoothing_parameter (Λ n) (ε n)) ≤ᶠ[Filter.atTop] (fun n ↦ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n)))
+  := by
 
---     let neglinv (n : ℕ) : ℝ≥0 := sorry
---     have neglinv_pos n : 0 < neglinv n := sorry
---     let inv (n : ℕ) (s : ℝ≥0) := (inv0 n s ⊔ neglinv n)⁻¹.toNNReal
+    let inv (n : ℕ) (s : ℝ≥0) := ((Real.exp ((s ^ 2 * Real.pi))) / (2 * n) - 1)⁻¹.toNNReal
 
-
---     have inv_pos' (n) [NeZero n] s [NeZero s] : 0 < inv n s := by
---       unfold inv inv0
-
---       -- simp only [Real.toNNReal_pos, inv_pos, sub_pos]
-
---       have : 0 < n := NeZero.pos _
---       have : 0 < s := NeZero.pos _
---       simp only [Real.toNNReal_pos, inv_pos, lt_sup_iff, sub_pos, NNReal.coe_pos]
---       bound
-
---     have inv_pos (n) [NeZero n] s [NeZero s] : NeZero <| inv n s := NeZero.of_pos (inv_pos' n s)
+    let cond (n : ℕ) (s : ℝ≥0) := 2 * ↑n < Real.exp (↑s ^ 2 * Real.pi)
 
 
---     have inv_spec (n) [NeZero n] s [NeZero s] : lemma_2_6_upper' ((inv n s)) n ≤ s := by
---       have n_pos : 0 < n := NeZero.pos _
---       have s_pos : 0 < s := NeZero.pos _
---       have negl_pos': 0 < ((neglinv n) : ℝ) :=by exact neglinv_pos (m (m (m n)))
---       unfold lemma_2_6_upper' inv
---       simp only [NNReal.coe_inv, NNReal.coe_max, Real.coe_toNNReal', ge_iff_le]
+    have inv_pos' (n) [NeZero n] s (co : cond n s) : 0 < inv n s := by
+      unfold inv
+      rw [Real.toNNReal_pos, inv_pos, sub_pos]
+      bound [co, NeZero.pos n]
+    have inv_pos (n) [NeZero n] s (co : cond n s) : NeZero <| inv n s := NeZero.of_pos (inv_pos' n s co)
 
+    have inv_spec (n) [NeZero n] s (co : cond n s) : lemma_2_6_upper' (inv n s) n = s := by
+      have n_pos : 0 < n := NeZero.pos _
 
---       by_cases! h :  neglinv n ≤ inv0 n s
---       ·
---         have inv_pos := lt_of_lt_of_le negl_pos' h
+      unfold lemma_2_6_upper' inv
+      simp_all only [NNReal.coe_inv, Real.coe_toNNReal']
+      have : 0 < (Real.exp (↑s ^ 2 * Real.pi ) / (2 * ↑n) - 1)⁻¹ := Real.toNNReal_pos.mp (inv_pos' n s co)
+      simp_rw [max_eq_left_of_lt this]
+      simp only [inv_inv, add_sub_cancel]
+      simp_rw [mul_div_cancel₀ (b := 2 * (n : ℝ)) _ (by
+        norm_num
+        exact Nat.ne_zero_of_lt n_pos
+        )]
+      simp only [Real.log_exp, isUnit_iff_ne_zero, ne_eq, Real.pi_ne_zero, not_false_eq_true,
+        IsUnit.mul_div_cancel_right, NNReal.zero_le_coe, Real.sqrt_sq, Real.toNNReal_coe]
 
+    let default_const := (1 : ℝ≥0) -- to make 0 < ε true everywhere, not just eventually.
+    let default_pos : NeZero (default_const) := inferInstance  -- [NeZero 1] is used by one_pos, so might as well get it directly
+    -- I'll make it so $$\varepsilon=1$$ for the indices the condition doesn't hold,
+    -- so I can still define the smoothing parameter $$\eta_\varepsilon$$ (requires positive $$\varepsilon$$) for all indices.
 
---         simp_rw [max_eq_left h]
---         simp_rw [max_eq_right_of_lt inv_pos]
---         simp only [inv_inv, add_sub_cancel]
---         simp_rw [mul_div_cancel₀ (b := 2 * (n : ℝ)) _ (by
---           norm_num
---           exact Nat.ne_zero_of_lt n_pos
---           )]
---         simp only [Real.log_exp, isUnit_iff_ne_zero, ne_eq, Real.pi_ne_zero, not_false_eq_true,
---           IsUnit.mul_div_cancel_right, NNReal.zero_le_coe, Real.sqrt_sq, Real.toNNReal_coe]
---         rfl
+    let ε n := if cond (m n) (s n) then (inv (m n) (s n)) else default_const
+    -- let ε n := (ε' (m n) (s n))
+    have ε_pos: ∀n, NeZero (ε n) := by
+      intro n
+      unfold ε
+      split
+      ·
+        rename_i co
+        exact inv_pos (m n) (s n) co
+      · exact default_pos
 
---       by_cases! h2 : 0 < (Real.exp (↑s ^ 2 * Real.pi ) / (2 * ↑n) - 1)⁻¹
---       ·
+    have cond_eventually : ∀ᶠ n in Filter.atTop, cond (m n) (s n) := sorry
 
---         have : ((max (Real.exp (↑s ^ 2 * Real.pi) / (2 * ↑n) - 1)⁻¹ 0) ≤ ↑(neglinv n)) := by
+    refine ⟨ε,?_,?_,?_⟩
+    ·
+      -- negligible_over ε m
+      sorry
+    · exact ε_pos
+    apply Filter.Eventually.mp cond_eventually
+    apply Filter.Eventually.of_forall
+    intro n co
+    have tw : ε n = inv (m n) (s n) := ite_cond_eq_true _ _ (eq_true co)
+    simp only [ge_iff_le]
+    simp only [tw]
+    trans
+    · have := inv_pos (m n) (s n) co
+      exact Lemma_2_6' (Λ n) (inv (m n) (s n))
 
---           simp only [sup_le_iff, NNReal.zero_le_coe, and_true]
-
---           exact h
-
---         simp_rw [max_eq_right this]
-
---     have : ∃ ε : ℕ → ℝ≥0, ∀n, lemma_2_6_upper' (ε n) n ≤ s n := sorry
-
-
---     let ε n := (inv (m n) (s n))
---     let ε' (n : ℕ) : ℝ≥0 := max (inv (m n) (s n)) (neglinv n)
---     have ε'_pos: ∀n, NeZero (ε' n) := sorry
-
---     refine ⟨ε',?_,?_,?_⟩
---     -- negligible ε
-
---     sorry
---     intro n
---     exact ε'_pos n
---     intro n
---     trans
---     exact Lemma_2_6' (Λ n) (ε' n)
-
---     simp only [Fintype.card_fin]
---     unfold ε'
---     have := inv_spec (m n) (s n)
-
---     gcongr
+    simp only [Fintype.card_fin]
+    have := (inv_spec (m n) (s n) co).le
+    gcongr

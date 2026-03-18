@@ -291,7 +291,7 @@ def statistically_close {D : (n : ℕ) →  Type*} [∀n, MeasurableSpace (D n)]
 -- #check Mathlib.Testing.SlimCheck
 
 
-def sqrt_log : ℕ → ℝ≥0 := (Real.toNNReal ∘ Real.sqrt ∘  Real.log ∘ (↑))
+def sqrt_log : ℕ → ℝ := (Real.sqrt ∘  Real.log ∘ (↑))
 def ω_sqrt_log (ω : ℕ → ℝ≥0) : Prop := ω =ω sqrt_log
 
 abbrev goes_to_infinity (f : ℕ → ℕ) : Prop := Filter.Tendsto f Filter.atTop Filter.atTop

@@ -168,14 +168,14 @@ def negligible_over {R : Type*} [Norm R] (f : ℕ → R) (m : ℕ → ℕ) := �
 
 theorem Lemma_2_6_then'''
   {m : ℕ → ℕ} (m_top : id ≤ m) (m_pos : ∀n, NeZero (m n)) (Λ : (n : ℕ) → 𝓛 (Fin (m n))) [∀n, DiscreteTopology ↥(Λ n)] [∀n, IsZLattice ℝ (Λ n)]
-  (s : ℕ → ℝ≥0) (hs : s =ω (sqrt_log ∘ m))
+  (s : ℕ → ℝ≥0) (hs : (((↑) : _ → ℝ) ∘ s) =ω (sqrt_log ∘ m))
   : ∃(ε : ℕ → ℝ≥0) (negl_ε : negligible_over ε m) (ε_pos : ∀n, NeZero (ε n)), -- maybe doesn't need to be positive always, but 𝓛.smoothing_parameter depends on it so the
   (fun n ↦ 𝓛.smoothing_parameter (Λ n) (ε n)) ≤ᶠ[Filter.atTop] (fun n ↦ s n / 𝓛.minimum_distance_sup (𝓛.dualLattice (Λ n)))
   := by
 
     let inv (n : ℕ) (s : ℝ≥0) := ((Real.exp ((s ^ 2 * Real.pi))) / (2 * n) - 1)⁻¹.toNNReal
 
-    let cond (n : ℕ) (s : ℝ≥0) := 2 * ↑n < Real.exp (↑s ^ 2 * Real.pi)
+    let cond (m : ℕ) (s : ℝ≥0) := 2 * ↑m < Real.exp (↑s ^ 2 * Real.pi)
 
 
     have inv_pos' (n) [NeZero n] s (co : cond n s) : 0 < inv n s := by
@@ -215,7 +215,88 @@ theorem Lemma_2_6_then'''
         exact inv_pos (m n) (s n) co
       · exact default_pos
 
-    have cond_eventually : ∀ᶠ n in Filter.atTop, cond (m n) (s n) := sorry
+    have cond_eventually : ∀ᶠ n in Filter.atTop, cond (m n) (s n) := by
+      #check hs
+
+      -- rw [Asymptotics.IsLittleO]
+      -- apply Filter.Eventually.mp hs
+      have con (m : ℕ) (m_pos : 0 < m) (s : ℝ≥0) : cond m s ↔ ‖√(Real.log (2 * ↑m))‖ < √Real.pi * ‖(s : ℝ)‖ := by
+        unfold cond
+        have m2_pos: 0 < 2 * (m : ℝ) := by bound [m_pos]
+        calc
+          2 * ↑m < Real.exp (↑s ^ 2 * Real.pi) ↔ Real.log (2 * ↑m)  < ↑s ^ 2 * Real.pi := by
+            rw [Real.log_lt_iff_lt_exp (x := 2 * m) m2_pos]
+          _ ↔ Real.log (2 * ↑m)  < (↑s * √Real.pi) ^ 2 := by
+            rw [mul_pow, Real.sq_sqrt (Real.pi_nonneg)]
+          _ ↔ √(Real.log (2 * ↑m)) < ↑s * √Real.pi := by
+            rw [←Real.sqrt_lt]
+            bound
+            bound
+          _ ↔ √(Real.log (2 * ↑m)) < √Real.pi * ↑s := by rw [mul_comm _ (s : ℝ)]
+          _ ↔ ‖√(Real.log (2 * ↑m))‖ < √Real.pi * ‖(s : ℝ)‖ := by  sorry
+
+
+
+      have con' (m : ℕ) (m_pos : 0 < m) (s : ℝ≥0) : (0 < s) ∧ ‖√(Real.log (2 * ↑m))‖ ≤ 1 * ‖(s : ℝ)‖ → cond m s := by
+        rw [con m m_pos s]
+        simp only [Real.norm_eq_abs, NNReal.abs_eq]
+        intro ⟨s_pos,w⟩
+        simp only [one_mul] at w
+        apply lt_of_le_of_lt w
+        refine lt_mul_iff_one_lt_left ?_ |>.mpr ?_
+        exact s_pos
+        apply lt_of_not_ge
+        rw [Real.sqrt_le_one]
+        bound [Real.pi_gt_d2]
+
+      change ((Real.sqrt ∘ Real.log) ∘ Nat.cast ∘ m) =o[Filter.atTop] fun x ↦ (s x : ℝ) at hs
+      have s_pos_eventually : ∀ᶠ n in Filter.atTop, 0 < s n := by
+
+        have := Asymptotics.IsLittleO.isBigOWith hs
+        rw [Asymptotics.IsBigOWith_def] at this
+        apply Filter.Eventually.mp this
+        simp only [Function.comp_apply, Real.norm_eq_abs, NNReal.abs_eq, one_mul,
+          Filter.eventually_atTop, ge_iff_le]
+        use 3
+        intro b b2 w
+        apply NNReal.coe_pos.mp
+        refine lt_of_lt_of_le ?_ w
+        simp only [abs_pos]
+        apply Real.sqrt_ne_zero'.mpr
+        apply Real.log_pos
+        simp only [Nat.one_lt_cast]
+        trans 2
+        simp only [Nat.one_lt_ofNat]
+        apply lt_of_lt_of_le b2
+        exact m_top b
+
+      apply Filter.Eventually.mp (p := fun n ↦ (0 < s n) ∧  ‖√(Real.log (2 * (m n)))‖ ≤ 1 * ‖(s n : ℝ)‖)
+        (hq :=Filter.Eventually.of_forall fun n ↦ con' (m n) (m_pos n).pos (s n))
+      dsimp only --[Real.norm_eq_abs]
+      apply Filter.Eventually.and
+      exact s_pos_eventually
+      rw [←Asymptotics.IsBigOWith_def]
+      apply Asymptotics.IsLittleO.isBigOWith
+      change ((Real.sqrt ∘ Real.log) ∘ (2 * ·) ∘ Nat.cast ∘ m) =o[Filter.atTop] fun x ↦ (s x : ℝ)
+      set two : ℝ → ℝ := (2 * ·)
+      set s' := fun x ↦ (s x : ℝ)
+      set rl := (Real.sqrt ∘ Real.log)
+      set m' : ℕ → ℝ := Nat.cast ∘ m
+      have m_atTop : Filter.Tendsto m' Filter.atTop Filter.atTop := sorry
+      have rl_atTop : Filter.Tendsto rl Filter.atTop Filter.atTop := sorry
+      have s_atTop : Filter.Tendsto s' Filter.atTop Filter.atTop := sorry
+      have : ((rl ∘ two) ∘ m') =O[Filter.atTop] ((rl ∘ id) ∘ m') := by
+        apply Asymptotics.isBigO_map (k := m').mp
+        -- apply Asymptotics.isBigO_completion_right
+
+
+
+
+
+
+        sorry
+      exact Asymptotics.IsBigO.trans_isLittleO this hs
+
 
     refine ⟨ε,?_,?_,?_⟩
     ·

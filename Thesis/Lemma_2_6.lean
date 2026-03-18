@@ -216,6 +216,47 @@ theorem Lemma_2_6_then'''
       · exact default_pos
 
     have cond_eventually : ∀ᶠ n in Filter.atTop, cond (m n) (s n) := by
+      have erase_multiplier (m : ℕ) (m_ge_2 : 2 ≤ m): √(Real.log (2 * m)) ≤ √2 * √(Real.log m) := by
+        rw [←Real.sqrt_mul (x := 2) (zero_le_two)]
+        apply Real.sqrt_le_sqrt
+        change Real.log (2 * ↑m) ≤ (2 : ℕ) * Real.log ↑m
+        rw [←Real.log_pow (m : ℝ) 2]
+        apply Real.log_le_log
+        bound
+        rw [sq]
+        gcongr 1
+        exact Nat.ofNat_le_cast.mpr m_ge_2
+
+      have m_ge_2_eventually : ∀ᶠ n in Filter.atTop, 2 < m n := by
+        simp only [Filter.eventually_atTop, ge_iff_le]
+        use 4
+        intro b b3
+        trans 3
+        exact Nat.lt_add_one 2
+        exact Nat.lt_of_lt_of_le b3 (m_top b)
+
+
+      have s_pos_eventually : ∀ᶠ n in Filter.atTop, 0 < s n := by
+
+        have := Asymptotics.IsLittleO.isBigOWith hs
+        rw [Asymptotics.IsBigOWith_def] at this
+        apply Filter.Eventually.mp this
+        apply Filter.Eventually.mp m_ge_2_eventually
+        apply Filter.Eventually.of_forall
+        simp only [Function.comp_apply, Real.norm_eq_abs, NNReal.abs_eq, one_mul]
+
+        intro b b2 w
+        apply NNReal.coe_pos.mp
+        refine lt_of_lt_of_le ?_ w
+        simp only [abs_pos]
+        apply Real.sqrt_ne_zero'.mpr
+        apply Real.log_pos
+        simp only [Nat.one_lt_cast]
+        trans 2
+        simp only [Nat.one_lt_ofNat]
+        exact b2
+
+
       #check hs
 
       -- rw [Asymptotics.IsLittleO]
@@ -233,70 +274,56 @@ theorem Lemma_2_6_then'''
             bound
             bound
           _ ↔ √(Real.log (2 * ↑m)) < √Real.pi * ↑s := by rw [mul_comm _ (s : ℝ)]
-          _ ↔ ‖√(Real.log (2 * ↑m))‖ < √Real.pi * ‖(s : ℝ)‖ := by  sorry
+          _ ↔ ‖√(Real.log (2 * ↑m))‖ < √Real.pi * ‖(s : ℝ)‖ := by
+            simp only [Real.norm_eq_abs, NNReal.abs_eq]
+            rw [abs_of_nonneg (Real.sqrt_nonneg _)]
 
 
 
-      have con' (m : ℕ) (m_pos : 0 < m) (s : ℝ≥0) : (0 < s) ∧ ‖√(Real.log (2 * ↑m))‖ ≤ 1 * ‖(s : ℝ)‖ → cond m s := by
+      have con' (m : ℕ) (m_pos : 0 < m) (s : ℝ≥0) (s_pos : 0 < s) (c : ℝ) (c_bound : c < √Real.pi) : ‖√(Real.log (2 * ↑m))‖ ≤ c * ‖(s : ℝ)‖ → cond m s := by
         rw [con m m_pos s]
         simp only [Real.norm_eq_abs, NNReal.abs_eq]
-        intro ⟨s_pos,w⟩
-        simp only [one_mul] at w
+        intro w
         apply lt_of_le_of_lt w
-        refine lt_mul_iff_one_lt_left ?_ |>.mpr ?_
-        exact s_pos
-        apply lt_of_not_ge
-        rw [Real.sqrt_le_one]
-        bound [Real.pi_gt_d2]
+        gcongr
+
+
+      have con'' (m : ℕ) (m_pos : 2 < m) (s : ℝ≥0) (s_pos : 0 < s) (c : ℝ) (c_bound : c < √Real.pi) : √2 * ‖√(Real.log m)‖ ≤ c * ‖(s : ℝ)‖ → cond m s := by
+        intro r
+        refine con' m (by linarith only [m_pos]) s s_pos c c_bound ?_
+        apply le_trans _ r
+        simp only [Real.norm_eq_abs]
+        rw [abs_of_nonneg (Real.sqrt_nonneg _)]
+        rw [abs_of_nonneg (Real.sqrt_nonneg _)]
+        exact erase_multiplier m m_pos.le
+
+      have con''' (m : ℕ) (m_pos : 2 < m) (s : ℝ≥0) (c : ℝ) (c_bound : c < √Real.pi /√2) : (0 < s) ∧ ‖√(Real.log m)‖ ≤ c * ‖(s : ℝ)‖ → cond m s := by
+        intro ⟨l,r⟩
+        refine con'' m (by linarith only [m_pos]) s l (√2 * c) (by
+          rw [←lt_div_iff₀']
+          exact c_bound
+          bound
+          ) ?_
+        ac_change √2 * ‖√(Real.log ↑m)‖ ≤ √2 * (c * ‖(s : ℝ)‖)
+        gcongr
 
       change ((Real.sqrt ∘ Real.log) ∘ Nat.cast ∘ m) =o[Filter.atTop] fun x ↦ (s x : ℝ) at hs
-      have s_pos_eventually : ∀ᶠ n in Filter.atTop, 0 < s n := by
 
-        have := Asymptotics.IsLittleO.isBigOWith hs
-        rw [Asymptotics.IsBigOWith_def] at this
-        apply Filter.Eventually.mp this
-        simp only [Function.comp_apply, Real.norm_eq_abs, NNReal.abs_eq, one_mul,
-          Filter.eventually_atTop, ge_iff_le]
-        use 3
-        intro b b2 w
-        apply NNReal.coe_pos.mp
-        refine lt_of_lt_of_le ?_ w
-        simp only [abs_pos]
-        apply Real.sqrt_ne_zero'.mpr
-        apply Real.log_pos
-        simp only [Nat.one_lt_cast]
-        trans 2
-        simp only [Nat.one_lt_ofNat]
-        apply lt_of_lt_of_le b2
-        exact m_top b
+      refine Filter.Eventually.mp (p := fun n ↦ (0 < s n) ∧  ‖√(Real.log (m n))‖ ≤ 1 * ‖(s n : ℝ)‖) ?_ ?_
+      rotate_left
+      ·
+        refine Filter.Eventually.mp m_ge_2_eventually ?_
+        dsimp only [Real.norm_eq_abs]
+        apply Filter.Eventually.of_forall
+        intro n m_2
+        apply con''' _ m_2
+        bound [Real.sqrt_two_lt_three_halves,Real.pi_gt_three]
 
-      apply Filter.Eventually.mp (p := fun n ↦ (0 < s n) ∧  ‖√(Real.log (2 * (m n)))‖ ≤ 1 * ‖(s n : ℝ)‖)
-        (hq :=Filter.Eventually.of_forall fun n ↦ con' (m n) (m_pos n).pos (s n))
-      dsimp only --[Real.norm_eq_abs]
       apply Filter.Eventually.and
       exact s_pos_eventually
       rw [←Asymptotics.IsBigOWith_def]
       apply Asymptotics.IsLittleO.isBigOWith
-      change ((Real.sqrt ∘ Real.log) ∘ (2 * ·) ∘ Nat.cast ∘ m) =o[Filter.atTop] fun x ↦ (s x : ℝ)
-      set two : ℝ → ℝ := (2 * ·)
-      set s' := fun x ↦ (s x : ℝ)
-      set rl := (Real.sqrt ∘ Real.log)
-      set m' : ℕ → ℝ := Nat.cast ∘ m
-      have m_atTop : Filter.Tendsto m' Filter.atTop Filter.atTop := sorry
-      have rl_atTop : Filter.Tendsto rl Filter.atTop Filter.atTop := sorry
-      have s_atTop : Filter.Tendsto s' Filter.atTop Filter.atTop := sorry
-      have : ((rl ∘ two) ∘ m') =O[Filter.atTop] ((rl ∘ id) ∘ m') := by
-        apply Asymptotics.isBigO_map (k := m').mp
-        -- apply Asymptotics.isBigO_completion_right
-
-
-
-
-
-
-        sorry
-      exact Asymptotics.IsBigO.trans_isLittleO this hs
-
+      exact hs
 
     refine ⟨ε,?_,?_,?_⟩
     ·

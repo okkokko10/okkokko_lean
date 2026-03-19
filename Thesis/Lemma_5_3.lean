@@ -10,9 +10,75 @@ open scoped ProbabilityTheory NNReal
 
 def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
   𝓛.minimum_distance_sup (A.Λ_main') ≥ q/4
+instance A_Matrix.instFintype {n m q : ℕ} [NeZero q] : Fintype (A_Matrix n m q) := Matrix.instFintypeOfDecidableEq (ZMod q)
+
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι] in
+variable (Λ : 𝓛 ι) [DiscreteTopology Λ] [IsZLattice ℝ Λ] in
+theorem 𝓛.minimum_distance.greater_iff [Nonempty ι] [NormedAddCommGroup (ι → ℝ)]
+  (r : ℝ≥0)
+  : r ≤ (𝓛.minimum_distance Λ) ↔ ∀x ∈ Λ, x ≠ 0 → r ≤ ‖x‖₊ := by sorry
+-- clarification: "for some v ∈ Z", is this a uniform random variable?
 
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
-  : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
+  : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := by
+
+    let ua := PMF.uniformOfFintype (A_Matrix n m q)
+    have eq_measure : ua.toMeasure = A_Matrix.uniform.toMeasure  := by
+      unfold ua
+      #check PMF.toMeasure_uniformOfFintype_apply
+      ext s ms
+      have : Fintype s := by
+        sorry
+
+      rw [PMF.toMeasure_uniformOfFintype_apply s ms]
+      unfold A_Matrix.uniform
+      simp only [MeasureTheory.ProbabilityMeasure.coe_mk]
+      rw [ProbabilityTheory.uniformOn]
+
+      sorry
+
+
+    -- unfold MeasurableSpace.volume
+    change MeasureTheory.volume (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
+    change A_Matrix.uniform.toMeasure (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
+    -- rw [←eq_measure]
+    -- simp only [PMF.toMeasure_uniformOfFintype_apply]
+    -- #check PMF.toMeasure_bind_apply
+
+    let cha : PMF (Bool) := do {
+      let A ← ua
+      return q/4 ≤ A.Λ_main'.minimum_distance_sup
+    }
+    -- suffices cha (Bool.false) ≤ (q ^ (- n : ℝ)) by
+    --   unfold cha at this
+    --   simp at this
+
+
+    --   sorry
+    -- unfold cha
+    -- simp only [bind_pure_comp]
+
+    let cube : Finset (Fin m → ℤ) := sorry
+    have nec : cube.Nonempty := sorry
+
+    let cha2 (s : Fin n → ZMod q) : PMF (Bool) := do {
+      let A ← ua;
+      let v' := A.transpose.mulVec s;
+      let v ← PMF.uniformOfFinset cube nec;
+      have := ∀i, v i = v' i
+
+      return q/4 ≤ A.Λ_main'.minimum_distance_sup
+    }
+
+    unfold lemma_5_3_statement
+    simp only [ge_iff_le]
+
+
+
+
+
+    sorry
 
 def lemma_5_3_relationship {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (A : (n : N) → (A_Matrix n (m n) (q n)))
   (s : (n : N) → ℝ≥0) (ε : (n : N) → ℝ≥0) [∀n, NeZero (ε n)]

@@ -431,7 +431,7 @@ def successive_minimum_distance' [Norm (ι → ℝ)] (i : ℕ)
 def infinity_norm : NormedAddCommGroup (ι → ℝ) := Pi.normedAddCommGroup
 
 /-- λ₁∞ -/
-def 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
+abbrev 𝓛.minimum_distance_sup := @𝓛.minimum_distance ι _ Λ (infinity_norm)
 
 #check Eq.rec
 
@@ -502,6 +502,90 @@ theorem 𝓛.minimum_distance.positive [Nonempty ι]
 
 
 theorem 𝓛.minimum_distance_sup.positive [Nonempty ι] : NeZero (𝓛.minimum_distance_sup Λ) := minimum_distance.positive Λ
+
+theorem 𝓛.minimum_distance.finity [Nonempty ι] [NormedAddCommGroup (ι → ℝ)]
+  (r : ℝ≥0)
+  : {x ∈ Λ | ‖x‖₊ ≤ r}.Finite := by
+    sorry
+
+theorem 𝓛.minimum_distance.w [Nonempty ι] [NormedAddCommGroup (ι → ℝ)]
+  (x : Λ) (x_n0 : x ≠ 0)
+  : Λ.minimum_distance ≤ ‖x‖₊ := by
+    rw [minimum_distance_def']
+
+
+    sorry
+
+
+-- def 𝓛.smul (q : ℝ) : 𝓛 ι := Λ.map ((AddMonoidHom.smulLeft q).toIntLinearMap)
+
+
+open scoped Pointwise in
+instance (q : ℝ) [NeZero q] : DiscreteTopology ↑(q • Λ) := by
+  induction Λ using 𝓛.basis_ind
+  rw [ZSpan.smul]
+  infer_instance
+  exact Ne.symm (NeZero.ne' q)
+
+open scoped Pointwise in
+instance (q : ℝ) [NeZero q] : IsZLattice ℝ (q • Λ) := by
+  rw [IsZLattice.congr_simp _]
+  rotate_left
+  · exact q • (𝓛.ofBasis Λ.toBasis)
+  · congr 1
+    exact Eq.symm (𝓛.ofBasis_of_toBasis Λ)
+  rw [IsZLattice.congr_simp _]
+  rotate_right
+  · apply ZSpan.smul
+    exact Ne.symm (NeZero.ne' q)
+  infer_instance
+
+
+omit [DecidableEq ι] [DiscreteTopology ↥Λ] [IsZLattice ℝ Λ] in
+open scoped Pointwise in
+theorem 𝓛.minimum_distance.smulHom [Nonempty ι] [NormedAddCommGroup (ι → ℝ)]
+  (q : ℝ≥0) [qn0 : NeZero q]
+  : q * (𝓛.minimum_distance Λ) = (𝓛.minimum_distance (q.toReal • Λ)) := by
+    have qn0' : q.toReal ≠ 0 := NNReal.coe_ne_zero.mpr qn0.ne
+    have q_pos : 0 < q := qn0.pos
+
+
+    have  : ((q.toReal • Λ) : Set (ι → ℝ)) = (fun x : ι → ℝ ↦ q.toReal • x) '' Λ := by
+      ext x
+      rfl
+
+    simp_rw [𝓛.minimum_distance_def']
+    set L :=  ((Λ : Set _) \ {(0 : ι → ℝ)})
+
+
+    have : ((q.toReal • Λ : Set _) \ {(0 : ι → ℝ)}) =  q.toReal • L := by
+      rw [Set.smul_set_sdiff₀ qn0']
+      ext y
+      simp only [Set.smul_set_singleton, smul_zero, Set.mem_diff, Set.mem_singleton_iff,
+        Submodule.coe_pointwise_smul]
+    rw [this]
+
+    rw [←Set.image_smul ( t:= L)]
+    rw [Set.image_image _ _ L]
+
+    simp_rw [nnnorm_smul]
+    simp only [NNReal.nnnorm_eq]
+    rw [←Set.image_image (q * ·) (fun x ↦ ‖x‖₊) L]
+    set R' := (fun x ↦ ‖x‖₊) '' L
+
+    apply NNReal.coe_injective
+    simp only [NNReal.coe_mul]
+
+    simp_rw [NNReal.coe_sInf]
+    have : NNReal.toReal '' ((fun x ↦ q * x) '' R') = (fun x ↦ q.toReal * x) '' (NNReal.toReal '' R') := by
+      simp_rw [Set.image_image]
+      simp only [NNReal.coe_mul]
+    rw [this]
+    set R'' := (NNReal.toReal '' R')
+    change q.toReal * sInf R'' = sInf (q.toReal • R'')
+    symm
+    apply Real.sInf_smul_of_nonneg
+    exact NNReal.zero_le_coe
 
 
 end minimum_distance

@@ -40,13 +40,14 @@ def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin 
 
 -- def A_Matrix.Λ_ortho' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_ortho
 -- def A_Matrix.Λ_main' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : 𝓛 (Fin m) := to_R A.Λ_main
-
+open scoped Pointwise in
 theorem A_Matrix.Λ_dual {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
   -- (to_R A.Λ_ortho) = (q : ℤ) • (dualLattice <| to_R A.Λ_main)
-  (A.Λ_ortho') = q • (𝓛.dualLattice <| A.Λ_main')
+  (A.Λ_ortho') = (q : ℝ) • (𝓛.dualLattice <| A.Λ_main')
   := by sorry
+open scoped Pointwise in
 theorem A_Matrix.Λ_dual' {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :
-  (A.Λ_main') = q • (𝓛.dualLattice <| A.Λ_ortho')
+  (A.Λ_main') = (q : ℝ) • (𝓛.dualLattice <| A.Λ_ortho')
   := by sorry
 
 lemma A_Matrix.Λ_ortho'.has_qZn {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) :

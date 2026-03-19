@@ -86,10 +86,12 @@ theorem lemma_5_3_also {q : N → Q} [∀n, NeZero (q n)] {m : N → M} [m_pos :
   unfold lemma_5_3_statement at hA
   simp_rw [A_Matrix.Λ_dual'] at hA
   specialize hA n
-
-  have : (q n • (A n).Λ_ortho'.dualLattice).minimum_distance_sup = q n * ((A n).Λ_ortho'.dualLattice).minimum_distance_sup := by
-    -- prove in other file
-    sorry
+  open scoped Pointwise in
+  have : ((q n : ℝ) • (A n).Λ_ortho'.dualLattice).minimum_distance_sup = q n * ((A n).Λ_ortho'.dualLattice).minimum_distance_sup := by
+    set q' := (q n : ℝ≥0)
+    change ((q' : ℝ) • (A n).Λ_ortho'.dualLattice).minimum_distance_sup = q' * _
+    symm
+    apply 𝓛.minimum_distance.smulHom
   rw [this] at hA
   clear this
 

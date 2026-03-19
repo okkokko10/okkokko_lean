@@ -20,66 +20,56 @@ theorem 𝓛.minimum_distance.greater_iff [Nonempty ι] [NormedAddCommGroup (ι 
   : r ≤ (𝓛.minimum_distance Λ) ↔ ∀x ∈ Λ, x ≠ 0 → r ≤ ‖x‖₊ := by sorry
 -- clarification: "for some v ∈ Z", is this a uniform random variable?
 
-theorem lemma_5_3       {n m q : ℕ} [NeZero q] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
+theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
   : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := by
 
-    let ua := PMF.uniformOfFintype (A_Matrix n m q)
-    have eq_measure : ua.toMeasure = A_Matrix.uniform.toMeasure  := by
-      unfold ua
-      #check PMF.toMeasure_uniformOfFintype_apply
-      ext s ms
-      have : Fintype s := by
-        sorry
+    -- change ℙ (({A | ¬ lemma_5_3_statement A}) : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
+    suffices ∃s : Set <| A_Matrix n m q, ℙ sᶜ ≤ (q ^ (- n : ℝ)) ∧ ∀A, s A → (lemma_5_3_statement A)  by
+      obtain ⟨s,amo, spec⟩ := this
+      trans ℙ sᶜ
 
-      rw [PMF.toMeasure_uniformOfFintype_apply s ms]
-      unfold A_Matrix.uniform
-      simp only [MeasureTheory.ProbabilityMeasure.coe_mk]
-      rw [ProbabilityTheory.uniformOn]
+      have spe A :  (¬ lemma_5_3_statement A) → (¬ s A) := by exact fun a a_1 ↦ a (spec A a_1)
+      have spe' :  (lemma_5_3_statement : Set <| A_Matrix n m q)ᶜ ≤ (sᶜ) := by exact spe
+      exact MeasureTheory.OuterMeasureClass.measure_mono ℙ spe
+      exact amo
+
+    have w (A : A_Matrix n m q) : lemma_5_3_statement A ↔ (∀x ∈ A.Λ_main', x ≠ 0 → q/4 ≤ ‖x‖) := by
+      exact 𝓛.minimum_distance.greater_iff _ (q/4)
+    have w (A : A_Matrix n m q) : lemma_5_3_statement A := by -- invalid, for planning
+      apply 𝓛.minimum_distance.greater_iff _ (q/4) |>.mpr
+
+      unfold A_Matrix.Λ_main' A_Matrix.Λ_main'' A_Matrix.syndromes
+      simp only [ne_eq]
+      intro x
+      unfold coeSubmodule
+      simp only [Submodule.mem_map, Submodule.mem_comap, LinearMap.coe_comp, LinearEquiv.coe_coe,
+        Function.comp_apply, Submodule.subtype_apply, Subtype.exists, exists_and_right,
+        exists_eq_right, forall_exists_index]
+      change
+        ∀ (xZm : x ∈ Casts.Zn (Fin m)),
+          Casts.ZnToZqn (⟨x, xZm⟩) ∈ A_Matrix.syndromes (Matrix.transpose A) →
+            ¬x = 0 → ↑q / 4 ≤ ‖x‖₊
+      unfold A_Matrix.syndromes
+
+      simp only [LinearMap.mem_range, Subtype.exists, forall_exists_index]
+      intro xZm y yZn sw xn0
+
+
+
+
+
+
+
 
       sorry
 
-
-    -- unfold MeasurableSpace.volume
-    change MeasureTheory.volume (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
-    change A_Matrix.uniform.toMeasure (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
-    -- rw [←eq_measure]
-    -- simp only [PMF.toMeasure_uniformOfFintype_apply]
-    -- #check PMF.toMeasure_bind_apply
-
-    let cha : PMF (Bool) := do {
-      let A ← ua
-      return q/4 ≤ A.Λ_main'.minimum_distance_sup
-    }
-    -- suffices cha (Bool.false) ≤ (q ^ (- n : ℝ)) by
-    --   unfold cha at this
-    --   simp at this
-
-
-    --   sorry
-    -- unfold cha
-    -- simp only [bind_pure_comp]
-
-    let cube : Finset (Fin m → ℤ) := sorry
-    have nec : cube.Nonempty := sorry
-
-    let cha2 (s : Fin n → ZMod q) : PMF (Bool) := do {
-      let A ← ua;
-      let v' := A.transpose.mulVec s;
-      let v ← PMF.uniformOfFinset cube nec;
-      have := ∀i, v i = v' i
-
-      return q/4 ≤ A.Λ_main'.minimum_distance_sup
-    }
-
-    unfold lemma_5_3_statement
-    simp only [ge_iff_le]
 
 
 
 
 
     sorry
-
+-- #exit
 def lemma_5_3_relationship {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (A : (n : N) → (A_Matrix n (m n) (q n)))
   (s : (n : N) → ℝ≥0) (ε : (n : N) → ℝ≥0) [∀n, NeZero (ε n)]
   := ∀ᶠ (n : N) in Filter.atTop, 𝓛.smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n

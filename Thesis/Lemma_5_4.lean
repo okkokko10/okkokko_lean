@@ -48,7 +48,7 @@ def corollary_5_4.valid_subsets (q : N → Q) [∀n, NeZero (q n)] (m : N → M)
     -- have ww n := fun (A : A_Matrix n (m n) (q n)) ↦ ∀(s : (n : N) → ℝ≥0) (hs : s =ω (sqrt_log ∘ m)), (lemma_5_3_also_statement A (s n))
 
 
-def corollary_5_4.valid_subsets_spec (q : N → Q) [∀n, NeZero (q n)] (m : N → M) (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+def corollary_5_4.valid_subsets_spec (q : N → Q) [∀n, NeZero (q n)] (m : N → M) [∀n, NeZero (m n)]  (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
   : corollary_5_4_condition (valid_subsets q m) := by
     unfold corollary_5_4_condition
     intro n

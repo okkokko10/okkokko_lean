@@ -75,12 +75,13 @@ lemma bijection_preserves_uniformOfFinset.{u} {α β : Type u}
 
 
 -- #exit
-
-lemma bijection_preserves_uniformOfFintype.{u} {α β : Type u}
+open scoped Classical in
+@[simp, local aesop safe apply]
+theorem bijection_preserves_uniformOfFintype {α β : Type*}
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β] -- only one nonempty is needed, the other is implied by hf
-  [DecidableEq α] [DecidableEq β]
-  (f : α → β) (hf : f.Bijective)
+  -- [DecidableEq α] [DecidableEq β]
+  {f : α → β} (hf : f.Bijective)
   : (PMF.uniformOfFintype α).map f = PMF.uniformOfFintype β := by
   ext y
   rw [PMF.map_apply]
@@ -93,16 +94,62 @@ lemma bijection_preserves_uniformOfFintype.{u} {α β : Type u}
   simp only [tsum_ite_eq, inv_inj, Nat.cast_inj]
   exact Fintype.card_congr f'
 
+section uniform_preserving
+
+variable {G : Type*} [Group G] [Fintype G] [Nonempty G] (a : G)
+
+set_option trace.aesop true
+@[to_additive, simp, local aesop safe apply]
+theorem upre.Group.mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uniformOfFintype _ := by
+  have := (Group.mulLeft_bijective a)
+  -- simp_all only [Multiset.bijective_iff_map_univ_eq_univ, bijection_preserves_uniformOfFintype]
+  exact bijection_preserves_uniformOfFintype this
+
+open scoped Classical in
+@[simp]
+lemma PMF.map_ofMultiset {α β : Type*}
+  (s : Multiset α) (hs : s ≠ 0)
+  (f : α → β)
+  : PMF.map f (PMF.ofMultiset s hs) = (PMF.ofMultiset (Multiset.map f s) (hs ∘ Multiset.map_eq_zero.mp)) := by
+    ext x
+    simp only [PMF.map_apply, PMF.ofMultiset_apply, Multiset.card_map]
+    suffices
+      (∑' (i : α), if x = f i then (Multiset.count i s : ENNReal) else 0) =
+        (Multiset.count x (Multiset.map f s) : ENNReal) by
+      have := congrArg (· * (s.card : ENNReal)⁻¹) this
+      simp only at this
+      rw [←ENNReal.tsum_mul_right] at this
+      simp only [ite_mul, zero_mul] at this
+      simp_all only [ne_eq]
+      exact this
+    rw [tsum_eq_sum (s := s.toFinset)]
+    rotate_left
+    · intro b a
+      simp_all only [ne_eq, Multiset.mem_toFinset, not_false_eq_true, Multiset.count_eq_zero_of_notMem,
+        CharP.cast_eq_zero, ite_self]
+    suffices
+      (∑ b ∈ s.toFinset, if x = f b then (Multiset.count b s) else 0) =
+        (Multiset.count x (Multiset.map f s)) by
+        rw [←this]
+        simp only [Nat.cast_sum, Nat.cast_ite, CharP.cast_eq_zero]
+    simp only [Multiset.count_map]
+    simp_rw [← Multiset.count_filter (p := (x = f ·))]
+    set w :=  (Multiset.filter (x = f ·) s)
+    rw [Multiset.sum_count_eq_card]
+    subst w
+    simp only [Multiset.mem_filter, Multiset.mem_toFinset, and_imp]
+    tauto
 
 
+end uniform_preserving
+
+
+@[simp]
 lemma A_Matrix.uniform_of_transpose_uniform (n m q : ℕ) [NeZero m] [NeZero q] :
-      Matrix.transpose <$> PMF.uniformOfFintype (A_Matrix n m q) = PMF.uniformOfFintype (A_Matrix m n q):= by
-      change (Matrix.transposeAddEquiv _ _ _ ·) <$> _ = _
+      PMF.map Matrix.transpose (PMF.uniformOfFintype (A_Matrix n m q)) = PMF.uniformOfFintype (A_Matrix m n q):= by
+      change PMF.map (Matrix.transposeAddEquiv _ _ _ ·) _ = _
       apply bijection_preserves_uniformOfFintype
       exact AddEquiv.bijective (Matrix.transposeAddEquiv (Fin n) (Fin m) (ZMod q))
-
-
-
 
 theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
     (s : Fin n → ZMod q)
@@ -111,31 +158,13 @@ theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZer
       return A.transpose.mulVec s
     } = (PMF.uniformOfFintype (Fin m → ZMod q))
       := by
-        calc
-          _ =
-          (do
-              let A ← PMF.uniformOfFintype (A_Matrix n m q)
-              let B : Matrix (Fin m) (Fin n) (ZMod q) := Matrix.transpose A
-              pure (B.mulVec s)
-          )
-              := by rfl
-          _ = (do
-              let B ← do {
-                let A ← PMF.uniformOfFintype (A_Matrix n m q)
-                pure A.transpose
-                }
-              pure (B.mulVec s)
-          )
-              := by
-                simp only [bind_pure_comp, map_pure]
-          _ = (do
-              let B ← PMF.uniformOfFintype (A_Matrix m n q)
-              pure (B.mulVec s)
-          )
-              := by
-                have := uniform_of_transpose_uniform n m q
-                simp only [bind_pure_comp, map_pure, ← this, Functor.map_map]
-                rfl
+
+        simp only [bind_pure_comp]
+        rw [PMF.monad_map_eq_map]
+        change PMF.map ((Matrix.mulVec · s) ∘ Matrix.transpose) _ = _
+        rw [←PMF.map_comp]
+        simp only [uniform_of_transpose_uniform]
+
           -- _ = (do
           --     let A ← PMF.uniformOfFintype (A_Matrix m n q)
           --     have B := Matrix.of.symm A
@@ -145,17 +174,17 @@ theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZer
           --       #check Matrix.ofAddEquiv
           --       #check Matrix.mulVec_eq_sum
           --       sorry
-        simp only [bind_pure_comp]
-        simp_rw [Matrix.mulVec_eq_sum]
-        simp only [op_smul_eq_smul]
-        change
-          (fun a ↦ ∑ x, s x • (fun y ↦ Matrix.transpose a x y)) <$> _ = _
-        simp_rw [Matrix.transpose_apply]
-        conv => {
-          left; left; intro A; right; intro x; right; intro y
+        -- simp only [bind_pure_comp]
+        -- simp_rw [Matrix.mulVec_eq_sum]
+        -- simp only [op_smul_eq_smul]
+        -- change
+        --   (fun a ↦ ∑ x, s x • (fun y ↦ Matrix.transpose a x y)) <$> _ = _
+        -- simp_rw [Matrix.transpose_apply]
+        -- conv => {
+        --   left; left; intro A; right; intro x; right; intro y
 
-          rw [←Matrix.of_symm_apply A]
-        }
+        --   rw [←Matrix.of_symm_apply A]
+        -- }
 
 
 

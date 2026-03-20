@@ -588,6 +588,16 @@ theorem 𝓛.minimum_distance.smulHom [Nonempty ι] [NormedAddCommGroup (ι → 
     exact NNReal.zero_le_coe
 
 
+theorem 𝓛.minimum_distance.greater_iff [Nonempty ι] [NormedAddCommGroup (ι → ℝ)]
+  {r : ℝ≥0}
+  : r ≤ (𝓛.minimum_distance Λ) ↔ ∀x ∈ Λ, x ≠ 0 → r ≤ ‖x‖₊ := by sorry
+
+theorem 𝓛.minimum_distance.lesser_iff [Nonempty ι] [NormedAddCommGroup (ι → ℝ)]
+  {r : ℝ≥0}
+  : (𝓛.minimum_distance Λ) ≤ r ↔ ∃x ∈ Λ, x ≠ 0 ∧ ‖x‖₊ ≤ r := by sorry
+
+
+
 end minimum_distance
 
 

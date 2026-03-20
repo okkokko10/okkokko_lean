@@ -4,8 +4,8 @@ import Thesis.MyLattice_ofBasis
 section A_Matrix
 
 def A_Matrix (n m q : ℕ) : Type := Matrix (Fin n) (Fin m) (ZMod q)
+instance A_Matrix.instFintype {n m q : ℕ} [NeZero q] : Fintype (A_Matrix n m q) := Matrix.instFintypeOfDecidableEq (ZMod q)
 
-instance A_Matrix.instFinite {n m q : ℕ} [NeZero q] : Finite (A_Matrix n m q) := Matrix.instFinite (ZMod q)
 instance {n m q : ℕ} [NeZero q] : Nonempty (A_Matrix n m q) := Equiv.nonempty Matrix.of.symm
 
 -- set_option trace.Meta.synthInstance true in

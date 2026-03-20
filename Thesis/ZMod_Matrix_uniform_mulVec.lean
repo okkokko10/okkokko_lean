@@ -1,6 +1,12 @@
 import Thesis.A_Matrix
 
+-- lemma 5.3 seems like it uses a claim that with Prime q, for nonzero s, the distribution A ↦ As is uniform
 variable {n m q : ℕ} [NeZero n] [NeZero m] [q_prime : Fact <| Nat.Prime q]
+
+example (q : ℕ) (q_prime : Fact <| Nat.Prime q) : Field (ZMod q) := by infer_instance
+
+
+-- wait, equivalences preserve uniform distribution
 
 theorem A_Matrix.uniform_of_uniform_vecMul_const
     (s : Fin n → ZMod q)
@@ -8,33 +14,95 @@ theorem A_Matrix.uniform_of_uniform_vecMul_const
       = ProbabilityTheory.uniformOn (@Set.univ _) := sorry
 
 -- theorem ZMod_uniform_of_const_mul_uniform {q : ℕ} [NeZero q]
-#check ZMod.AddAutEquivUnits
-#check ZMod.ringEquivOfPrime -- that's cool. maybe irrelevant
+-- #check ZMod.AddAutEquivUnits
+-- #check ZMod.ringEquivOfPrime -- that's cool. maybe irrelevant
 
--- the lemma seems like it uses a claim that with Prime q, for nonzero s, the distribution A ↦ As is uniform
 
-#check ProbabilityTheory.uniformOn
-example (q : ℕ) (q_prime : Fact <| Nat.Prime q) : Field (ZMod q) := by infer_instance
+-- #check ProbabilityTheory.uniformOn
+#check PMF.uniformOfFinset
+#check Set.BijOn
+#check PMF.seq
+
+-- open PMF
+
+-- maybe also for multisets?
+lemma bijection_preserves_uniformOfFinset.{u} {α β : Type u}
+  [DecidableEq α]
+  [DecidableEq β]
+  (s : Finset α) (hs : s.Nonempty) (t : Finset β) (ht : t.Nonempty) -- only one nonempty is needed, the other is implied by hf
+  (f : α → β) (hf : Set.BijOn f s t)
+  : PMF.map f (PMF.uniformOfFinset s hs) = (PMF.uniformOfFinset t ht) := by
+    ext y
+    -- change (PMF.map f (PMF.uniformOfFinset s hs)) x = (PMF.uniformOfFinset t ht) x
+
+
+    rw [PMF.map_apply f (PMF.uniformOfFinset s hs) y]
+    -- #check PMF.uniformOfFinset_apply_of_mem
+    -- by_cases h : x ∈ t
+    -- ·
+    --   simp [h]
+    --   sorry
+    have : Nonempty α := ⟨hs.choose⟩
+
+
+    by_cases h : y ∈ t
+    ·
+      have := hf.image_eq
+      #check Set.MapsTo
+      simp only [PMF.uniformOfFinset_apply]
+      simp only [h, ↓reduceIte]
+
+
+
+      #check Set.LeftInvOn
+      obtain ⟨x,xw⟩ : ∃x, ∀x', y = f x' ↔ x' = x := by sorry
+      simp only [xw, tsum_ite_eq]
+      have : x ∈ s := by
+        have := xw x
+        simp only [iff_true] at this
+        have := (hf.injOn)
+        sorry
+      simp only [this, ↓reduceIte, inv_inj, Nat.cast_inj]
+      exact Set.BijOn.finsetCard_eq f hf
+
+    rw [PMF.uniformOfFinset_apply_of_notMem _ h]
+    simp only [PMF.uniformOfFinset_apply, ENNReal.tsum_eq_zero, ite_eq_right_iff, ENNReal.inv_eq_zero,
+      ENNReal.natCast_ne_top, imp_false]
+    intro x yfx
+    contrapose! h
+    rw [yfx]
+    exact hf.mapsTo h
+
+
+-- #exit
+
+lemma bijection_preserves_uniformOfFintype.{u} {α β : Type u}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β] -- only one nonempty is needed, the other is implied by hf
+  [DecidableEq α] [DecidableEq β]
+  (f : α → β) (hf : f.Bijective)
+  : (PMF.uniformOfFintype α).map f = PMF.uniformOfFintype β := by
+  ext y
+  rw [PMF.map_apply]
+  simp only [PMF.uniformOfFintype_apply]
+  let f' := Equiv.ofBijective f hf
+  have qq a : a = f'.symm y ↔ y = f a := by
+    rw [Eq.comm]
+    exact Equiv.symm_apply_eq (Equiv.ofBijective f hf) (x := y) (y := a)
+  simp_rw [←qq _]
+  simp only [tsum_ite_eq, inv_inj, Nat.cast_inj]
+  exact Fintype.card_congr f'
+
 
 
 lemma A_Matrix.uniform_of_transpose_uniform (n m q : ℕ) [NeZero m] [NeZero q] :
       Matrix.transpose <$> PMF.uniformOfFintype (A_Matrix n m q) = PMF.uniformOfFintype (A_Matrix m n q):= by
-      ext A
-      -- simp only [PMF.uniformOfFintype_apply]
-      change (PMF.map Matrix.transpose (PMF.uniformOfFintype (A_Matrix n m q)) ) A = _
-      rw [PMF.map_apply Matrix.transpose ((PMF.uniformOfFintype (A_Matrix n m q))) A]
-      rw [tsum_fintype]
-      --simp_rw [←Matrix.transposeᵣ_eq]
-      have tra b : A = Matrix.transpose b ↔ A.transpose = b := by -- I wonder why this doesn't exist
-        rw [←Matrix.transpose_inj,Matrix.transpose_transpose b]
-      simp_rw [tra]
-      -- we've now shown that only one index in the sum is nonzero
-      simp only [Finset.sum_ite_eq, Finset.mem_univ, ↓reduceIte]
-      -- set_option trace.Meta.synthInstance true in
-      change PMF.uniformOfFintype _ _ = PMF.uniformOfFintype _ _ -- for some reason this change has an effect
-      simp only [PMF.uniformOfFintype_apply]
-      simp only [inv_inj, Nat.cast_inj]
-      exact Fintype.card_congr (Matrix.transposeAddEquiv _ _ _).toEquiv
+      change (Matrix.transposeAddEquiv _ _ _ ·) <$> _ = _
+      apply bijection_preserves_uniformOfFintype
+      exact AddEquiv.bijective (Matrix.transposeAddEquiv (Fin n) (Fin m) (ZMod q))
+
+
+
 
 theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
     (s : Fin n → ZMod q)

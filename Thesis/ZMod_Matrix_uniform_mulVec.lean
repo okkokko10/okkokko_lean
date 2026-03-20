@@ -99,12 +99,6 @@ section uniform_preserving
 variable {G : Type*} [Group G] [Fintype G] [Nonempty G] (a : G)
 
 set_option trace.aesop true
-@[to_additive, simp, local aesop safe apply]
-theorem upre.Group.mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uniformOfFintype _ := by
-  have := (Group.mulLeft_bijective a)
-  -- simp_all only [Multiset.bijective_iff_map_univ_eq_univ, bijection_preserves_uniformOfFintype]
-  exact bijection_preserves_uniformOfFintype this
-
 open scoped Classical in
 @[simp]
 lemma PMF.map_ofMultiset {α β : Type*}
@@ -140,9 +134,28 @@ lemma PMF.map_ofMultiset {α β : Type*}
     simp only [Multiset.mem_filter, Multiset.mem_toFinset, and_imp]
     tauto
 
+set_option trace.aesop true
+open scoped Classical in
+-- @[simp]
+lemma PMF.uniformOfFintype_eq_ofMultiset_univ {α : Type*}
+  [Fintype α] [ne : Nonempty α]
+  : PMF.uniformOfFintype α = PMF.ofMultiset (Finset.univ.val) (fun uni ↦
+    Finset.ne_empty_of_mem (Finset.mem_univ ne.some) (Finset.val_eq_zero.mp uni)) := by
+    ext x : 1
+    simp_all only [uniformOfFintype_apply, ofMultiset_apply, Multiset.count_univ, Nat.cast_one, Finset.card_val,
+      Finset.card_univ, one_div]
+
+
+@[to_additive, simp, local aesop safe apply]
+theorem upre.Group.mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uniformOfFintype _ := by
+  have := (Group.mulLeft_bijective a)
+  -- simp_all only [Multiset.bijective_iff_map_univ_eq_univ, bijection_preserves_uniformOfFintype]
+  exact bijection_preserves_uniformOfFintype this
+
+
 
 end uniform_preserving
-
+#exit
 
 @[simp]
 lemma A_Matrix.uniform_of_transpose_uniform (n m q : ℕ) [NeZero m] [NeZero q] :
@@ -164,6 +177,7 @@ theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZer
         change PMF.map ((Matrix.mulVec · s) ∘ Matrix.transpose) _ = _
         rw [←PMF.map_comp]
         simp only [uniform_of_transpose_uniform]
+
 
           -- _ = (do
           --     let A ← PMF.uniformOfFintype (A_Matrix m n q)

@@ -3,7 +3,7 @@ import Thesis.Casts
 import Thesis.MyLattice_ofBasis
 section A_Matrix
 
-def A_Matrix (n m q : ℕ) : Type := Matrix (Fin n) (Fin m) (ZMod q)
+abbrev A_Matrix (n m q : ℕ) : Type := Matrix (Fin n) (Fin m) (ZMod q)
 instance A_Matrix.instFintype {n m q : ℕ} [NeZero q] : Fintype (A_Matrix n m q) := Matrix.instFintypeOfDecidableEq (ZMod q)
 
 instance {n m q : ℕ} [NeZero q] : Nonempty (A_Matrix n m q) := Equiv.nonempty Matrix.of.symm

@@ -179,7 +179,7 @@ end negligible
 
 #check MeasureTheory.SignedMeasure.totalVariation -- Gemini found this.
 
-
+-- todo: check [jordanDecompositionOfToSignedMeasureSub]
 -- I need to explain this
 def statistical_distance' {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D) := (2⁻¹) * (SignedMeasure.totalVariation (X.toMeasure.toSignedMeasure - Y.toMeasure.toSignedMeasure)) Set.univ
 lemma statistical_distance_finite_1 {D : Type*} [MeasurableSpace D] (X Y : ProbabilityMeasure D)

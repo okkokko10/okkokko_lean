@@ -1,7 +1,7 @@
 import Thesis.A_Matrix
 
 -- lemma 5.3 seems like it uses a claim that with Prime q, for nonzero s, the distribution A ↦ As is uniform
-variable {n m q : ℕ} [NeZero n] [NeZero m] [q_prime : Fact <| Nat.Prime q]
+variable {n m q : ℕ} [NeZero n] [NeZero m] [NeZero q]
 
 example (q : ℕ) (q_prime : Fact <| Nat.Prime q) : Field (ZMod q) := by infer_instance
 
@@ -94,14 +94,14 @@ theorem bijection_preserves_uniformOfFintype {α β : Type*}
   simp only [tsum_ite_eq, inv_inj, Nat.cast_inj]
   exact Fintype.card_congr f'
 
+set_option trace.aesop true
 section uniform_preserving
 
 variable {G : Type*} [Group G] [Fintype G] [Nonempty G] (a : G)
 
-set_option trace.aesop true
 open scoped Classical in
 @[simp]
-lemma PMF.map_ofMultiset {α β : Type*}
+lemma PMF'.map_ofMultiset {α β : Type*}
   (s : Multiset α) (hs : s ≠ 0)
   (f : α → β)
   : PMF.map f (PMF.ofMultiset s hs) = (PMF.ofMultiset (Multiset.map f s) (hs ∘ Multiset.map_eq_zero.mp)) := by
@@ -137,13 +137,53 @@ lemma PMF.map_ofMultiset {α β : Type*}
 set_option trace.aesop true
 open scoped Classical in
 -- @[simp]
-lemma PMF.uniformOfFintype_eq_ofMultiset_univ {α : Type*}
+theorem PMF'.uniformOfFintype_eq_ofMultiset_univ {α : Type*}
   [Fintype α] [ne : Nonempty α]
   : PMF.uniformOfFintype α = PMF.ofMultiset (Finset.univ.val) (fun uni ↦
     Finset.ne_empty_of_mem (Finset.mem_univ ne.some) (Finset.val_eq_zero.mp uni)) := by
     ext x : 1
-    simp_all only [uniformOfFintype_apply, ofMultiset_apply, Multiset.count_univ, Nat.cast_one, Finset.card_val,
+    simp_all only [PMF.uniformOfFintype_apply, PMF.ofMultiset_apply, Multiset.count_univ, Nat.cast_one, Finset.card_val,
       Finset.card_univ, one_div]
+
+
+theorem PMF'.ofMultiset_eq_smul {α : Type*}
+  (s : Multiset α) {hs : s ≠ 0} (n : ℕ) (hn : n ≠ 0)
+  : PMF.ofMultiset (n • s) (by simp [hn, hs]) = PMF.ofMultiset s hs := by
+  ext x
+  simp only [PMF.ofMultiset_apply, Multiset.count_nsmul, Nat.cast_mul, Multiset.card_nsmul]
+  apply ENNReal.mul_div_mul_left
+  · simp [hn]
+  · simp
+
+
+theorem PMF'.ofMultiset_multiples {α : Type*}
+  {s₁ : Multiset α} {hs₁ : s₁ ≠ 0} {s₂ : Multiset α} {hs₂ : s₂ ≠ 0}
+  (n₁ n₂ : ℕ) (n₁_pos : n₁ ≠ 0)
+  (h : n₁ • s₁ = n₂ • s₂)
+  : PMF.ofMultiset s₁ hs₁ = PMF.ofMultiset s₂ hs₂ := by
+    rw [←PMF'.ofMultiset_eq_smul s₁ n₁ n₁_pos]
+    simp_rw [h]
+    apply PMF'.ofMultiset_eq_smul
+    simp_all only [ne_eq]
+    apply Aesop.BuiltinRules.not_intro
+    intro a
+    subst a
+    simp_all only [zero_nsmul, IsAddTorsionFree.nsmul_eq_zero_iff, or_self]
+
+/-- shortcut in case `s₂.card ∣ s₁.card`. only works if that is true.
+
+s₁ must be an integer multiple of s₂
+-/
+theorem PMF'.ofMultiset_eq_smul_ratio {α : Type*}
+  {s₁ : Multiset α} {s₂ : Multiset α}
+  {hs₁ : s₁ ≠ 0} {hs₂ : s₂ ≠ 0}
+  (h :  s₁ = (s₁.card / s₂.card) • s₂)
+  : PMF.ofMultiset s₁ hs₁ = PMF.ofMultiset s₂ hs₂ := by
+  apply PMF'.ofMultiset_multiples 1 (s₁.card / s₂.card)
+  · norm_num
+  · simp only [one_smul]
+    exact h
+
 
 
 @[to_additive, simp, local aesop safe apply]
@@ -152,10 +192,15 @@ theorem upre.Group.mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uni
   -- simp_all only [Multiset.bijective_iff_map_univ_eq_univ, bijection_preserves_uniformOfFintype]
   exact bijection_preserves_uniformOfFintype this
 
+-- @[simp, local aesop safe apply]
+-- theorem upre.GroupWithZero.mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uniformOfFintype _ := by
+--   have := (Group.mulLeft_bijective a)
+--   -- simp_all only [Multiset.bijective_iff_map_univ_eq_univ, bijection_preserves_uniformOfFintype]
+--   exact bijection_preserves_uniformOfFintype this
 
 
 end uniform_preserving
-#exit
+
 
 @[simp]
 lemma A_Matrix.uniform_of_transpose_uniform (n m q : ℕ) [NeZero m] [NeZero q] :
@@ -164,6 +209,14 @@ lemma A_Matrix.uniform_of_transpose_uniform (n m q : ℕ) [NeZero m] [NeZero q] 
       apply bijection_preserves_uniformOfFintype
       exact AddEquiv.bijective (Matrix.transposeAddEquiv (Fin n) (Fin m) (ZMod q))
 
+@[simp]
+theorem A_Matrix.card {n m q : ℕ} [NeZero q] :
+  (Fintype.card (A_Matrix m n q)) = (q ^ (m * n)) := by
+    rw [Fintype.card_congr (Matrix.ofAddEquiv.toEquiv.symm)]
+    simp only [Fintype.card_pi, ZMod.card, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+    ring
+
+
 theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
     (s : Fin n → ZMod q)
     : do {
@@ -171,12 +224,40 @@ theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZer
       return A.transpose.mulVec s
     } = (PMF.uniformOfFintype (Fin m → ZMod q))
       := by
-
+        have n_pos : 0 < n := NeZero.pos _
+        have m_pos : 0 < m := NeZero.pos _
+        have q_pos : 0 < q := NeZero.pos _
+        #check MeasureTheory.JordanDecomposition
         simp only [bind_pure_comp]
         rw [PMF.monad_map_eq_map]
         change PMF.map ((Matrix.mulVec · s) ∘ Matrix.transpose) _ = _
         rw [←PMF.map_comp]
         simp only [uniform_of_transpose_uniform]
+        simp only [PMF'.uniformOfFintype_eq_ofMultiset_univ, PMF'.map_ofMultiset]
+
+        apply PMF'.ofMultiset_eq_smul_ratio
+        simp only [Multiset.card_map, Finset.card_val, Finset.card_univ, card, Fintype.card_pi,
+          ZMod.card, Finset.prod_const, Fintype.card_fin]
+        rw [Nat.pow_div]
+        rotate_left
+        · nlinarith [NeZero.pos n]
+        · exact NeZero.pos q
+
+        -- started work at 17-19
+
+        have : Finset.univ (α := A_Matrix m n q).val = Multiset.map (Matrix.ofAddEquiv.toEmbedding) Finset.univ.val := by
+          simp only [AddEquiv.toEquiv_eq_coe, Equiv.coe_toEmbedding, EquivLike.coe_coe,
+            Matrix.coe_ofAddEquiv, Multiset.map_univ_val_equiv]
+        rw [this]
+        simp only [AddEquiv.toEquiv_eq_coe, Equiv.coe_toEmbedding, EquivLike.coe_coe,
+          Matrix.coe_ofAddEquiv, Multiset.map_map, Function.comp_apply] -- simp? [-Multiset.map_univ_val_equiv]
+        -- simp [Matrix.]
+
+
+
+
+        -- apply PMF'.ofMultiset_multiples
+
 
 
           -- _ = (do

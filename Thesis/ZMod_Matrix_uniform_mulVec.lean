@@ -289,9 +289,9 @@ theorem upre.bi.Group.mul :
 
 open scoped BigOperators
 
--- unsure
+-- not upre
 open scoped Classical in
-theorem upre.multi.{u} {α β : Type u}
+theorem upre.multiset_bind.{u} {α β : Type u}
   (s : Multiset α)
   (hs : s ≠ 0)
   (f : α → Multiset β)
@@ -304,9 +304,7 @@ theorem upre.multi.{u} {α β : Type u}
     } =
     PMF.ofMultiset (Multiset.bind s f) (by
       rw [Multiset.bind,ne_eq,Multiset.join,Multiset.sum_eq_zero_iff]
-      simp only [Multiset.mem_map, ← Multiset.card_eq_zero, forall_exists_index, and_imp,
-        forall_apply_eq_imp_iff₂, hf, n_pos, imp_false, not_forall, Decidable.not_not,
-        Multiset.exists_mem_of_ne_zero hs])
+      simp [← Multiset.card_eq_zero,hf, n_pos,Multiset.exists_mem_of_ne_zero hs])
      := by
   #check Multiset.product
   #check Multiset.pi
@@ -340,7 +338,45 @@ theorem upre.multi.{u} {α β : Type u}
 -- ‹_›
 
 
+
+theorem upre.multiset_bind'.{u} {α β : Type u}
+  (s : Multiset α)
+  (hs : s ≠ 0)
+  (f : α → Multiset β)
+  (n : ℕ := (f ((Multiset.exists_mem_of_ne_zero hs).choose)).card) (n_pos : n ≠ 0)
+  (hf : ∀a, (f a).card = n) -- #check PMF.bindOnSupport -- for an added (a ∈ s)
+  :
+    (PMF.ofMultiset s hs) >>= (fun x ↦ PMF.ofMultiset (f x) (by simp only [ne_eq, ← Multiset.card_eq_zero, hf, n_pos, not_false_eq_true]))
+    =
+    PMF.ofMultiset (do {
+      let x ← s
+      f x
+    }) (by
+      simp only [Multiset.bind_def]
+      rw [Multiset.bind,ne_eq,Multiset.join,Multiset.sum_eq_zero_iff]
+      simp [← Multiset.card_eq_zero,hf, n_pos,Multiset.exists_mem_of_ne_zero hs])
+     := upre.multiset_bind (n := n) (n_pos := n_pos) (hf := hf)
+
+
+#check Multiset.product
+
 theorem upre.bi.Prod.{u} {α β : Type u}
+  (s : Multiset α)(hs : s ≠ 0)
+  (t : Multiset β)(ht : t ≠ 0)
+  :
+    do {
+      let x ← PMF.ofMultiset s hs;
+      let y ← PMF.ofMultiset t ht;
+      return (x,y)
+    } = PMF.ofMultiset (s ×ˢ t) (by simp_all [←Multiset.card_eq_zero] ) := by
+
+    simp only [bind_pure_comp]
+    simp_rw [PMF.monad_map_eq_map]
+    simp only [PMF'.map_ofMultiset]
+    apply upre.multiset_bind ( n := t.card) (n_pos := by simp [ht])
+    simp only [Multiset.card_map, implies_true]
+
+theorem upre.bi.Prod_uniform.{u} {α β : Type u}
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β]
   :
@@ -349,14 +385,33 @@ theorem upre.bi.Prod.{u} {α β : Type u}
       let y ← PMF.uniformOfFintype (β)
       return (x,y)
     } = PMF.uniformOfFintype _ := by
-    simp only [bind_pure_comp]
-    simp_rw [PMF.monad_map_eq_map]
     simp_rw [PMF'.uniformOfFintype_eq_ofMultiset_univ]
-    simp_rw [PMF'.map_ofMultiset]
-    -- have ww x : Multiset.map (Prod.mk x) (Finset.univ.val)
+    apply upre.bi.Prod
 
 
-    sorry
+
+
+
+
+-- theorem upre.bi.General.{u} {α β γ : Type u}
+--   [Fintype α] [Nonempty α]
+--   [Fintype β] [Nonempty β]
+--   (s : Multiset α)
+--   (hs : s ≠ 0)
+--   (t : Multiset β)
+--   (ht : t ≠ 0)
+--   (f : α → β → Multiset γ)
+--   (hf : ∀a b, f a b ≠ 0)
+--   :
+--     do {
+--       let x ← PMF.ofMultiset s hs;
+--       let y ← PMF.ofMultiset t ht;
+--       PMF.ofMultiset (f x y) (hf x y)
+--     } = PMF.ofMultiset (
+
+--     ) (sorry) := by
+--   sorry
+
 
 open scoped Classical in
 @[to_additive, simp, local aesop safe apply]
@@ -372,7 +427,7 @@ theorem upre.prod [CommMonoid G] {n : ℕ} :
 
 
 
--- #exit
+
 end uniform_preserving
 
 

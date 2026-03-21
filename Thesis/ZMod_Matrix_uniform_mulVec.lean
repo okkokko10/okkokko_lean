@@ -95,9 +95,9 @@ theorem bijection_preserves_uniformOfFintype {α β : Type*}
   exact Fintype.card_congr f'
 
 set_option trace.aesop true
-section uniform_preserving
 
-variable {G : Type*} [Group G] [Fintype G] [Nonempty G] (a : G)
+section PMF'
+
 
 open scoped Classical in
 @[simp]
@@ -183,6 +183,13 @@ theorem PMF'.ofMultiset_eq_smul_ratio {α : Type*}
   · norm_num
   · simp only [one_smul]
     exact h
+
+
+end PMF'
+
+section uniform_preserving
+
+variable {G : Type*} [Group G] [Fintype G] [Nonempty G] (a : G)
 
 
 

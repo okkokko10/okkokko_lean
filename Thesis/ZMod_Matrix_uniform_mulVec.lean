@@ -94,6 +94,76 @@ theorem bijection_preserves_uniformOfFintype {α β : Type*}
   simp only [tsum_ite_eq, inv_inj, Nat.cast_inj]
   exact Fintype.card_congr f'
 
+
+theorem bijection_preserves_uniformOfFintype' {α β : Type _}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β] -- only one nonempty is needed, the other is implied by hf
+  -- [DecidableEq α] [DecidableEq β]
+  {f : α → β} (hf : f.Bijective)
+  : f <$> (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := by
+    exact bijection_preserves_uniformOfFintype hf
+
+@[simp, local aesop safe apply]
+theorem equiv_preserves_uniformOfFintype {α β : Type*}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  (e : α ≃ β)
+  : (PMF.uniformOfFintype α).map e = PMF.uniformOfFintype β := by
+    exact bijection_preserves_uniformOfFintype (by exact Equiv.bijective e)
+
+
+@[simp, local aesop safe apply]
+theorem equiv_preserves_uniformOfFintype' {α β : Type _}
+  [Fintype α] [Nonempty α]
+  (e : α ≃ β)
+  (inst_f : (Fintype β) := Fintype.ofEquiv α e) (inst_n : (Nonempty β) := Nonempty.map e inferInstance) -- todo: same for others
+  : e <$> (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := by
+    exact bijection_preserves_uniformOfFintype (by exact Equiv.bijective e)
+
+@[simp, local aesop safe apply]
+theorem equiv_preserves_uniformOfFintype'' {α β : Type _}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  (e : α ≃ β)
+  : do {
+      let x ← (PMF.uniformOfFintype α)
+      return e x
+    }
+    = PMF.uniformOfFintype β := by
+    exact bijection_preserves_uniformOfFintype (by exact Equiv.bijective e)
+
+
+
+theorem PMF'.remove_equiv {α β γ: Type _}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  (e : α ≃ β) {f : β → PMF γ}
+  : do {
+      let x ← (PMF.uniformOfFintype α)
+      f (e x)
+    }
+    =
+    do {
+      let y ← (PMF.uniformOfFintype β)
+      f y
+    } := by
+    simp only [← bind_map_left, equiv_preserves_uniformOfFintype']
+
+example {α β γ: Type _}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  (e : α ≃ β) {f : β → PMF γ}
+  : do {
+      let x ← (PMF.uniformOfFintype α)
+      f (e x)
+    }
+    =
+    do {
+      let y ← (e <$> PMF.uniformOfFintype α)
+      f y
+    } := by
+    simp only [bind_map_left]
+
 set_option trace.aesop true
 
 section PMF'
@@ -194,10 +264,8 @@ variable {G : Type*} [Group G] [Fintype G] [Nonempty G] (a : G)
 
 
 @[to_additive, simp, local aesop safe apply]
-theorem upre.Group.mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uniformOfFintype _ := by
-  have := (Group.mulLeft_bijective a)
-  -- simp_all only [Multiset.bijective_iff_map_univ_eq_univ, bijection_preserves_uniformOfFintype]
-  exact bijection_preserves_uniformOfFintype this
+theorem upre.Group.const_mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uniformOfFintype _ := by
+  exact equiv_preserves_uniformOfFintype (Equiv.mulLeft a)
 
 -- @[simp, local aesop safe apply]
 -- theorem upre.GroupWithZero.mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uniformOfFintype _ := by
@@ -205,7 +273,24 @@ theorem upre.Group.mulLeft : PMF.map (a * ·) (PMF.uniformOfFintype _) = PMF.uni
 --   -- simp_all only [Multiset.bijective_iff_map_univ_eq_univ, bijection_preserves_uniformOfFintype]
 --   exact bijection_preserves_uniformOfFintype this
 
+example [q_prime : Fact <| Nat.Prime q] : GroupWithZero (ZMod q) := by infer_instance
 
+-- attribute [simp] PMF.monad_map_eq_map
+
+@[to_additive, simp, local aesop safe apply]
+theorem upre.bi.Group.mul :
+    do {
+      let x ← PMF.uniformOfFintype G
+      let y ← PMF.uniformOfFintype G
+      return x * y
+    } = PMF.uniformOfFintype _ := by
+  simp only [bind_pure_comp, PMF.monad_map_eq_map, Group.const_mulLeft]
+  simp only [bind, PMF.bind_const]
+
+
+
+
+-- #exit
 end uniform_preserving
 
 
@@ -217,12 +302,155 @@ lemma A_Matrix.uniform_of_transpose_uniform (n m q : ℕ) [NeZero m] [NeZero q] 
       exact AddEquiv.bijective (Matrix.transposeAddEquiv (Fin n) (Fin m) (ZMod q))
 
 @[simp]
+lemma A_Matrix.uniform_of_transpose_uniform' (n m q : ℕ) [NeZero m] [NeZero q] :
+      Matrix.transpose <$> (PMF.uniformOfFintype (A_Matrix n m q)) = PMF.uniformOfFintype (A_Matrix m n q):= by
+      simp only [PMF.monad_map_eq_map, uniform_of_transpose_uniform]
+
+@[simp]
 theorem A_Matrix.card {n m q : ℕ} [NeZero q] :
   (Fintype.card (A_Matrix m n q)) = (q ^ (m * n)) := by
     rw [Fintype.card_congr (Matrix.ofAddEquiv.toEquiv.symm)]
     simp only [Fintype.card_pi, ZMod.card, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
     ring
 
+example {α β γ : Type _} (A : PMF α) (f : α → β) (g : β → PMF γ) :
+    do {
+      let x ← A;
+      have y := f x;
+      g y
+    } = do {
+      let y ← do {
+        let x ← A;
+        pure (f x)
+      }
+      g y
+    } := by
+    simp only [pure_bind]
+
+
+example {α β γ : Type _} (A : PMF α) (f : α → β) (g : β → PMF γ) :
+    do {
+      let x ← A;
+      have y := f x;
+      g y
+    } = do {
+      let x ← A;
+      let y ← pure <| f x;
+      g y
+    } := by
+    simp only [pure_bind]
+
+
+example {α β γ : Type _} (A : PMF α) (f : α → PMF β) (g : β → PMF γ) :
+    do {
+      let x ← A;
+      let y ← f x;
+      g y
+    } = do {
+      let y ← (do {
+        let x ← A;
+        f x
+      })
+      g y
+    } := by
+    simp only [bind_assoc]
+
+open scoped Classical in
+example {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
+    (s : Fin n → ZMod q)
+    : do {
+      let A ← PMF.uniformOfFintype (A_Matrix n m q)
+      return A.transpose.mulVec s
+    } = (PMF.uniformOfFintype (Fin m → ZMod q))
+      := by
+        have n_pos : 0 < n := NeZero.pos _
+        have m_pos : 0 < m := NeZero.pos _
+        have q_pos : 0 < q := NeZero.pos _
+
+
+        -- rw []
+
+        change
+          (do
+              let A ← PMF.uniformOfFintype (A_Matrix n m q)
+              (fun B ↦ pure (Matrix.mulVec B s)) (Matrix.transpose A)) = _
+        simp_rw [←bind_map_left (f := Matrix.transpose) (g := (fun B ↦ pure (Matrix.mulVec B s)))]
+        simp only [A_Matrix.uniform_of_transpose_uniform']
+        #check Matrix.toLin'_apply
+        let toLin' := (Matrix.toLin' : (A_Matrix m n q ≃ₗ[_] _)).toEquiv
+
+        change (do
+              let b ← PMF.uniformOfFintype (A_Matrix m n q)
+              (fun B ↦ pure <| (B : _ → _) s) (toLin' b))
+              = _
+        simp_rw [←bind_map_left (f := toLin') (g:= (pure <| · s))]
+        simp_rw [equiv_preserves_uniformOfFintype' (toLin')]
+        simp only [bind_pure_comp]
+
+
+
+        -- convert_to
+        --   (do
+        --     let B ← (do
+        --       let A ← PMF.uniformOfFintype (A_Matrix n m q)
+        --       return (Matrix.transposeAddEquiv _ _ _).toEquiv A
+        --       )
+        --     return (B.mulVec s)) = _
+        -- · simp only [bind_pure_comp, AddEquiv.toEquiv_eq_coe, EquivLike.coe_coe,
+        --   Matrix.transposeAddEquiv_apply, Functor.map_map]
+
+
+
+        sorry
+
+open scoped Classical in
+example {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
+    (s : Fin n → ZMod q)
+    : do {
+      let A ← PMF.uniformOfFintype (A_Matrix n m q)
+      return A.transpose.mulVec s
+    } = (PMF.uniformOfFintype (Fin m → ZMod q))
+      := by
+        have n_pos : 0 < n := NeZero.pos _
+        have m_pos : 0 < m := NeZero.pos _
+        have q_pos : 0 < q := NeZero.pos _
+
+
+        -- rw []
+
+        change
+          (do
+              let A ← PMF.uniformOfFintype (A_Matrix n m q)
+              (fun B ↦ pure (Matrix.mulVec B s)) (Matrix.transpose A)) = _
+        simp_rw [←bind_map_left (f := Matrix.transpose) (g := (fun B ↦ pure (Matrix.mulVec B s)))]
+        simp only [A_Matrix.uniform_of_transpose_uniform']
+        #check Matrix.toLin'_apply
+        let toLin' := (Matrix.toLin' : (A_Matrix m n q ≃ₗ[_] _)).toEquiv
+
+        change (do
+              let b ← PMF.uniformOfFintype (A_Matrix m n q)
+              (fun B ↦ pure <| (B : _ → _) s) (toLin' b))
+              = _
+        simp_rw [←bind_map_left (f := toLin') (g:= (pure <| · s))]
+        simp_rw [equiv_preserves_uniformOfFintype' (toLin')]
+        simp only [bind_pure_comp]
+
+
+
+        -- convert_to
+        --   (do
+        --     let B ← (do
+        --       let A ← PMF.uniformOfFintype (A_Matrix n m q)
+        --       return (Matrix.transposeAddEquiv _ _ _).toEquiv A
+        --       )
+        --     return (B.mulVec s)) = _
+        -- · simp only [bind_pure_comp, AddEquiv.toEquiv_eq_coe, EquivLike.coe_coe,
+        --   Matrix.transposeAddEquiv_apply, Functor.map_map]
+
+
+
+        sorry
+#exit
 
 theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
     (s : Fin n → ZMod q)
@@ -234,7 +462,49 @@ theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZer
         have n_pos : 0 < n := NeZero.pos _
         have m_pos : 0 < m := NeZero.pos _
         have q_pos : 0 < q := NeZero.pos _
-        #check MeasureTheory.JordanDecomposition
+
+        -- convert_to
+        --   (do
+        --     let B ← (do
+        --       let A ← PMF.uniformOfFintype (A_Matrix n m q)
+        --       return (Matrix.transposeAddEquiv _ _ _).toEquiv A
+        --       )
+        --     return (B.mulVec s)) = _
+        -- · simp only [bind_pure_comp, AddEquiv.toEquiv_eq_coe, EquivLike.coe_coe,
+        --   Matrix.transposeAddEquiv_apply, Functor.map_map]
+        -- simp_rw [equiv_preserves_uniformOfFintype'']
+
+
+        change
+          (do
+              let A ← PMF.uniformOfFintype (A_Matrix n m q)
+              let B := (Matrix.transpose A)
+              pure (B.mulVec s)) = _
+        convert_to
+          (do
+              let A ← PMF.uniformOfFintype (A_Matrix n m q)
+              let B ← pure (Matrix.transpose A)
+              pure (B.mulVec s)) = _
+        · simp only [pure_bind]
+        change
+          (do
+              let A ← PMF.uniformOfFintype (A_Matrix n m q);
+              let B ← pure (Matrix.transpose A);
+              pure (B.mulVec s)) =
+            PMF.uniformOfFintype (Fin m → ZMod q)
+        simp [bind_pure_comp]
+
+
+
+        change
+          (do
+              let A ← PMF.uniformOfFintype (A_Matrix n m q)
+              -- let B := (Matrix.transpose A)
+              pure (((fun B ↦ B.mulVec s) ∘ Matrix.transpose) A)) =
+            PMF.uniformOfFintype (Fin m → ZMod q)
+
+
+
         simp only [bind_pure_comp]
         rw [PMF.monad_map_eq_map]
         change PMF.map ((Matrix.mulVec · s) ∘ Matrix.transpose) _ = _

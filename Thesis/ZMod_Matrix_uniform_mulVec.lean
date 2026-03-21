@@ -287,6 +287,56 @@ theorem upre.bi.Group.mul :
   simp only [bind_pure_comp, PMF.monad_map_eq_map, Group.const_mulLeft]
   simp only [bind, PMF.bind_const]
 
+open scoped BigOperators
+
+-- unsure
+theorem upre.multi.{u} {α β : Type u}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  (s : Multiset α)
+  (hs : s ≠ 0)
+  (f : α → Multiset β)
+  (hf : ∀a, f a ≠ 0)
+  :
+    do {
+      let x ← PMF.ofMultiset s hs
+      PMF.ofMultiset (f x) (hf x)
+    } =
+    PMF.ofMultiset (Multiset.bind s f) (sorry)
+     := by
+  #check Multiset.product
+
+
+  sorry
+theorem upre.bi.Prod.{u} {α β : Type u}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  :
+    do {
+      let x ← PMF.uniformOfFintype (α)
+      let y ← PMF.uniformOfFintype (β)
+      return (x,y)
+    } = PMF.uniformOfFintype _ := by
+    simp only [bind_pure_comp]
+    simp_rw [PMF.monad_map_eq_map]
+    simp_rw [PMF'.uniformOfFintype_eq_ofMultiset_univ]
+    simp_rw [PMF'.map_ofMultiset]
+    -- have ww x : Multiset.map (Prod.mk x) (Finset.univ.val)
+
+
+    sorry
+
+open scoped Classical in
+@[to_additive, simp, local aesop safe apply]
+theorem upre.prod [CommMonoid G] {n : ℕ} :
+    do {
+      let x ← PMF.uniformOfFintype (Fin n → G)
+      return (Finset.prod (M:= G) Finset.univ x)
+    } = PMF.uniformOfFintype _ := by
+
+  -- have ind n : PMF.uniformOfFintype (Fin n → G)
+
+  sorry
 
 
 
@@ -450,7 +500,7 @@ example {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
 
 
         sorry
-
+-- #exit
 
 theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
     (s : Fin n → ZMod q)

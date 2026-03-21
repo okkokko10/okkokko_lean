@@ -290,24 +290,56 @@ theorem upre.bi.Group.mul :
 open scoped BigOperators
 
 -- unsure
+open scoped Classical in
 theorem upre.multi.{u} {α β : Type u}
-  [Fintype α] [Nonempty α]
-  [Fintype β] [Nonempty β]
   (s : Multiset α)
   (hs : s ≠ 0)
   (f : α → Multiset β)
-  (hf : ∀a, f a ≠ 0)
+  (n : ℕ := (f ((Multiset.exists_mem_of_ne_zero hs).choose)).card) (n_pos : n ≠ 0)
+  (hf : ∀a, (f a).card = n) -- #check PMF.bindOnSupport -- for an added (a ∈ s)
   :
     do {
       let x ← PMF.ofMultiset s hs
-      PMF.ofMultiset (f x) (hf x)
+      PMF.ofMultiset (f x) (by simp only [ne_eq, ← Multiset.card_eq_zero, hf, n_pos, not_false_eq_true])
     } =
-    PMF.ofMultiset (Multiset.bind s f) (sorry)
+    PMF.ofMultiset (Multiset.bind s f) (by
+      rw [Multiset.bind,ne_eq,Multiset.join,Multiset.sum_eq_zero_iff]
+      simp only [Multiset.mem_map, ← Multiset.card_eq_zero, forall_exists_index, and_imp,
+        forall_apply_eq_imp_iff₂, hf, n_pos, imp_false, not_forall, Decidable.not_not,
+        Multiset.exists_mem_of_ne_zero hs])
      := by
   #check Multiset.product
+  #check Multiset.pi
+  ext y
+  simp only [bind, PMF.bind_apply, PMF.ofMultiset_apply, Multiset.card_bind, Function.comp_apply,
+    Nat.cast_multiset_sum, Multiset.map_map]
+  simp only [hf, Multiset.map_const', Multiset.sum_replicate, nsmul_eq_mul]
+
+  suffices
+    ∑a ∈ s.toFinset, (Multiset.count a s) * ((Multiset.count y (f a))) = (Multiset.count y (s.bind f)) by
+      simp only [ENNReal.div_eq_inv_mul]
+      rw [←this]
+      simp only [Nat.cast_sum, Nat.cast_mul]
+      rw [Finset.mul_sum]
+      -- simp [ENNReal.tsum_mul_left]
+      rw [tsum_eq_sum (s:= s.toFinset)]
+      · congr 1
+        ext i
+        rw [ENNReal.mul_inv]
+        ac_rfl
+        right
+        exact ENNReal.natCast_ne_top n
+        right
+        exact Nat.cast_ne_zero.mpr n_pos
+      simp only [Multiset.mem_toFinset, mul_eq_zero, ENNReal.inv_eq_zero, ENNReal.natCast_ne_top,
+        Nat.cast_eq_zero, Multiset.count_eq_zero, false_or]
+      exact fun b a ↦ Decidable.not_or_of_imp fun a_1 a_2 ↦ a a_1
+
+  simp [Multiset.count_bind]
+  exact Eq.symm (Finset.sum_multiset_map_count s fun b ↦ Multiset.count y (f b))
+-- ‹_›
 
 
-  sorry
 theorem upre.bi.Prod.{u} {α β : Type u}
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β]

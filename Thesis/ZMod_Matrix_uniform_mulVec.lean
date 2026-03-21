@@ -450,7 +450,7 @@ example {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
 
 
         sorry
-#exit
+
 
 theorem A_Matrix.uniform_of_uniform_vecMul_const' {n m q : ℕ} [NeZero n][NeZero m] [q_prime : Fact <| Nat.Prime q]
     (s : Fin n → ZMod q)

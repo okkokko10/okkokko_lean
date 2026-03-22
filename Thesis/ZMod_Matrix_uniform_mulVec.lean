@@ -2,7 +2,7 @@ import Thesis.A_Matrix
 
 -- lemma 5.3 seems like it uses a claim that with Prime q, for nonzero s, the distribution A ↦ As is uniform
 variable {n m q : ℕ} [NeZero n] [NeZero m] [NeZero q]
-
+universe u
 example (q : ℕ) (q_prime : Fact <| Nat.Prime q) : Field (ZMod q) := by infer_instance
 
 
@@ -26,7 +26,7 @@ theorem A_Matrix.uniform_of_uniform_vecMul_const
 -- open PMF
 
 -- maybe also for multisets?
-lemma bijection_preserves_uniformOfFinset.{u} {α β : Type u}
+lemma bijection_preserves_uniformOfFinset {α β : Type u}
   [DecidableEq α]
   [DecidableEq β]
   (s : Finset α) (hs : s.Nonempty) (t : Finset β) (ht : t.Nonempty) -- only one nonempty is needed, the other is implied by hf
@@ -289,9 +289,27 @@ theorem upre.bi.Group.mul :
 
 open scoped BigOperators
 
+theorem fnz  {α β : Type u}
+  {f : α → Multiset β}
+  {n : ℕ } (n_pos : n ≠ 0)
+  (hf : ∀a, (f a).card = n)
+  : ∀a, f a ≠ 0
+  := (by simp only [ne_eq, ← Multiset.card_eq_zero, hf, n_pos, not_false_eq_true, implies_true])
+
+theorem fnzb {α β : Type u}
+  {s : Multiset α}
+  (hs : s ≠ 0)
+  {f : α → Multiset β}
+  {n : ℕ} (n_pos : n ≠ 0)
+  (hf : ∀a, (f a).card = n)
+  : s.bind f ≠ 0
+  := by
+  rw [Multiset.bind,ne_eq,Multiset.join,Multiset.sum_eq_zero_iff]
+  simp [← Multiset.card_eq_zero,hf, n_pos,Multiset.exists_mem_of_ne_zero hs]
+
 -- not upre
 open scoped Classical in
-theorem upre.multiset_bind.{u} {α β : Type u}
+theorem upre.multiset_bind {α β : Type u}
   (s : Multiset α)
   (hs : s ≠ 0)
   (f : α → Multiset β)
@@ -300,11 +318,9 @@ theorem upre.multiset_bind.{u} {α β : Type u}
   :
     do {
       let x ← PMF.ofMultiset s hs
-      PMF.ofMultiset (f x) (by simp only [ne_eq, ← Multiset.card_eq_zero, hf, n_pos, not_false_eq_true])
+      PMF.ofMultiset (f x) (fnz n_pos hf x)
     } =
-    PMF.ofMultiset (Multiset.bind s f) (by
-      rw [Multiset.bind,ne_eq,Multiset.join,Multiset.sum_eq_zero_iff]
-      simp [← Multiset.card_eq_zero,hf, n_pos,Multiset.exists_mem_of_ne_zero hs])
+    PMF.ofMultiset (Multiset.bind s f) (fnzb hs n_pos hf)
      := by
   #check Multiset.product
   #check Multiset.pi
@@ -338,29 +354,25 @@ theorem upre.multiset_bind.{u} {α β : Type u}
 -- ‹_›
 
 
-
-theorem upre.multiset_bind'.{u} {α β : Type u}
-  (s : Multiset α)
+theorem upre.multiset_bind' {α β : Type u}
+  {s : Multiset α}
   (hs : s ≠ 0)
-  (f : α → Multiset β)
-  (n : ℕ := (f ((Multiset.exists_mem_of_ne_zero hs).choose)).card) (n_pos : n ≠ 0)
+  {n : ℕ} (n_pos : n ≠ 0)
+  {f : α → Multiset β}
   (hf : ∀a, (f a).card = n) -- #check PMF.bindOnSupport -- for an added (a ∈ s)
   :
-    (PMF.ofMultiset s hs) >>= (fun x ↦ PMF.ofMultiset (f x) (by simp only [ne_eq, ← Multiset.card_eq_zero, hf, n_pos, not_false_eq_true]))
+    (PMF.ofMultiset s hs) >>= (fun x ↦ PMF.ofMultiset (f x) (fnz n_pos hf x))
     =
     PMF.ofMultiset (do {
       let x ← s
       f x
-    }) (by
-      simp only [Multiset.bind_def]
-      rw [Multiset.bind,ne_eq,Multiset.join,Multiset.sum_eq_zero_iff]
-      simp [← Multiset.card_eq_zero,hf, n_pos,Multiset.exists_mem_of_ne_zero hs])
+    }) (fnzb hs n_pos hf)
      := upre.multiset_bind (n := n) (n_pos := n_pos) (hf := hf)
 
 
 #check Multiset.product
 
-theorem upre.bi.Prod.{u} {α β : Type u}
+theorem upre.bi.Prod {α β : Type u}
   (s : Multiset α)(hs : s ≠ 0)
   (t : Multiset β)(ht : t ≠ 0)
   :
@@ -376,7 +388,8 @@ theorem upre.bi.Prod.{u} {α β : Type u}
     apply upre.multiset_bind ( n := t.card) (n_pos := by simp [ht])
     simp only [Multiset.card_map, implies_true]
 
-theorem upre.bi.Prod_uniform.{u} {α β : Type u}
+@[simp high]
+theorem upre.bi.Prod_uniform {α β : Type u}
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β]
   :
@@ -393,25 +406,166 @@ theorem upre.bi.Prod_uniform.{u} {α β : Type u}
 
 
 
--- theorem upre.bi.General.{u} {α β γ : Type u}
---   [Fintype α] [Nonempty α]
---   [Fintype β] [Nonempty β]
---   (s : Multiset α)
---   (hs : s ≠ 0)
---   (t : Multiset β)
---   (ht : t ≠ 0)
---   (f : α → β → Multiset γ)
---   (hf : ∀a b, f a b ≠ 0)
+theorem upre.bi.General {α β γ : Type u}
+  (s : Multiset α)
+  (hs : s ≠ 0)
+  (t : Multiset β)
+  (ht : t ≠ 0)
+  (f : α → β → Multiset γ)
+  (n : ℕ) (n_pos : n ≠ 0)
+  (hf : ∀a b, (f a b).card = n) -- #check PMF.bindOnSupport -- for an added (a ∈ s)
+  :
+    do {
+      let x ← PMF.ofMultiset s hs;
+      let y ← PMF.ofMultiset t ht;
+      PMF.ofMultiset (f x y) (fnz n_pos (hf x) y)
+    } = PMF.ofMultiset (
+      do {
+      let x ← s
+      let y ← t
+      f x y
+      }
+    ) (by
+      simp only [Multiset.bind_def, ne_eq, ← Multiset.card_eq_zero, Multiset.card_bind,
+        Function.comp_apply]
+      simp_all only [ne_eq, Multiset.map_const', Multiset.sum_replicate, smul_eq_mul, mul_eq_zero,
+        Multiset.card_eq_zero, or_self, not_false_eq_true])
+  := by
+  -- simp only [Multiset.bind_def]
+  conv_lhs => { right; intro x; rw [upre.multiset_bind' ht n_pos (hf x)]}
+  apply upre.multiset_bind' hs (n := n * t.card) (by
+    simp_all only [ne_eq, mul_eq_zero, Multiset.card_eq_zero, or_self, not_false_eq_true]
+    )
+  simp [hf,mul_comm]
+
+
+
+theorem upre.bi.General_uniform  {α β γ : Type u}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  [Fintype γ] [Nonempty γ]
+  (e : (α × β) ≃ γ)
+  :
+    do {
+      let x ← PMF.uniformOfFintype (α)
+      let y ← PMF.uniformOfFintype (β)
+      return e (x,y)
+    } = PMF.uniformOfFintype _
+  := by
+  convert_to
+    (do
+        let w ← (do
+          let x ← PMF.uniformOfFintype α
+          let y ← PMF.uniformOfFintype β
+          return (x,y)
+          )
+        pure (e w)) =
+      PMF.uniformOfFintype γ
+  · simp only [bind_pure_comp, map_bind, Functor.map_map]
+  simp_rw [upre.bi.Prod_uniform]
+  simp [bind_pure_comp, equiv_preserves_uniformOfFintype']
+
+@[simp]
+theorem upre.bi.General_uniform' {α β γ : Type u}
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  (e : α → β → PMF γ)
+  :
+    do {
+      let x ← PMF.uniformOfFintype (α)
+      let y ← PMF.uniformOfFintype (β)
+      e x y
+    } =
+    do {
+      let (x,y) ← PMF.uniformOfFintype (α × β)
+      e x y
+    }
+  := by
+  simp_rw [←upre.bi.Prod_uniform]
+  simp only [bind_pure_comp, bind_assoc, bind_map_left]
+
+
+theorem upre.bi.General_uniform'_three {α α' α'' γ : Type u}
+  [Fintype α] [Nonempty α]
+  [Fintype α'] [Nonempty α']
+  [Fintype α''] [Nonempty α'']
+  (e : α → α' → α'' → PMF γ)
+  :
+    do {
+      let x ← PMF.uniformOfFintype (α)
+      let y ← PMF.uniformOfFintype (α')
+      let z ← PMF.uniformOfFintype (α'')
+      e x y z
+    } =
+    do {
+      let (x,y,z) ← PMF.uniformOfFintype (α × α' × α'')
+      e x y z
+    }
+  := by
+  simp_rw [←upre.bi.Prod_uniform]
+  simp only [bind_pure_comp, bind_assoc, bind_map_left]
+
+-- example {γ : Type u}
+--   --{ι : Type*}
+--   {n : ℕ}
+--   {α : (Fin n) → Type u}
+--   [∀i, Fintype (α i)] [∀i, Nonempty (α i)]
+--   (e : (∀i, α i) → PMF γ)
 --   :
 --     do {
---       let x ← PMF.ofMultiset s hs;
---       let y ← PMF.ofMultiset t ht;
---       PMF.ofMultiset (f x y) (hf x y)
---     } = PMF.ofMultiset (
 
---     ) (sorry) := by
---   sorry
+--         let x ← PMF.uniformOfFintype (α)
+--       e x y z
+--     } =
+--     do {
+--       let (x,y,z) ← PMF.uniformOfFintype (α × α' × α'')
+--       e x y z
+--     }
+--   := by
+--   simp_rw [←upre.bi.Prod_uniform]
+--   simp only [bind_pure_comp, bind_assoc, bind_map_left]
 
+-- example {γ : Type u}
+--   --{ι : Type*}
+--   {n : ℕ}
+--   {α : (Fin n) → Type u}
+--   [∀i, Fintype (α i)] [∀i, Nonempty (α i)]
+--   :
+--     do {
+--       -- let x : (i : Fin n) → α i := fun i => PMF.uniformOfFintype (α i)
+--       let x i ← PMF.uniformOfFintype (α i)
+--       return x
+--     }
+--      = PMF.uniformOfFintype (∀i, α i)
+--   := by
+
+--   -- have x : (i : Fin n) → ℕ | i => 2
+
+--   simp_rw [←upre.bi.Prod_uniform]
+--   simp only [bind_pure_comp, bind_assoc, bind_map_left]
+
+
+
+-- example {γ : Type u}
+--   --{ι : Type*}
+--   {n : ℕ}
+--   {α : (Fin n) → Type u}
+--   [∀i, Fintype (α i)] [∀i, Nonempty (α i)]
+--   :
+--     do {
+--       -- let x : (i : Fin n) → α i := fun i => PMF.uniformOfFintype (α i)
+--       return x
+--     }
+--      = PMF.uniformOfFintype (∀i, α i)
+--   := by
+
+--   -- have x : (i : Fin n) → ℕ | i => 2
+
+--   simp_rw [←upre.bi.Prod_uniform]
+--   simp only [bind_pure_comp, bind_assoc, bind_map_left]
+
+
+-- #exit
 
 open scoped Classical in
 @[to_additive, simp, local aesop safe apply]

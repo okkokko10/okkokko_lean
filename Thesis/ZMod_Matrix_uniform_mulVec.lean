@@ -567,9 +567,90 @@ theorem upre.bi.General_uniform'_three {α α' α'' γ : Type u}
 
 -- #exit
 
+-- open scoped Classical in
+-- theorem upre.func {n : ℕ} {γ : Type u}
+--   {α : Type u}[Fintype α][Nonempty α]
+--   {β : Type u}[Fintype β][Nonempty β]
+
+--   :
+--     do {
+--       let x ← PMF.uniformOfFintype (α → β)
+--       return x
+--     } = PMF.uniformOfFintype (α → β) := by
+--   sorry
+
+
+open scoped Classical in
+theorem upre.split
+  {α β : Type u}[Fintype α] [Fintype β] [Nonempty (α ⊕ β)]
+  {γ : Type u}[Fintype γ][Nonempty γ]
+  :
+    do {
+      let f ← PMF.uniformOfFintype (α → γ)
+      let f' ← PMF.uniformOfFintype (β → γ)
+      return Sum.elim f f'
+    } = PMF.uniformOfFintype ((α ⊕ β) → γ) := by
+
+  let e: ((α → γ) × (β → γ)) ≃ ((α ⊕ β) → γ) := by
+    apply Equiv.sumArrowEquivProdArrow _ _ _ |>.symm
+  have ww f f' : e (f,f') = Sum.elim f f' := by rfl
+  simp_rw [←ww]
+  exact bi.General_uniform e
+
+
+def inde {n : ℕ} {β : Type u} (f : (Fin n → β)) (m : β) : Fin (n + 1) → β :=
+  Fin.cases m f
+
+
+
+-- @[simp, local aesop safe apply]
+theorem upre.cases {n : ℕ}
+  {β : Type u} [Fintype β] [Nonempty β]
+  :
+    do {
+      let m ← PMF.uniformOfFintype (β)
+      let x ← PMF.uniformOfFintype (Fin n → β)
+      return (Fin.cases m x)
+    } = PMF.uniformOfFintype (Fin (n + 1) → β) := by
+
+  -- have ind n : PMF.uniformOfFintype (Fin n → G)
+
+  sorry
+
+-- @[simp, local aesop safe apply]
+theorem upre.base
+  {β : Type u} [Fintype β] [Nonempty β]
+  :
+    do {
+      let m ← PMF.uniformOfFintype (β)
+      return (fun _ ↦ m)
+    } = PMF.uniformOfFintype (Fin (1) → β) := by
+
+  -- have ind n : PMF.uniformOfFintype (Fin n → G)
+
+  sorry
+-- open scoped Classical in
+-- @[to_additive, simp, local aesop safe apply]
+-- theorem upre.induction_dep {n : ℕ} {γ : Type u}
+--   {α β : Type 2}
+--   [Fintype α]
+--   [Fintype β]
+--   [Nonempty (α ⊕ β)]
+--   {F : (α ⊕ β) → Type u}
+--   [∀i, Fintype (F i)] [∀i, Nonempty (F i)]
+--   :
+--     do {
+--       let x ← PMF.uniformOfFintype (∀i, F i)
+--       return (Finset.prod (M:= G) Finset.univ x)
+--     } = PMF.uniformOfFintype (∀i, F i) := by
+
+--   -- have ind n : PMF.uniformOfFintype (Fin n → G)
+
+--   sorry
+
 open scoped Classical in
 @[to_additive, simp, local aesop safe apply]
-theorem upre.prod [CommMonoid G] {n : ℕ} :
+theorem upre.prod [CommMonoid G] {n : ℕ+} :
     do {
       let x ← PMF.uniformOfFintype (Fin n → G)
       return (Finset.prod (M:= G) Finset.univ x)
@@ -577,9 +658,35 @@ theorem upre.prod [CommMonoid G] {n : ℕ} :
 
   -- have ind n : PMF.uniformOfFintype (Fin n → G)
 
-  sorry
+  induction n with
+  | one =>
+    simp only [PNat.val_ofNat, Finset.univ_unique, Fin.default_eq_zero, Fin.isValue,
+      Finset.prod_singleton, bind_pure_comp]
+    change (Equiv.funUnique _ _) <$> PMF.uniformOfFintype (Fin 1 → G) = PMF.uniformOfFintype G
+    -- refine equiv_preserves_uniformOfFintype'' ?_
+    (expose_names; exact equiv_preserves_uniformOfFintype' (Equiv.funUnique (Fin 1) G) inst_1 inst_2)
+  | succ i w =>
+  simp only [PNat.add_coe, PNat.val_ofNat]
+  simp_rw [←upre.cases]
+  -- simp only [bind_pure_comp, map_bind, Functor.map_map]
+  -- nth_rw 2 [←w]
 
 
+  simp only [bind_pure_comp, map_bind, Functor.map_map]
+  have ww (x : Fin i → G) m
+    : (Finset.univ.prod (Fin.cases m x))
+    = m * (Finset.univ.prod x) := by
+
+    -- have : (Finset.univ (α := Fin (i+1))).prod (fun w ↦ x w) = Finset.prod sorry (Fin.cases m x)
+    change ∏ i_1, Fin.cases m x i_1 = m * Finset.univ.prod x
+    #check Finset.prod_insert
+    sorry
+  simp_rw [ww]
+  simp_rw [←Functor.map_map]
+  simp only [bind_pure_comp] at w
+  simp_rw [w]
+  exact upre.bi.Group.mul
+-- #exit
 
 
 end uniform_preserving

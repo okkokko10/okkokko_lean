@@ -648,6 +648,124 @@ theorem upre.base
 
 --   sorry
 
+/-
+I want to express that a function preserves uniform distribution
+maybe without bringing in Fintype and Nonempty
+```class UniformPreserving {α β : Type*} (f : α → β) where prf := ∀b₁ b₂, f ⁻¹' {b₁} ≃ f ⁻¹' {b₂}```
+-/
+#check Equiv.ofFiberEquiv -- this is similar
+#check Equiv.sigmaFiberEquiv
+#check Function.Fiber -- this ignores values outside the range
+
+
+section UniformPreserving
+
+variable {α β : Type*} (f : α → β)
+
+class UniformPreserving  where
+  prf b₁ b₂ : {x₁ // f x₁ = b₁} ≃ {x₂ // f x₂ = b₂}
+-- [Fintype α] [Fintype β] [Nonempty α] [Nonempty β]
+variable [f_upr : UniformPreserving f]
+
+instance (e : α ≃ β) : UniformPreserving e where
+  prf b₁ b₂ := by
+    simp_rw [Eq.comm,←Equiv.symm_apply_eq e]
+    exact Equiv.ofUnique { x₁ // e.symm b₁ = x₁ } { x₂ // e.symm b₂ = x₂ }
+
+noncomputable instance (e : α → β) (bij : Function.Bijective e) : UniformPreserving e := inferInstanceAs (UniformPreserving (Equiv.ofBijective e bij))
+
+variable {γ : Type*} (F : α → β → γ)
+
+def BiUniformPreserving (F : α → β → γ) := UniformPreserving (fun (x,y) ↦ F x y)
+
+
+-- I wonder, could it be true that this is equivalent to UniformPreserving F
+
+@[simp]
+theorem UnionPreserving.main
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  : PMF.map f (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := sorry
+
+@[simp]
+theorem UnionPreserving.main' {α β : Type u} (f : α → β)
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  : f <$> (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := sorry
+
+-- let's see if this is correct
+theorem  UnionPreserving.isBiUnionPreserving {α β γ : Type u} (e : α → β → γ) [UniformPreserving e]
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  [Fintype γ] [Nonempty γ]
+  :
+  do {
+    let x ← PMF.uniformOfFintype α
+    let y ← PMF.uniformOfFintype β
+    return e x y
+  }
+  = PMF.uniformOfFintype γ
+  := by
+    calc
+      _ = (do
+          let y ← PMF.uniformOfFintype β
+          let x ← PMF.uniformOfFintype α
+          pure (e x y))
+        := by apply PMF.bind_comm
+      _ = (do
+        let y ← PMF.uniformOfFintype β
+        (fun a ↦ a y) <$> e <$> PMF.uniformOfFintype α
+        )
+        := by simp only [bind_pure_comp, UnionPreserving.main', Functor.map_map]
+      _ = PMF.uniformOfFintype γ
+        := by simp_rw [Functor.map_map,UnionPreserving.main',bind,PMF.bind_const]
+-- is it true the other way as well?
+
+-- todo: for the distinct-universe case- no, for the general case
+
+
+-- def  UnionPreserving.isBiUnionPreserving' {α β γ : Type u} (e : α → β → γ) [UniformPreserving e]
+--   : BiUniformPreserving e := by
+
+--     sorry
+
+
+
+-- let's see the equiv case...
+
+example (e : α ≃ (β → γ)) : BiUniformPreserving e := by
+  unfold BiUniformPreserving
+  simp
+  constructor
+  intro b₁ b₂
+  -- have : (α ≃ (β → γ)) ≃ (β ≃ (α → γ)) := by sorry
+  -- no, that would mean a = g^b and b = g^a
+
+
+
+  -- simp_rw [Eq.comm,←Equiv.symm_apply_eq e]
+
+  sorry
+
+
+end UniformPreserving
+
+variable {α β γ : Type*} in
+def upre.BiUniform (f : α → β → γ) : Prop :=
+  sorry
+
+
+open scoped Classical in
+@[to_additive, simp, local aesop safe apply]
+theorem upre.prod [CommMonoid G] {n : ℕ+} :
+    do {
+      let x ← PMF.uniformOfFintype (Fin n → G)
+      return (Finset.prod (M:= G) Finset.univ x)
+    } = PMF.uniformOfFintype _ := by
+  sorry
+
+-- #exit
+
 open scoped Classical in
 @[to_additive, simp, local aesop safe apply]
 theorem upre.prod [CommMonoid G] {n : ℕ+} :

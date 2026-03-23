@@ -1,17 +1,19 @@
-import Thesis.A_Matrix
+-- import Thesis.A_Matrix
+import Mathlib
 
 -- lemma 5.3 seems like it uses a claim that with Prime q, for nonzero s, the distribution A ↦ As is uniform
 variable {n m q : ℕ} [NeZero n] [NeZero m] [NeZero q]
 universe u
 example (q : ℕ) (q_prime : Fact <| Nat.Prime q) : Field (ZMod q) := by infer_instance
 
+abbrev A_Matrix (n m q : ℕ) := Matrix (Fin n) (Fin m) (ZMod q)
 
 -- wait, equivalences preserve uniform distribution
 
-theorem A_Matrix.uniform_of_uniform_vecMul_const
-    (s : Fin n → ZMod q)
-    : (@A_Matrix.uniform n m q _ |>.map ( f:= fun A : A_Matrix n m q ↦ A.transpose.mulVec s) sorry).toMeasure
-      = ProbabilityTheory.uniformOn (@Set.univ _) := sorry
+-- theorem A_Matrix.uniform_of_uniform_vecMul_const
+--     (s : Fin n → ZMod q)
+--     : (@A_Matrix.uniform n m q _ |>.map ( f:= fun A : A_Matrix n m q ↦ A.transpose.mulVec s) sorry).toMeasure
+--       = ProbabilityTheory.uniformOn (@Set.univ _) := sorry
 
 -- theorem ZMod_uniform_of_const_mul_uniform {q : ℕ} [NeZero q]
 -- #check ZMod.AddAutEquivUnits
@@ -688,12 +690,125 @@ theorem UnionPreserving.main
   : PMF.map f (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := sorry
 
 @[simp]
-theorem UnionPreserving.main' {α β : Type u} (f : α → β)
+theorem UnionPreserving.main' {α β : Type u}
+  (f : α → β) [UniformPreserving f]
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β]
   : f <$> (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := sorry
 
+
+-- [mul_boole]
+example {α : Type*} [MulZeroOneClass α] (P : Prop) [Decidable P] (x : α)
+  : (if P then x else 0) = x * if P then 1 else 0
+  := by
+    exact Eq.symm (mul_boole P x)
+
+
+-- theorem cancel_inverses (a b c : NNReal) : c ≠ 0 → a * c = b → a = b * c⁻¹ := by
+--   intro a_1 a_2
+--   -- have w : c ≠ ⊤ := sorry
+--   subst a_2
+--   simp_all only [ne_eq, not_false_eq_true, mul_inv_cancel_right₀]
+--   change a = b * ⅟c
+--   exact (eq_mul_inv_iff_mul_eq₀ a_1).mpr a_2
+--   subst a_2
+--   simp_all only [ne_eq, not_false_eq_true, mul_inv_cancel_right₀]
+
+
+
+open scoped Classical in
+theorem uniform_seq
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  : (PMF.uniformOfFintype (α → β)).seq (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := by
+
+
+    ext x
+    simp only [PMF.seq_apply, PMF.uniformOfFintype_apply]
+    -- simp only [Fintype.card_pi, Finset.prod_const, Finset.card_univ]
+    simp_rw [tsum_eq_sum' (s := Finset.univ) (by norm_num)]
+    simp_rw (config := {singlePass := true}) [←mul_boole]
+    simp_rw [←Finset.mul_sum]
+
+
+    have a_pos : 0 < (Fintype.card (α) : ENNReal) := by simp only [ne_eq, Nat.cast_eq_zero, Fintype.card_ne_zero, not_false_eq_true, pos_of_ne_zero]
+    have b_pos : 0 < (Fintype.card (β) : ENNReal) := by simp only [ne_eq, Nat.cast_eq_zero, Fintype.card_ne_zero, not_false_eq_true, pos_of_ne_zero]
+    have ab_pos: 0 < (Fintype.card (α → β) : ENNReal) := by
+      apply pos_of_ne_zero
+      simp only [Fintype.card_pi, Finset.prod_const, Finset.card_univ, Nat.cast_pow, ne_eq,
+        Fintype.card_ne_zero, not_false_eq_true, pow_eq_zero_iff, Nat.cast_eq_zero]
+
+    set ab := Fintype.card (α → β)
+    set a := Fintype.card α
+    set b := Fintype.card β
+
+    -- simp [*]
+    -- simp_all only [Nat.cast_pos, Finset.sum_boole]
+    suffices (b) * (∑ f : α → β, ∑ a, if x = f a then 1 else 0) =(ab) * (a) by
+
+      sorry
+    simp only [Finset.sum_boole, Nat.cast_id]
+    change b * ∑ f : α → β, Finset.card {a | x = f a} = ab * a
+    have : (∑ f : α → β, Finset.card {a | x = f a}) =
+      Fintype.card (Σ f : α → β, {a // f a = x})
+        := by
+        simp only [Fintype.card_sigma]
+        congr! 2 with f
+        simp_rw [Eq.comm]
+        exact Eq.symm (Fintype.card_subtype fun x_1 ↦ x = f x_1)
+    rw [this]
+    rw [←Fintype.card_prod]
+    rw [←Fintype.card_prod]
+    clear * -
+    apply Fintype.card_eq.mpr
+    constructor
+
+    #check Equiv.sigmaFiberEquiv
+    -- generalize x
+    -- todo: make its own theorem
+
+    let F (f : α → β) (x : β) := { a // f a = x}
+    change β × (f : α → β) × F f x ≃ _
+    calc
+
+    _ ≃ (_ : β) × (f : α → β) × F f x := by
+      exact (Equiv.sigmaEquivProd β ((f : α → β) × F f x)).symm
+    _ ≃ (x : β) × (f : α → β) × F f x := by
+      let sigma_fiber_of_constant_equiv x x' : (f : α → β) × F f x ≃ (f : α → β) × F f x' := by
+        -- the sigma type of functions with their fiber of a constant x is equivalent to
+        -- the same of a different constant x'
+        rw [←Equiv.swap_apply_left x' x]
+        unfold F
+        simp_rw [←Equiv.symm_apply_eq (Equiv.swap x' x)]
+        simp only [Equiv.symm_swap]
+        let aco:= Equiv.arrowCongr' (Equiv.refl α) (Equiv.swap x' x)
+        change (f : α → β) × { a // (Equiv.swap x' x) (f a) = x' } ≃ _
+        change (f : α → β) × { a // ((aco f) a) = x' } ≃ (f : α → β) × { a // f a = x' }
+        change (f : α → β) × F (aco f) x' ≃ (f : α → β) × F f x'
+        let p := (F · x')
+        change (f : α → β) × p (aco f) ≃ (f : α → β) × p f
+        exact aco.sigmaCongrLeft
+      exact Equiv.sigmaCongrRight (sigma_fiber_of_constant_equiv x)
+    _ ≃ (f : _) × (x : _) × F f x := by
+      -- should be a theorem: Equiv.sigmaCommProd
+      let := Equiv.sigmaAssocProd (γ := F)
+      apply Equiv.trans ?_ this
+      let := Equiv.sigmaAssocProd (γ := fun x y ↦ F y x)
+      apply Equiv.trans this.symm
+      apply Equiv.sigmaCongr (Equiv.prodComm _ _)
+      simp only [Equiv.prodComm_apply, Prod.fst_swap, Prod.snd_swap]
+      tauto
+    _ ≃ _ := by
+      unfold F
+      have := Equiv.sigmaEquivProd (α → β) (α)
+      apply Equiv.trans ?_ this
+      apply Equiv.sigmaCongr
+      exact Equiv.sigmaFiberEquiv
+      exact Equiv.refl _
+
+
 -- let's see if this is correct
+open scoped Classical in
 theorem  UnionPreserving.isBiUnionPreserving {α β γ : Type u} (e : α → β → γ) [UniformPreserving e]
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β]
@@ -708,17 +823,27 @@ theorem  UnionPreserving.isBiUnionPreserving {α β γ : Type u} (e : α → β 
   := by
     calc
       _ = (do
-          let y ← PMF.uniformOfFintype β
           let x ← PMF.uniformOfFintype α
-          pure (e x y))
-        := by apply PMF.bind_comm
+          let w := e x
+          let y ← PMF.uniformOfFintype β
+          pure (w y))
+        := by rfl
       _ = (do
-        let y ← PMF.uniformOfFintype β
-        (fun a ↦ a y) <$> e <$> PMF.uniformOfFintype α
-        )
-        := by simp only [bind_pure_comp, UnionPreserving.main', Functor.map_map]
+          let w ← e <$> PMF.uniformOfFintype α
+          let y ← PMF.uniformOfFintype β
+          pure (w y))
+        := by simp only [bind_pure_comp, bind_map_left]
+      _ = (do
+          let w ← PMF.uniformOfFintype (β → γ)
+          w <$> PMF.uniformOfFintype β)
+        := by simp [main']
+      _ = (PMF.uniformOfFintype (β → γ) <*> PMF.uniformOfFintype β)
+        := by rfl
       _ = PMF.uniformOfFintype γ
-        := by simp_rw [Functor.map_map,UnionPreserving.main',bind,PMF.bind_const]
+        := by
+          -- should be its own theorem
+          simp [PMF.monad_seq_eq_seq]
+          exact uniform_seq
 -- is it true the other way as well?
 
 -- todo: for the distinct-universe case- no, for the general case
@@ -729,7 +854,7 @@ theorem  UnionPreserving.isBiUnionPreserving {α β γ : Type u} (e : α → β 
 
 --     sorry
 
-
+-- #exit
 
 -- let's see the equiv case...
 
@@ -755,14 +880,14 @@ def upre.BiUniform (f : α → β → γ) : Prop :=
   sorry
 
 
-open scoped Classical in
-@[to_additive, simp, local aesop safe apply]
-theorem upre.prod [CommMonoid G] {n : ℕ+} :
-    do {
-      let x ← PMF.uniformOfFintype (Fin n → G)
-      return (Finset.prod (M:= G) Finset.univ x)
-    } = PMF.uniformOfFintype _ := by
-  sorry
+-- open scoped Classical in
+-- @[to_additive, simp, local aesop safe apply]
+-- theorem upre.prod [CommMonoid G] {n : ℕ+} :
+--     do {
+--       let x ← PMF.uniformOfFintype (Fin n → G)
+--       return (Finset.prod (M:= G) Finset.univ x)
+--     } = PMF.uniformOfFintype _ := by
+--   sorry
 
 -- #exit
 

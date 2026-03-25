@@ -289,6 +289,29 @@ theorem upre.bi.Group.mul :
   simp only [bind_pure_comp, PMF.monad_map_eq_map, Group.const_mulLeft]
   simp only [bind, PMF.bind_const]
 
+-- idea: UniformPreserving can be extended as mapping the counting measure to a scalar multiple of the counting measure
+-- this is because the finite uniform probability is the only probability measure that is a scalar multiple of the counting measure
+-- wait, what if the domain has greater cardinality?
+
+-- I wish you could use do? to desugar a do expression
+
+-- the idea is that if `∀x, UniformPreserving (f x)`, then f X U for any distribution X
+-- @[to_additive, simp, local aesop safe apply]
+theorem upre.bi.Group.mul'
+  (P : PMF G)
+  :
+    do {
+      let x ← P
+      let y ← PMF.uniformOfFintype G
+      return x * y
+    } = PMF.uniformOfFintype _ := by
+  -- change (P >>= fun x ↦ (PMF.uniformOfFintype G >>= fun y ↦ pure (x * y))) = PMF.uniformOfFintype G
+  -- change (PMF.bind P fun x ↦ ((PMF.uniformOfFintype G).bind fun y ↦ pure (x * y))) = PMF.uniformOfFintype G
+  -- dsimp [PMF.monad_map_eq_map]
+  simp only [bind_pure_comp]
+  simp [PMF.monad_map_eq_map,Group.const_mulLeft]
+  simp [bind]
+
 open scoped BigOperators
 
 theorem fnz  {α β : Type u}
@@ -715,7 +738,7 @@ example {α : Type*} [MulZeroOneClass α] (P : Prop) [Decidable P] (x : α)
 --   simp_all only [ne_eq, not_false_eq_true, mul_inv_cancel_right₀]
 
 
-
+-- this should be true no matter the distribution of α
 open scoped Classical in
 theorem uniform_seq
   [Fintype α] [Nonempty α]
@@ -871,7 +894,7 @@ example (e : α ≃ (β → γ)) : BiUniformPreserving e := by
   -- simp_rw [Eq.comm,←Equiv.symm_apply_eq e]
 
   sorry
-
+-- X * U = U, for any random x
 
 end UniformPreserving
 

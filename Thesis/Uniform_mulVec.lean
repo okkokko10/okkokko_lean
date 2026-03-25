@@ -97,7 +97,7 @@ noncomputable instance (e : α → β) (bij : Function.Bijective e) : UHom e := 
 
 variable (F : α → β → γ)
 
-
+#check AddHom
 
 -- UniformLeftAbsorbing
 -- UniformRightAbsorbing
@@ -189,19 +189,108 @@ def UAbsorbing.mulAction {G X : Type*} [Group G] [MulAction G X] : URightAbsorbi
   change  ((a : G) → UHom (MulAction.toPerm a))
   infer_instance
 
+@[to_additive]
 noncomputable def UAbsorbing.mulOnUnits {M : Type*} [Monoid M] : UAbsorbingOn (@Mul.mul M _) (IsUnit) := by
 
   change ((a : M) → (bu : IsUnit a) → UHom (Units.mulRight bu.unit))
-        × ((b : M) → (bu : IsUnit b) → UHom (Units.mulLeft bu.unit))
+       × ((b : M) → (bu : IsUnit b) → UHom (Units.mulLeft bu.unit))
   constructor <;> infer_instance
 
--- def UAbsorbing.mul₀ {G₀ : Type*} [GroupWithZero G₀] : UAbsorbingOn (@Mul.mul G₀ _) (· ≠ 0) := by
+def UAbsorbing.mul₀ {G₀ : Type*} [GroupWithZero G₀] : UAbsorbingOn (@Mul.mul G₀ _) (· ≠ 0) := by
+  change ((b : G₀) → (bn0 : _) → UHom (Equiv.mulRight₀ b bn0))
+       × ((b : G₀) → (bn0 : _) → UHom (Equiv.mulLeft₀ b bn0))
+  constructor <;> infer_instance
 
---   change ((b : G₀) → (bn0 : _) → UHom (Equiv.mulRight₀ b bn0))
---     × _
---   constructor <;> infer_instance
+-- given f : G →* H, f(G) ≃* G ⧸ (ker f) [first isomorphism theorem].
+-- I think the coset isomorphic to h : f(G) is the fiber of h
+
+#check Submodule.Quotient.addCommGroup
+
+#check Subgroup.quotientEquivOfEq
+
+#check MonoidHom.ker
+
+-- found by Gemini:
+#check QuotientGroup.quotientKerEquivRange
+
+#check QuotientGroup.quotientKerEquivOfSurjective
+#check QuotientGroup.quotientKerEquivOfRightInverse
+
+
+
+@[to_additive]
+def UHom.mulHomOfRightInverse {G H: Type*} [Group G] [Group H]
+  (φ : G →* H)
+  (ψ : H → G) (hφ : Function.RightInverse ψ ⇑φ)
+  : UHom φ := by
+  constructor
+  intro h₁ h₂
+  let ww := MonoidHom.fiberEquiv φ (ψ h₁) (ψ h₂)
+  rw [hφ h₁, hφ h₂] at ww
+  exact ww
+
+@[to_additive]
+noncomputable def UHom.mulHomOfSurjective {G H: Type*} [Group G] [Group H]
+  (φ : G →* H) (hφ : Function.Surjective ⇑φ)
+  : UHom φ := { prf := MonoidHom.fiberEquivOfSurjective hφ }
+
+
+
+#check Finset.sum_fiberwise
+
+
 
 
 end mul
 
 end UniformPreserving
+
+theorem A_Matrix.mulVec_const_neZero_surjective
+  {n m α : Type*} [Fintype n] [DecidableEq n]
+  [Field α]
+  (s : n → α) (hs : s ≠ 0)
+  : Function.Surjective (fun (A : Matrix n m α) ↦ A.transpose.mulVec s) := by
+    intro x
+    simp only
+    obtain ⟨i, si_nz⟩ : ∃i, s i ≠ 0 := by
+      by_contra! w
+      apply hs
+      funext i
+      exact w i
+    -- #check Matrix.of_col -- this means what we want is:
+    -- use Matrix.of (Pi.single i ((s i)⁻¹ • x))
+    use Matrix.of (fun a ↦ if a = i then ((s i)⁻¹ • x) else 0)
+    funext j
+    change ∑ i', (Matrix.of fun a ↦ if a = i then (s i)⁻¹ • x else 0).transpose j i' * s i' = x j
+    simp only [Matrix.transpose_apply, Matrix.of_apply]
+    change ∑ i', (if i' = i then (s i)⁻¹ • x else 0) j * s i' = x j
+    simp_rw [ite_apply]
+    simp only [Pi.smul_apply, smul_eq_mul, Pi.zero_apply, ite_mul, zero_mul, Finset.sum_ite_eq',
+      Finset.mem_univ, ↓reduceIte]
+    field
+
+theorem A_Matrix.mulVec_const_neZero_rightInverse
+  {n m α : Type*} [Fintype n] [DecidableEq n]
+  [Field α]
+  (s : n → α) (i : n) (hsi : s i ≠ 0)
+  : Function.RightInverse
+      (fun x ↦ Matrix.of (fun a ↦ if a = i then ((s i)⁻¹ • x) else 0))
+      (fun (A : Matrix n m α) ↦ A.transpose.mulVec s) := by
+    intro x
+    funext j
+    change ∑ i', (Matrix.of _).transpose j i' * s i' = x j
+    change ∑ i', (if i' = i then (s i)⁻¹ • x else 0) j * s i' = x j
+    simp_rw [ite_apply]
+    simp only [Pi.smul_apply, smul_eq_mul, Pi.zero_apply, ite_mul, zero_mul, Finset.sum_ite_eq',
+      Finset.mem_univ, ↓reduceIte]
+    field
+
+
+def A_Matrix.instUHom
+  {n m α : Type*} [Fintype n] [DecidableEq n] [Fintype m]
+  [Field α]
+  (s : n → α) (i : n) (hsi : s i ≠ 0)
+  : UHom (fun (A : Matrix n m α) ↦ A.transpose.mulVec s) := by
+    let := (Matrix.mulVec.addMonoidHomLeft (m := m) s).comp (Matrix.transposeAddEquiv n m α |>.toAddMonoidHom)
+    change UHom (this)
+    exact UHom.addHomOfRightInverse this _ (mulVec_const_neZero_rightInverse s i hsi)

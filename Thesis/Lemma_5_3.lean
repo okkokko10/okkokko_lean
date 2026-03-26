@@ -14,86 +14,129 @@ def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
 
 
 #check PMF.bind
+-- theorem coeSubmodule_mem
+--   {R M : Type*} [Semiring R] [AddCommMonoid M] [Module R M]
+--   {A : Submodule R M} (B : Submodule R A)
+--   (x)
+--   : x ∈ coeSubmodule B
+--   := sorry
 
 
+noncomputable def Casts.ZnToZqn_surjective {ι : Type*} {q : ℕ}
+  : Function.Surjective (@Casts.ZnToZqn ι q) := by
+    simp only [LinearMap.coe_comp, LinearEquiv.coe_coe, EquivLike.surjective_comp]
+    intro w
+    use fun i ↦ (w i).cast
+    funext i
+    simp only [LinearMap.compLeft_apply, Function.comp_apply, Algebra.linearMap_apply,
+      algebraMap_int_eq, eq_intCast, ZMod.intCast_cast, ZMod.cast_id', id_eq]
+
+def A_Matrix.syndromes_def' {n m q : ℕ} (A : A_Matrix n m q)
+  : A.syndromes = (Matrix.mulVecLin A).toAddMonoidHom.range.toIntSubmodule
+  := by
+  unfold syndromes syndromeMap
+  simp only
+  rw [LinearMap.range_comp]
+  rw [LinearMap.range_eq_top_of_surjective _ Casts.ZnToZqn_surjective]
+  simp only [Submodule.map_top, AddMonoidHom.coe_toIntLinearMap_range]
+-- #check ProbabilityTheory.uniformOn
+#check A_Matrix.uniform
+theorem A_Matrix.uniformProb_change
+  {α : Type*} [Fintype α] [Nonempty α]
+  [MeasurableSpace α] [DiscreteMeasurableSpace α]
+  :
+  PMF.toMeasure (PMF.uniformOfFintype α) =
+  ProbabilityTheory.uniformOn (Set.univ) := by
+    let := ProbabilityTheory.uniformOn_isProbabilityMeasure (s := @Set.univ α) (Set.finite_univ)
+      (Set.nonempty_iff_univ_nonempty.mp inferInstance)
+    symm
+    ext s ms
+    simp
+    rw [ProbabilityTheory.uniformOn]
+    #check PMF.toPMF_dirac
+    #check MeasureTheory.Measure.count
+    #check MeasureTheory.OuterMeasure.dirac
+    -- rw [←PMF.toPMF_eq_iff_toMeasure_eq]
+    -- ext x
+    -- rw [PMF.toPMF]
+    sorry
+#check PMF.toPMF_eq_iff_toMeasure_eq
+#check PMF.toMeasure
+
+-- ⊢ ℙ lemma_5_3_statementᶜ ≤ (lemma_5_3_statement <$> PMF.uniformOfFintype (A_Matrix n m q)) False
+
+
+
+-- TODO: change (q ^ (- n : ℝ)) to (q ^ n)⁻¹ everywhere
 -- clarification: "for some v ∈ Z", is this a uniform random variable?
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
   : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := by
+    rw [show (q : ENNReal) ^ (-(n : ℝ)) = (q^n : ENNReal)⁻¹ by sorry]
 
     -- change ℙ (({A | ¬ lemma_5_3_statement A}) : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
-    suffices ∃s : Set <| A_Matrix n m q, ℙ sᶜ ≤ (q ^ (- n : ℝ)) ∧ ∀A, s A → (lemma_5_3_statement A)  by
-      obtain ⟨s,amo, spec⟩ := this
-      trans ℙ sᶜ
+    -- suffices ∃s : Set <| A_Matrix n m q, ℙ sᶜ ≤ (q ^ (- n : ℝ)) ∧ ∀A, s A → (lemma_5_3_statement A)  by
+    --   obtain ⟨s,amo, spec⟩ := this
+    --   trans ℙ sᶜ
 
-      have spe A :  (¬ lemma_5_3_statement A) → (¬ s A) := by exact fun a a_1 ↦ a (spec A a_1)
-      have spe' :  (lemma_5_3_statement : Set <| A_Matrix n m q)ᶜ ≤ (sᶜ) := by exact spe
-      exact MeasureTheory.OuterMeasureClass.measure_mono ℙ spe
-      exact amo
+    --   have spe A :  (¬ lemma_5_3_statement A) → (¬ s A) := by exact fun a a_1 ↦ a (spec A a_1)
+    --   have spe' :  (lemma_5_3_statement : Set <| A_Matrix n m q)ᶜ ≤ (sᶜ) := by exact spe
+    --   exact MeasureTheory.OuterMeasureClass.measure_mono ℙ spe
+    --   exact amo
 
-    have w (A : A_Matrix n m q) : lemma_5_3_statement A ↔ (∀x ∈ A.Λ_main', x ≠ 0 → q/4 ≤ ‖x‖) := by
-      exact 𝓛.minimum_distance.greater_iff _
-    have w (A : A_Matrix n m q) : lemma_5_3_statement A := by -- invalid, for planning
-      apply 𝓛.minimum_distance.greater_iff _ |>.mpr
 
-      unfold A_Matrix.Λ_main' A_Matrix.Λ_main'' A_Matrix.syndromes
-      simp only [ne_eq]
-      intro x
-      unfold coeSubmodule
-      simp only [Submodule.mem_map, Submodule.mem_comap, LinearMap.coe_comp, LinearEquiv.coe_coe,
-        Function.comp_apply, Submodule.subtype_apply, Subtype.exists, exists_and_right,
-        exists_eq_right, forall_exists_index]
-      change
-        ∀ (xZm : x ∈ Casts.Zn (Fin m)),
-          Casts.ZnToZqn (⟨x, xZm⟩) ∈ A_Matrix.syndromes (Matrix.transpose A) →
-            ¬x = 0 → ↑q / 4 ≤ ‖x‖₊
-      unfold A_Matrix.syndromes
+    let C : Set (Fin m → ℝ) := {x : Fin m → ℝ | ¬(x ≠ 0 → ↑q / 4 ≤ ‖x‖₊) }
+    let Z : Set ↥(Casts.Zn (Fin m)) := {x :  ↥(Casts.Zn (Fin m)) | ↑x ∈ C}
+    let Z'c : Set (Fin m → ZMod q) := Set.kernImage (⇑Casts.ZnToZqn) Zᶜ
 
-      simp only [LinearMap.mem_range, Subtype.exists, forall_exists_index]
-      intro xZm y yZn sw xn0
-      sorry
 
-    have w (A : A_Matrix n m q) : ¬ lemma_5_3_statement A := by -- invalid, for planning
+
+    have statement_simplified (A : A_Matrix n m q) : lemma_5_3_statement A ↔ ↑((Matrix.transpose A).mulVecLin.toAddMonoidHom.range) ⊆ Z'c := by -- invalid, for planning
+      change lemma_5_3_statement A ↔ ↑(Matrix.transpose A).mulVecLin.toAddMonoidHom.range.toIntSubmodule ⊆ Z'c
+      rw [←A_Matrix.syndromes_def']
       unfold lemma_5_3_statement
       rw [(𝓛.minimum_distance.greater_iff A.Λ_main' (r := q/4))]
-
-      unfold A_Matrix.Λ_main' A_Matrix.Λ_main'' A_Matrix.syndromes
-      simp only [ne_eq]
-      -- intro x
+      convert_to (∀ x ∈ A.Λ_main', x ∉ C) ↔ _
+      · unfold C; simp only [ne_eq, Classical.not_imp, not_le, Set.mem_setOf_eq, not_and, not_lt]
+      unfold A_Matrix.Λ_main'
       unfold coeSubmodule
-      simp only [Submodule.mem_map, Submodule.mem_comap, LinearMap.coe_comp, LinearEquiv.coe_coe,
-        Function.comp_apply, Submodule.subtype_apply, Subtype.exists, exists_and_right,
+      set czqn := Casts.ZnToZqn
+      set Λ_in_Zn := (Submodule.comap czqn A.Λ_main'')
+      simp only [Submodule.mem_map, Submodule.subtype_apply, Subtype.exists, exists_and_right,
         exists_eq_right, forall_exists_index]
-      simp only [LinearMap.mem_range, Subtype.exists, forall_exists_index, not_forall,
-        Classical.not_imp, not_le, exists_and_right]
-      #check Field
+      convert_to (∀ (x : Casts.Zn (Fin m)), x ∈ Λ_in_Zn → (↑x) ∉ C) ↔ _
+      · simp only [Subtype.forall]
+      change ↑Λ_in_Zn ⊆ Zᶜ ↔ _
+      unfold Λ_in_Zn
+      rw [Submodule.comap_coe, ←Set.subset_kernImage_iff]
+      rfl
 
-      #check Matrix.mulVec_eq_sum
+    let sorryProp : Prop := sorry
 
-      -- change
-      --   ∀ (xZm : x ∈ Casts.Zn (Fin m)),
-      --     Casts.ZnToZqn (⟨x, xZm⟩) ∈ A_Matrix.syndromes (Matrix.transpose A) →
-      --       ¬x = 0 → ↑q / 4 ≤ ‖x‖₊
-      -- unfold A_Matrix.syndromes
-
-      -- simp only [LinearMap.mem_range, Subtype.exists, forall_exists_index]
-      -- intro xZm y yZn sw xn0
-
-
-
-
-
-
-
+    have Z'c_def' : Z'c = (Casts.ZnToZqn '' Z)ᶜ := by
+      ext x
+      unfold Z'c
+      set czqn := Casts.ZnToZqn
+      rw [←Set.singleton_subset_iff]
+      rw [Set.subset_kernImage_iff]
+      rw [Set.subset_compl_comm]
+      have : Set.InjOn czqn Z := sorry
 
       sorry
 
 
-
+    -- suffices (do {
+    --   let A ← PMF.uniformOfFintype (A_Matrix n m q)
+    --   return lemma_5_3_statement A
+    -- } : PMF Prop ) (False) ≤ (q ^ n : ENNReal)⁻¹ by
+    --   apply le_trans ?_ this
+    --   simp only [bind_pure_comp]
+    --   sorry
+    -- simp_rw [statement_simplified]
 
 
 
     sorry
--- #exit
+
 def lemma_5_3_relationship {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (A : (n : N) → (A_Matrix n (m n) (q n)))
   (s : (n : N) → ℝ≥0) (ε : (n : N) → ℝ≥0) [∀n, NeZero (ε n)]
   := ∀ᶠ (n : N) in Filter.atTop, 𝓛.smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n

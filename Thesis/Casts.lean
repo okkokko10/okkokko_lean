@@ -82,6 +82,6 @@ noncomputable def IntnToZn {ι : Type*} : (ι → ℤ) ≃ₗ[ℤ] Zn (ι) := by
 theorem IntnToZn_apply  {ι : Type*} (x : ι → ℤ) : (IntnToZn x).val = (↑) ∘ x := rfl
 
 
-noncomputable abbrev ZnToZqn {ι : Type*} {q : ℕ} : (Zn ι) →ₗ[ℤ] (ι → ZMod q)  := by
+noncomputable def ZnToZqn {ι : Type*} {q : ℕ} : (Zn ι) →ₗ[ℤ] (ι → ZMod q)  := by
   -- refine LinearMap.comp ?_ ?_
   refine Casts.Intn_to_Zqn ∘ₗ  IntnToZn.symm.toLinearMap

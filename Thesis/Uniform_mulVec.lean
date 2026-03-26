@@ -294,3 +294,73 @@ def A_Matrix.instUHom
     let := (Matrix.mulVec.addMonoidHomLeft (m := m) s).comp (Matrix.transposeAddEquiv n m α |>.toAddMonoidHom)
     change UHom (this)
     exact UHom.addHomOfRightInverse this _ (mulVec_const_neZero_rightInverse s i hsi)
+
+
+def A_Matrix.instUHom''
+  {n m α : Type*} [Fintype n] [DecidableEq n] [Fintype m]
+  [Field α]
+  (s : n → α) (i : n) (hsi : s i ≠ 0)
+  : UHom ((Matrix.vecMulBilin ℤ ℤ s |>.toAddMonoidHom) : Matrix n m α →+ m → α ) := by
+    -- exact UHom.addHomOfRightInverse _ _ (mulVec_const_neZero_rightInverse s i hsi)
+  sorry
+
+section try1
+
+variable {n m α : Type u} [Fintype n] [Fintype m] [Fintype α]
+  [Nonempty n][DecidableEq n]
+  [Nonempty m][DecidableEq m]
+  [Nonempty α][DecidableEq α]
+  [Field α]
+
+
+
+def wΛ (A : Matrix n m α) := A.transpose.mulVecLin.toAddMonoidHom.range
+
+open scoped NNReal ENNReal
+
+#check Bool
+noncomputable def A_Matrix.ww
+  (Z : Finset (m → α))
+  : (do {
+    let A ← PMF.uniformOfFintype (Matrix n m α)
+    let L := wΛ A
+    let b := ∀v ∈ Z, v ∉ L
+    return ULift.up b
+  } : PMF (ULift Prop)) (ULift.up False) ≤ (Fintype.card (n → α)) * (Z.card : ℝ≥0) / (Fintype.card (m → α) : ℝ≥0)
+  := by
+
+
+    sorry
+end try1
+
+open scoped Classical
+
+open scoped NNReal ENNReal
+
+variable {M α β : Type}
+  [AddCommGroup M]
+  [AddCommGroup α]
+  [AddCommGroup β] -- Gemini notes: this must be commutative
+  [Fintype M] [Nonempty M]
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+#check Pi.monoidHom
+
+#check AddHom.instAdd
+example : AddGroup (α →+ β) := by
+  infer_instance
+
+#check MonoidHom.instCommMonoid
+
+
+variable (φ : M →+ α →+ β)
+variable (ψ : α →+ M →+ β)
+
+
+theorem wwew
+  (Z : Set β) :
+  (do {
+    let A ← PMF.uniformOfFintype M
+    let L := (φ A).range
+    return (↑L) ⊆ Z
+  } : PMF Prop) (true) ≤ (Fintype.card (α)) * (Z.toFinset.card : ℝ≥0) / (Fintype.card (β) : ℝ≥0) := sorry

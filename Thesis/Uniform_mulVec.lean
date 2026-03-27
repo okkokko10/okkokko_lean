@@ -357,10 +357,127 @@ variable (φ : M →+ α →+ β)
 variable (ψ : α →+ M →+ β)
 
 
-theorem wwew
-  (Z : Set β) :
+-- theorem split_or' {α : Type} (p : PMF (α)) (a b : α → Prop) :
+--   (do {
+--     let t ← p
+--     return a t ∨ b t
+--   } : PMF Prop ) (True) ≤ (do {
+--     let t ← p
+--     return a t
+--   } : PMF Prop ) (True) +
+--   (do {
+--     let t ← p
+--     return b t
+--   } : PMF Prop ) (True)  := by
+
+--   let a' := {x | a x}
+--   let b' := {x | b x}
+
+--   change p.map (· ∈ (a' ∪ b')) True ≤ (p.map (· ∈ a')) True + (p.map (· ∈ b')) True
+--   simp only [PMF.map_apply, eq_iff_iff, true_iff]
+--   open scoped Classical in
+--   rw [←ENNReal.tsum_add]
+--   gcongr with r
+
+--   by_cases ha : r ∈ a'
+--   · simp only [Set.mem_union, ha, true_or, ↓reduceIte, self_le_add_right]
+--   simp only [Set.mem_union, ha, false_or, ↓reduceIte, zero_add, le_refl]
+
+
+
+theorem PMF'.subadditivity {α ι : Type*} (p : PMF α) (s : ι → (α → Prop)) :
+  (p.map (fun a ↦ ∃i, s i a)) True ≤ ∑' (i : ι), (p.map (s i)) True := by
+  simp only [PMF.map_apply, eq_iff_iff, true_iff]
+  open scoped Classical in
+  rw [ENNReal.tsum_comm]
+  gcongr 1 with r
+  by_cases h : ∃i, s i r
+  ·
+    simp only [h, ↓reduceIte]
+    obtain ⟨i,v_s⟩ := h
+    apply le_trans ?_ (ENNReal.le_tsum i)
+    simp only [v_s, ↓reduceIte, le_refl]
+  simp only [h, ↓reduceIte, zero_le]
+
+-- theorem PMF'.within {α ι : Type*} (p : PMF α) (s : ι → (α → Prop)) :
+--   (p.map (fun a ↦ f a ∈ Z)) True ≤ ∑' (i : ι), (p.map (s i)) True := by
+--   simp only [PMF.map_apply, eq_iff_iff, true_iff]
+--   open scoped Classical in
+--   rw [ENNReal.tsum_comm]
+--   gcongr 1 with r
+--   by_cases h : ∃i, s i r
+--   ·
+--     simp only [h, ↓reduceIte]
+--     obtain ⟨i,v_s⟩ := h
+--     apply le_trans ?_ (ENNReal.le_tsum i)
+--     simp only [v_s, ↓reduceIte, le_refl]
+--   simp only [h, ↓reduceIte, zero_le]
+
+
+theorem PMF'.mem_uniform_card
+  {α : Type*} [Fintype α] [Nonempty α]
+  (Z : Set α)
+
+  : (PMF.map (fun x ↦ x ∈ Z) (PMF.uniformOfFintype α)) True = Z.toFinset.card / (Fintype.card (α)) := by
+    simp only [PMF.map_apply, eq_iff_iff, true_iff, PMF.uniformOfFintype_apply]
+    -- change
+    --   (∑' (a : α), Z.indicator (fun _ ↦ (↑(Fintype.card α) : ENNReal)⁻¹) a) =
+    --     ↑Z.toFinset.card / ↑(Fintype.card α)
+    simp_rw [←Set.indicator_apply Z (fun _ ↦ (↑(Fintype.card α) : ENNReal)⁻¹)]
+    rw [←tsum_subtype]
+    simp only [ENNReal.tsum_const, ENat.card_eq_coe_fintype_card, Fintype.card_ofFinset,
+      ENat.toENNReal_coe, Set.toFinset_card]
+    rfl
+
+
+
+set_option linter.unusedTactic false
+theorem lemma_5_3_key
+  (hφ : ∀x y, φ x y = ψ y x )
+  (ψ_surj : ∀s ≠ 0, Function.Surjective (ψ s))
+  (Z : Set β)
+  (hZ : 0 ∉ Z)
+  :
   (do {
     let A ← PMF.uniformOfFintype M
     let L := (φ A).range
-    return (↑L) ⊆ Z
-  } : PMF Prop) (true) ≤ (Fintype.card (α)) * (Z.toFinset.card : ℝ≥0) / (Fintype.card (β) : ℝ≥0) := sorry
+    return ∃v, v ∈ L ∧ v ∈ Z
+  } : PMF Prop) (True) ≤ Fintype.card α * Z.toFinset.card / Fintype.card β
+  := by
+  conv_lhs => {
+    simp only [AddMonoidHom.mem_range, exists_exists_eq_and]
+    simp only [bind_pure_comp]
+    change (PMF.uniformOfFintype M |>.map (fun m ↦ ∃ a, (φ m) a ∈ Z)) True
+  }
+  conv_rhs => {
+      change (Fintype.card α : ENat) * Z.toFinset.card / (Fintype.card β : ENNReal)
+      rw [mul_div_assoc,
+        ←ENat.card_eq_coe_fintype_card,
+        ←ENNReal.tsum_one,
+        ←ENNReal.tsum_mul_right,
+        one_mul]
+    }
+
+  refine le_trans (PMF'.subadditivity (PMF.uniformOfFintype M) _) ?_
+  suffices ∀a, (PMF.map (fun m ↦ (φ m) a ∈ Z) (PMF.uniformOfFintype M)) True ≤ (Z.toFinset.card) / (Fintype.card (β)) by
+    -- this "suffices" only provides structure.
+    gcongr 1 with a
+    exact this a
+  intro a
+  by_cases! ha : a = 0
+  ·
+    rw [ha]
+    simp_rw [map_zero, hZ]
+
+    simp only [PMF.map_apply, eq_iff_iff, iff_false, not_true_eq_false, ↓reduceIte, tsum_zero,
+      zero_le]
+
+
+  simp_rw [hφ]
+  specialize ψ_surj a ha
+  set ρ := ψ a
+  change (PMF.map ((· ∈ Z) ∘ ρ) (PMF.uniformOfFintype M)) True ≤ _
+  simp_rw [←PMF.map_comp]
+  rw [@UHom.main _ _ ρ ?_]
+  rw [PMF'.mem_uniform_card]
+  exact UHom.addHomOfSurjective ρ ψ_surj

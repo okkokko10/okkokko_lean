@@ -24,12 +24,13 @@ def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
 
 noncomputable def Casts.ZnToZqn_surjective {ι : Type*} {q : ℕ}
   : Function.Surjective (@Casts.ZnToZqn ι q) := by
-    simp only [LinearMap.coe_comp, LinearEquiv.coe_coe, EquivLike.surjective_comp]
-    intro w
-    use fun i ↦ (w i).cast
-    funext i
-    simp only [LinearMap.compLeft_apply, Function.comp_apply, Algebra.linearMap_apply,
-      algebraMap_int_eq, eq_intCast, ZMod.intCast_cast, ZMod.cast_id', id_eq]
+    -- simp only [LinearMap.coe_comp, LinearEquiv.coe_coe, EquivLike.surjective_comp]
+    -- intro w
+    -- use fun i ↦ (w i).cast
+    -- funext i
+    -- simp only [LinearMap.compLeft_apply, Function.comp_apply, Algebra.linearMap_apply,
+    --   algebraMap_int_eq, eq_intCast, ZMod.intCast_cast, ZMod.cast_id', id_eq]
+    sorry
 
 def A_Matrix.syndromes_def' {n m q : ℕ} (A : A_Matrix n m q)
   : A.syndromes = (Matrix.mulVecLin A).toAddMonoidHom.range.toIntSubmodule

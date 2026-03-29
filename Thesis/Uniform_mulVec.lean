@@ -155,19 +155,61 @@ abbrev UAbsorbingOn (f : α → α → γ) (s : Set α) := ULeftAbsorbingOn f s 
 
 
 -- I wonder, could it be true that this is equivalent to UniformPreserving F
-
 @[simp]
 theorem UHom.main
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β]
-  : PMF.map f (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := sorry
+  : PMF.map f (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := by
+    ext x
+    open scoped Classical in
+
+    simp only [PMF.map_apply, PMF.uniformOfFintype_apply]
+    -- simp_rw [←Set.indicator_apply]
+    set b := (↑(Fintype.card β) : ENNReal)
+    set a := (↑(Fintype.card α) : ENNReal)
+    have a_pos : a ≠ 0 := by simp [a]
+    have b_pos : b ≠ 0 := by simp [b]
+    have a_fin : a ≠ ⊤ := by simp [a]
+    have b_fin : b ≠ ⊤ := by simp [b]
+    rw [←ENNReal.mul_left_inj a_pos a_fin]
+    rw [←ENNReal.mul_left_inj b_pos b_fin]
+    simp only [← ENNReal.tsum_mul_right, ite_mul, zero_mul]
+    ring_nf
+    rw [ENNReal.inv_mul_cancel (by assumption) (by assumption)]
+    rw [ENNReal.mul_inv_cancel_right (by assumption) (by assumption)]
+    simp only [one_mul]
+    rw [tsum_eq_sum' (s := Finset.univ) (by norm_num)]
+    suffices (∑ i, if x = f i then (Fintype.card β) else 0) = (Fintype.card α) by
+      unfold a b
+      rw [←this]
+      simp only [Nat.cast_sum, Nat.cast_ite, CharP.cast_eq_zero]
+    -- change (∑ i ∈ Finset.univ, if i ∈ {i | f i = x} then Fintype.card β else 0) = Fintype.card α
+    have := Finset.sum_ite_mem Finset.univ {i | x = f i} (fun _ ↦ Fintype.card β)
+    convert this
+    · simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    simp only [Finset.univ_inter, Finset.sum_const, smul_eq_mul]
+    simp_rw [Eq.comm (a := x)]
+    rw [←Fintype.card_subtype]
+    rw [←Fintype.card_prod]
+    apply Fintype.card_congr
+    calc
+      _ ≃ (y : β) × { i // f i = y } := by
+        exact (Equiv.sigmaFiberEquiv f).symm
+      _ ≃ (y : β) × { i // f i = x } := by
+        refine Equiv.sigmaCongr (Equiv.refl _) ?_
+        intro b
+        exact (UHom.prf b x)
+      _ ≃ (β) × { i // f i = x } := by
+        exact Equiv.sigmaEquivProd β { i // f i = x }
+      _ ≃ { i // f i = x } × β := by exact Equiv.prodComm β { i // f i = x }
+
 
 @[simp]
 theorem UHom.main' {α β : Type u}
   (f : α → β) [UHom f]
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β]
-  : f <$> (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := sorry
+  : f <$> (PMF.uniformOfFintype α) = PMF.uniformOfFintype β := UHom.main _
 
 
 -- [mul_boole]
@@ -314,23 +356,23 @@ variable {n m α : Type u} [Fintype n] [Fintype m] [Fintype α]
 
 
 
-def wΛ (A : Matrix n m α) := A.transpose.mulVecLin.toAddMonoidHom.range
+-- def wΛ (A : Matrix n m α) := A.transpose.mulVecLin.toAddMonoidHom.range
 
 open scoped NNReal ENNReal
 
 #check Bool
-noncomputable def A_Matrix.ww
-  (Z : Finset (m → α))
-  : (do {
-    let A ← PMF.uniformOfFintype (Matrix n m α)
-    let L := wΛ A
-    let b := ∀v ∈ Z, v ∉ L
-    return ULift.up b
-  } : PMF (ULift Prop)) (ULift.up False) ≤ (Fintype.card (n → α)) * (Z.card : ℝ≥0) / (Fintype.card (m → α) : ℝ≥0)
-  := by
+-- noncomputable def A_Matrix.ww
+--   (Z : Finset (m → α))
+--   : (do {
+--     let A ← PMF.uniformOfFintype (Matrix n m α)
+--     let L := wΛ A
+--     let b := ∀v ∈ Z, v ∉ L
+--     return ULift.up b
+--   } : PMF (ULift Prop)) (ULift.up False) ≤ (Fintype.card (n → α)) * (Z.card : ℝ≥0) / (Fintype.card (m → α) : ℝ≥0)
+--   := by
 
 
-    sorry
+--     sorry
 end try1
 
 open scoped Classical
@@ -340,8 +382,8 @@ open scoped NNReal ENNReal
 #check Pi.monoidHom
 
 #check AddHom.instAdd
-example : AddGroup (α →+ β) := by
-  infer_instance
+-- example : AddGroup (α →+ β) := by
+--   infer_instance
 
 #check MonoidHom.instCommMonoid
 
@@ -428,123 +470,22 @@ variable {M α β : Type}
   [Fintype α] [Nonempty α]
   [Fintype β] [Nonempty β]
 
-variable (φ : M →+ α →+ β)
-
 
 #check AddMonoidHom.toHomAddUnits -- random
 #check NonUnitalNonAssocSemiring
 #check LieAlgebra
-@[to_additive coeAddHom, simps]
-def MonoidHom'.coeHom {α β : Type*}
-  [Monoid α]
-  [CommMonoid β]
-  : (α →* β) →* (α → β) where
-    toFun f := ↑f
-    map_one' := rfl
-    map_mul' _ _ := rfl
+#check MonoidHom.flipHom
 
-
-def MonoidHom'.swapHom {M α β : Type*}
-  [Monoid M]
-  [Monoid α]
-  [CommMonoid β]
-  (φ : M →* α →* β)
-  : α → M →* β := by
-    intro a
-    apply MonoidHom.comp ?_ φ
-    let := Pi.evalMonoidHom (fun _ ↦ β) a
-    apply MonoidHom.comp this MonoidHom'.coeHom
-
-@[simp]
-theorem MonoidHom'.swapHom_apply {M α β : Type*}
-  [Monoid M]
-  [Monoid α]
-  [CommMonoid β]
-  (φ : M →* α →* β) :
-  ∀x y, swapHom φ x y = φ y x := by
-    unfold swapHom
-    simp only [MonoidHom.coe_comp, Pi.coe_evalMonoidHom, Function.comp_apply, Function.eval,
-      coeHom_apply, implies_true]
-
-@[simps]
-def MonoidHom'.swapHom' {M α β : Type*}
-  [Monoid M]
-  [Monoid α]
-  [CommMonoid β]
-  (φ : M →* α →* β)
-  : α →* M →* β where
-    toFun := swapHom φ
-    map_one' := by
-      apply MonoidHom.ext
-      intro m
-      rw [swapHom_apply]
-      simp only [map_one, MonoidHom.one_apply]
-    map_mul' x y := by
-      apply MonoidHom.ext
-      intro m
-      simp only [MonoidHom.mul_apply]
-      simp_rw [swapHom_apply]
-      simp only [map_mul]
-
-
-@[simps]
-def MonoidHom'.swapHom'' {M α β : Type*}
-  [Monoid M]
-  [Monoid α]
-  [CommMonoid β] :
-  (M →* α →* β) →* (α →* M →* β) where
-    toFun := swapHom'
-    map_one' := by
-      apply MonoidHom.ext
-      intro a
-      apply MonoidHom.ext
-      intro m
-      simp only [swapHom'_apply, swapHom_apply, MonoidHom.one_apply]
-    map_mul' x y := by
-      apply MonoidHom.ext
-      intro a
-      apply MonoidHom.ext
-      intro m
-      simp only [swapHom'_apply, swapHom_apply, MonoidHom.mul_apply]
-
-@[simps]
-def MonoidHom'.swapEquiv {M α β : Type*}
-  [Monoid M]
-  [Monoid α]
-  [CommMonoid β] :
-  (M →* α →* β) ≃* (α →* M →* β) where
-    toFun := swapHom''
-    invFun := swapHom''
-    left_inv w := by
-      apply MonoidHom.ext
-      intro m
-      apply MonoidHom.ext
-      intro a
-      rfl
-    right_inv w := by
-      apply MonoidHom.ext
-      intro m
-      apply MonoidHom.ext
-      intro a
-      rfl
-    map_mul' x y := by rfl
-
-
-
-example : ∃ψ : α → M →+ β, ∀x y, φ x y = ψ y x  := by
+example (φ : M →+ α →+ β) : ∃ψ : α →+ M →+ β, ∀x y, φ x y = ψ y x  := by
   refine ⟨?_,?_⟩
-  · intro a
-    apply AddMonoidHom.comp ?_ φ
-    let := Pi.evalAddMonoidHom (fun _ ↦ β) a
-    apply AddMonoidHom.comp this MonoidHom'.coeAddHom
-
+  exact φ.flipHom
   exact fun _ _ ↦ rfl
 
 
-
+variable (φ : M → α →+ β)
 variable (ψ : α → M →+ β)
 
-set_option linter.unusedTactic false
+-- set_option linter.unusedTactic false
 theorem lemma_5_3_key
   (hφ : ∀x y, φ x y = ψ y x )
   (ψ_surj : ∀s ≠ 0, Function.Surjective (ψ s))
@@ -553,8 +494,7 @@ theorem lemma_5_3_key
   :
   (do {
     let A ← PMF.uniformOfFintype M
-    let L := (φ A).range
-    return ∃v, v ∈ L ∧ v ∈ Z
+    return ∃v, v ∈ (φ A).range ∧ v ∈ Z
   } : PMF Prop) (True) ≤ Fintype.card α * Z.toFinset.card / Fintype.card β
   := by
   conv_lhs => {

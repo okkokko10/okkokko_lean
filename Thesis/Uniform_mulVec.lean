@@ -337,13 +337,6 @@ open scoped Classical
 
 open scoped NNReal ENNReal
 
-variable {M α β : Type}
-  [AddCommGroup M]
-  [AddCommGroup α]
-  [AddCommGroup β] -- Gemini notes: this must be commutative
-  [Fintype M] [Nonempty M]
-  [Fintype α] [Nonempty α]
-  [Fintype β] [Nonempty β]
 #check Pi.monoidHom
 
 #check AddHom.instAdd
@@ -352,9 +345,6 @@ example : AddGroup (α →+ β) := by
 
 #check MonoidHom.instCommMonoid
 
-
-variable (φ : M →+ α →+ β)
-variable (ψ : α →+ M →+ β)
 
 
 -- theorem split_or' {α : Type} (p : PMF (α)) (a b : α → Prop) :
@@ -430,6 +420,129 @@ theorem PMF'.mem_uniform_card
     rfl
 
 
+variable {M α β : Type}
+  [AddGroup M]
+  [AddGroup α]
+  [AddCommGroup β] -- Gemini: this must be commutative, otherwise α →+ β won't necessarily form a monoid
+  [Fintype M] [Nonempty M]
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+
+variable (φ : M →+ α →+ β)
+
+
+#check AddMonoidHom.toHomAddUnits -- random
+#check NonUnitalNonAssocSemiring
+#check LieAlgebra
+@[to_additive coeAddHom, simps]
+def MonoidHom'.coeHom {α β : Type*}
+  [Monoid α]
+  [CommMonoid β]
+  : (α →* β) →* (α → β) where
+    toFun f := ↑f
+    map_one' := rfl
+    map_mul' _ _ := rfl
+
+
+def MonoidHom'.swapHom {M α β : Type*}
+  [Monoid M]
+  [Monoid α]
+  [CommMonoid β]
+  (φ : M →* α →* β)
+  : α → M →* β := by
+    intro a
+    apply MonoidHom.comp ?_ φ
+    let := Pi.evalMonoidHom (fun _ ↦ β) a
+    apply MonoidHom.comp this MonoidHom'.coeHom
+
+@[simp]
+theorem MonoidHom'.swapHom_apply {M α β : Type*}
+  [Monoid M]
+  [Monoid α]
+  [CommMonoid β]
+  (φ : M →* α →* β) :
+  ∀x y, swapHom φ x y = φ y x := by
+    unfold swapHom
+    simp only [MonoidHom.coe_comp, Pi.coe_evalMonoidHom, Function.comp_apply, Function.eval,
+      coeHom_apply, implies_true]
+
+@[simps]
+def MonoidHom'.swapHom' {M α β : Type*}
+  [Monoid M]
+  [Monoid α]
+  [CommMonoid β]
+  (φ : M →* α →* β)
+  : α →* M →* β where
+    toFun := swapHom φ
+    map_one' := by
+      apply MonoidHom.ext
+      intro m
+      rw [swapHom_apply]
+      simp only [map_one, MonoidHom.one_apply]
+    map_mul' x y := by
+      apply MonoidHom.ext
+      intro m
+      simp only [MonoidHom.mul_apply]
+      simp_rw [swapHom_apply]
+      simp only [map_mul]
+
+
+@[simps]
+def MonoidHom'.swapHom'' {M α β : Type*}
+  [Monoid M]
+  [Monoid α]
+  [CommMonoid β] :
+  (M →* α →* β) →* (α →* M →* β) where
+    toFun := swapHom'
+    map_one' := by
+      apply MonoidHom.ext
+      intro a
+      apply MonoidHom.ext
+      intro m
+      simp only [swapHom'_apply, swapHom_apply, MonoidHom.one_apply]
+    map_mul' x y := by
+      apply MonoidHom.ext
+      intro a
+      apply MonoidHom.ext
+      intro m
+      simp only [swapHom'_apply, swapHom_apply, MonoidHom.mul_apply]
+
+@[simps]
+def MonoidHom'.swapEquiv {M α β : Type*}
+  [Monoid M]
+  [Monoid α]
+  [CommMonoid β] :
+  (M →* α →* β) ≃* (α →* M →* β) where
+    toFun := swapHom''
+    invFun := swapHom''
+    left_inv w := by
+      apply MonoidHom.ext
+      intro m
+      apply MonoidHom.ext
+      intro a
+      rfl
+    right_inv w := by
+      apply MonoidHom.ext
+      intro m
+      apply MonoidHom.ext
+      intro a
+      rfl
+    map_mul' x y := by rfl
+
+
+
+example : ∃ψ : α → M →+ β, ∀x y, φ x y = ψ y x  := by
+  refine ⟨?_,?_⟩
+  · intro a
+    apply AddMonoidHom.comp ?_ φ
+    let := Pi.evalAddMonoidHom (fun _ ↦ β) a
+    apply AddMonoidHom.comp this MonoidHom'.coeAddHom
+
+  exact fun _ _ ↦ rfl
+
+
+
+variable (ψ : α → M →+ β)
 
 set_option linter.unusedTactic false
 theorem lemma_5_3_key

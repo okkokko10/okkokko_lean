@@ -5,8 +5,10 @@ import Thesis.A_Matrix_Lattice
 import Thesis.SmoothingParameter
 -- for proving
 import Thesis.Lemma_2_6
+import Thesis.Uniform_mulVec
 
 open scoped ProbabilityTheory NNReal
+open ProbabilityTheory MeasureTheory
 
 def lemma_5_3_statement {n m q : ℕ} [NeZero q] (A : A_Matrix n m q) : Prop :=
   q/4 ≤ 𝓛.minimum_distance_sup (A.Λ_main')
@@ -72,6 +74,7 @@ theorem A_Matrix.uniformProb_change
 -- clarification: "for some v ∈ Z", is this a uniform random variable?
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
   : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := by
+    have : Fact (Nat.Prime q) := .mk q_prime
     rw [show (q : ENNReal) ^ (-(n : ℝ)) = (q^n : ENNReal)⁻¹ by sorry]
 
     -- change ℙ (({A | ¬ lemma_5_3_statement A}) : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
@@ -123,21 +126,100 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime
       have : Set.InjOn czqn Z := sorry
 
       sorry
+    open scoped Classical in
+    let Z' : Finset (Fin m → ZMod q) := (Z'cᶜ).toFinset
+
+    have hZ' : 0 ∉ Z' := by sorry
 
 
-    -- suffices (do {
-    --   let A ← PMF.uniformOfFintype (A_Matrix n m q)
-    --   return lemma_5_3_statement A
-    -- } : PMF Prop ) (False) ≤ (q ^ n : ENNReal)⁻¹ by
-    --   apply le_trans ?_ this
-    --   simp only [bind_pure_comp]
+    have statement_simplified' (A : A_Matrix n m q)
+      : (¬lemma_5_3_statement A) ↔ ∃v, v ∈ ↑((Matrix.transpose A).mulVecLin.toAddMonoidHom.range) ∧ v ∈ Z' := by
+      simp_rw [statement_simplified]
+      set ppp := (Matrix.transpose A).mulVecLin.toAddMonoidHom.range
+      unfold Z'
+      rw [Set.subset_def]
+      simp only [SetLike.mem_coe, not_forall,  Set.toFinset_compl,
+        Finset.mem_compl, Set.mem_toFinset]
+      simp only [exists_prop]
+
+    suffices (do {
+      let A ← PMF.uniformOfFintype (A_Matrix n m q)
+      return ¬lemma_5_3_statement A
+    } : PMF Prop ) (True) ≤ (q ^ n : ENNReal)⁻¹ by
+      apply le_trans ?_ this
+      simp only [bind_pure_comp]
+      sorry
+    simp_rw [statement_simplified']
+    #check lemma_5_3_key'
+    apply le_trans (lemma_5_3_key' Z' hZ')
+    simp only [Fintype.card_pi, ZMod.card, Finset.prod_const, Finset.card_univ, Fintype.card_fin,
+      Nat.cast_pow]
+
+    -- simp only [ENNReal.le_inv_iff_mul_le]
+    -- suffices ((q ^ n * Z'.card) * q ^ n) ≤ (q ^ m) by
     --   sorry
-    -- simp_rw [statement_simplified]
+    have q_pos : (q : ENNReal) ≠ 0 := sorry
+    have q_fin : (q : ENNReal) ≠ ⊤ := sorry
+
+
+
+    have Z'_card: Z'.card ≤ (q/2 : ENNReal) ^ m := by sorry
+    suffices ↑q ^ n *  (q/2 : ENNReal) ^ m / (↑q ^ m) ≤ (↑q ^ n : ENNReal)⁻¹ by
+      apply le_trans ?_ this
+      gcongr
+    clear * - q_pos q_fin m_hyp
+    suffices ↑q ^ n *  (1/2 : ENNReal) ^ m ≤ (↑q ^ n : ENNReal)⁻¹ by
+      apply le_trans ?_ this
+      apply le_of_eq
+      rw [mul_div_assoc]
+      congr 1
+      simp_rw [ENNReal.div_eq_inv_mul]
+      simp [mul_pow]
+      rw [mul_comm, mul_assoc]
+      rw [ENNReal.mul_inv_cancel ?_ ?_]
+      · simp only [mul_one]
+      · simp only [ne_eq, pow_eq_zero_iff', q_pos, false_and, not_false_eq_true]
+      · simp only [ne_eq, ENNReal.pow_eq_top_iff, q_fin, false_and, not_false_eq_true]
+
+    simp only [one_div, ENNReal.le_inv_iff_mul_le]
+    rw [mul_comm, ←mul_assoc]
+    refine ENNReal.le_inv_iff_mul_le.mp ?_
+    rw [←ENNReal.inv_pow,inv_inv]
+    rw [←pow_add]
+    rw [←two_mul]
+
+
+    apply ENNReal.log_le_log_iff.mp
+    simp_rw [ENNReal.log_pow]
+    simp only [EReal.natCast_mul, Nat.cast_ofNat]
+    suffices 2 * ↑n * Real.log (q) ≤ ↑m * ENNReal.log 2 by
+      rw [ENNReal.log_pos_real']
+      simp only [ENNReal.toReal_natCast, ge_iff_le]
+      exact this
+      simp only [ENNReal.toReal_natCast, Nat.cast_pos]
+      exact Nat.pos_of_neZero q
+    rw [ENNReal.log_pos_real' (by simp only [ENNReal.toReal_ofNat, Nat.ofNat_pos])]
+    simp only [ENNReal.toReal_ofNat]
+    suffices (2 * n * (Real.log ↑q)) ≤ m * (Real.log 2) by
+      apply EReal.coe_le_coe
+      exact this
+
+
+    unfold mHyp at m_hyp
+    apply le_trans m_hyp
+
+    -- TODO: mHyp is wrong
+
+
 
 
 
     sorry
 
+
+#check pdf.IsUniform
+
+#exit
 def lemma_5_3_relationship {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (A : (n : N) → (A_Matrix n (m n) (q n)))
   (s : (n : N) → ℝ≥0) (ε : (n : N) → ℝ≥0) [∀n, NeZero (ε n)]
   := ∀ᶠ (n : N) in Filter.atTop, 𝓛.smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n

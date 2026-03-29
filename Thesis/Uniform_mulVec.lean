@@ -6,7 +6,7 @@ variable {n m q : ℕ} [NeZero n] [NeZero m] [NeZero q]
 universe u
 example (q : ℕ) (q_prime : Fact <| Nat.Prime q) : Field (ZMod q) := by infer_instance
 
-abbrev A_Matrix (n m q : ℕ) := Matrix (Fin n) (Fin m) (ZMod q)
+
 
 -- wait, equivalences preserve uniform distribution
 
@@ -28,7 +28,7 @@ abbrev A_Matrix (n m q : ℕ) := Matrix (Fin n) (Fin m) (ZMod q)
 -- open PMF
 set_option trace.aesop true
 
-section PMF'
+
 
 
 section uniform_preserving
@@ -110,19 +110,19 @@ variable (F : α → β → γ)
 
 /--f U U = U-/
 abbrev UIdempotent (f : α → β → γ) := UHom (f.uncurry)
-variable {α β γ : Type u} in
-noncomputable example (F : α → β → γ) (A : PMF α) (B : PMF β) : False := by
-  let u := do {
-    let a ← A
-    let b ← B
-    return F a b
-  }
-  revert u
-  change
-    let u := do
-      A >>= fun a ↦ B >>= fun b ↦ pure (F a b);
-    False
-  sorry
+-- variable {α β γ : Type u} in
+-- noncomputable example (F : α → β → γ) (A : PMF α) (B : PMF β) : False := by
+--   let u := do {
+--     let a ← A
+--     let b ← B
+--     return F a b
+--   }
+--   revert u
+--   change
+--     let u := do
+--       A >>= fun a ↦ B >>= fun b ↦ pure (F a b);
+--     False
+--   sorry
 
 #check Equiv.curry
 example  (f : α → β → γ)  : Function.uncurry f = fun (x,y) ↦ f x y := rfl
@@ -346,34 +346,6 @@ def A_Matrix.instUHom''
     -- exact UHom.addHomOfRightInverse _ _ (mulVec_const_neZero_rightInverse s i hsi)
   sorry
 
-section try1
-
-variable {n m α : Type u} [Fintype n] [Fintype m] [Fintype α]
-  [Nonempty n][DecidableEq n]
-  [Nonempty m][DecidableEq m]
-  [Nonempty α][DecidableEq α]
-  [Field α]
-
-
-
--- def wΛ (A : Matrix n m α) := A.transpose.mulVecLin.toAddMonoidHom.range
-
-open scoped NNReal ENNReal
-
-#check Bool
--- noncomputable def A_Matrix.ww
---   (Z : Finset (m → α))
---   : (do {
---     let A ← PMF.uniformOfFintype (Matrix n m α)
---     let L := wΛ A
---     let b := ∀v ∈ Z, v ∉ L
---     return ULift.up b
---   } : PMF (ULift Prop)) (ULift.up False) ≤ (Fintype.card (n → α)) * (Z.card : ℝ≥0) / (Fintype.card (m → α) : ℝ≥0)
---   := by
-
-
---     sorry
-end try1
 
 open scoped Classical
 
@@ -389,35 +361,7 @@ open scoped NNReal ENNReal
 
 
 
--- theorem split_or' {α : Type} (p : PMF (α)) (a b : α → Prop) :
---   (do {
---     let t ← p
---     return a t ∨ b t
---   } : PMF Prop ) (True) ≤ (do {
---     let t ← p
---     return a t
---   } : PMF Prop ) (True) +
---   (do {
---     let t ← p
---     return b t
---   } : PMF Prop ) (True)  := by
-
---   let a' := {x | a x}
---   let b' := {x | b x}
-
---   change p.map (· ∈ (a' ∪ b')) True ≤ (p.map (· ∈ a')) True + (p.map (· ∈ b')) True
---   simp only [PMF.map_apply, eq_iff_iff, true_iff]
---   open scoped Classical in
---   rw [←ENNReal.tsum_add]
---   gcongr with r
-
---   by_cases ha : r ∈ a'
---   · simp only [Set.mem_union, ha, true_or, ↓reduceIte, self_le_add_right]
---   simp only [Set.mem_union, ha, false_or, ↓reduceIte, zero_add, le_refl]
-
-
-
-theorem PMF'.subadditivity {α ι : Type*} (p : PMF α) (s : ι → (α → Prop)) :
+lemma PMF'.subadditivity {α ι : Type*} (p : PMF α) (s : ι → (α → Prop)) :
   (p.map (fun a ↦ ∃i, s i a)) True ≤ ∑' (i : ι), (p.map (s i)) True := by
   simp only [PMF.map_apply, eq_iff_iff, true_iff]
   open scoped Classical in
@@ -431,38 +375,23 @@ theorem PMF'.subadditivity {α ι : Type*} (p : PMF α) (s : ι → (α → Prop
     simp only [v_s, ↓reduceIte, le_refl]
   simp only [h, ↓reduceIte, zero_le]
 
--- theorem PMF'.within {α ι : Type*} (p : PMF α) (s : ι → (α → Prop)) :
---   (p.map (fun a ↦ f a ∈ Z)) True ≤ ∑' (i : ι), (p.map (s i)) True := by
---   simp only [PMF.map_apply, eq_iff_iff, true_iff]
---   open scoped Classical in
---   rw [ENNReal.tsum_comm]
---   gcongr 1 with r
---   by_cases h : ∃i, s i r
---   ·
---     simp only [h, ↓reduceIte]
---     obtain ⟨i,v_s⟩ := h
---     apply le_trans ?_ (ENNReal.le_tsum i)
---     simp only [v_s, ↓reduceIte, le_refl]
---   simp only [h, ↓reduceIte, zero_le]
 
 
-theorem PMF'.mem_uniform_card
+lemma PMF'.mem_uniform_card
   {α : Type*} [Fintype α] [Nonempty α]
-  (Z : Set α)
-
-  : (PMF.map (fun x ↦ x ∈ Z) (PMF.uniformOfFintype α)) True = Z.toFinset.card / (Fintype.card (α)) := by
+  (Z : Finset α)
+  : (PMF.map (fun x ↦ x ∈ Z) (PMF.uniformOfFintype α)) True = Z.card / (Fintype.card (α)) := by
     simp only [PMF.map_apply, eq_iff_iff, true_iff, PMF.uniformOfFintype_apply]
-    -- change
-    --   (∑' (a : α), Z.indicator (fun _ ↦ (↑(Fintype.card α) : ENNReal)⁻¹) a) =
-    --     ↑Z.toFinset.card / ↑(Fintype.card α)
-    simp_rw [←Set.indicator_apply Z (fun _ ↦ (↑(Fintype.card α) : ENNReal)⁻¹)]
+    rw [←Finset.toFinset_coe Z]
+    simp_rw [Set.mem_toFinset]
+    simp_rw [←Set.indicator_apply (↑Z : Set α) (fun _ ↦ (↑(Fintype.card α) : ENNReal)⁻¹)]
     rw [←tsum_subtype]
-    simp only [ENNReal.tsum_const, ENat.card_eq_coe_fintype_card, Fintype.card_ofFinset,
-      ENat.toENNReal_coe, Set.toFinset_card]
+    simp only [SetLike.coe_sort_coe, ENNReal.tsum_const, ENat.card_eq_coe_fintype_card,
+      Fintype.card_coe, ENat.toENNReal_coe, Finset.toFinset_coe]
     rfl
 
 
-variable {M α β : Type}
+variable {M α β : Type*}
   [AddGroup M]
   [AddGroup α]
   [AddCommGroup β] -- Gemini: this must be commutative, otherwise α →+ β won't necessarily form a monoid
@@ -482,20 +411,17 @@ example (φ : M →+ α →+ β) : ∃ψ : α →+ M →+ β, ∀x y, φ x y = �
   exact fun _ _ ↦ rfl
 
 
-variable (φ : M → α →+ β)
-variable (ψ : α → M →+ β)
+variable (φ : M → α →+ β) (ψ : α → M →+ β)
 
 -- set_option linter.unusedTactic false
+omit [Nonempty α] in
 theorem lemma_5_3_key
   (hφ : ∀x y, φ x y = ψ y x )
   (ψ_surj : ∀s ≠ 0, Function.Surjective (ψ s))
-  (Z : Set β)
+  (Z : Finset β)
   (hZ : 0 ∉ Z)
-  :
-  (do {
-    let A ← PMF.uniformOfFintype M
-    return ∃v, v ∈ (φ A).range ∧ v ∈ Z
-  } : PMF Prop) (True) ≤ Fintype.card α * Z.toFinset.card / Fintype.card β
+  : (PMF.uniformOfFintype M).map (fun A ↦ ∃v, v ∈ (φ A).range ∧ v ∈ Z) (True)
+    ≤ Fintype.card α * Z.card / Fintype.card β
   := by
   conv_lhs => {
     simp only [AddMonoidHom.mem_range, exists_exists_eq_and]
@@ -503,7 +429,7 @@ theorem lemma_5_3_key
     change (PMF.uniformOfFintype M |>.map (fun m ↦ ∃ a, (φ m) a ∈ Z)) True
   }
   conv_rhs => {
-      change (Fintype.card α : ENat) * Z.toFinset.card / (Fintype.card β : ENNReal)
+      change (Fintype.card α : ENat) * Z.card / (Fintype.card β : ENNReal)
       rw [mul_div_assoc,
         ←ENat.card_eq_coe_fintype_card,
         ←ENNReal.tsum_one,
@@ -512,7 +438,7 @@ theorem lemma_5_3_key
     }
 
   refine le_trans (PMF'.subadditivity (PMF.uniformOfFintype M) _) ?_
-  suffices ∀a, (PMF.map (fun m ↦ (φ m) a ∈ Z) (PMF.uniformOfFintype M)) True ≤ (Z.toFinset.card) / (Fintype.card (β)) by
+  suffices ∀a, (PMF.map (fun m ↦ (φ m) a ∈ Z) (PMF.uniformOfFintype M)) True ≤ (Z.card) / (Fintype.card (β)) by
     -- this "suffices" only provides structure.
     gcongr 1 with a
     exact this a
@@ -534,3 +460,23 @@ theorem lemma_5_3_key
   rw [@UHom.main _ _ ρ ?_]
   rw [PMF'.mem_uniform_card]
   exact UHom.addHomOfSurjective ρ ψ_surj
+
+example
+  {M α β : Type}
+  [AddGroup M]
+  [AddGroup α]
+  [AddCommGroup β] -- Gemini: this must be commutative, otherwise α →+ β won't necessarily form a monoid
+  [Fintype M] [Nonempty M]
+  [Fintype α] [Nonempty α]
+  [Fintype β] [Nonempty β]
+  (φ : M → α →+ β) (ψ : α → M →+ β)
+  (hφ : ∀x y, φ x y = ψ y x )
+  (ψ_surj : ∀s ≠ 0, Function.Surjective (ψ s))
+  (Z : Finset β)
+  (hZ : 0 ∉ Z)
+  :
+  (do {
+    let A ← PMF.uniformOfFintype M
+    return ∃v, v ∈ (φ A).range ∧ v ∈ Z
+  } : PMF Prop) (True) ≤ Fintype.card α * Z.card / Fintype.card β
+  := lemma_5_3_key _ ψ hφ ψ_surj Z hZ

@@ -2,7 +2,7 @@
 import Mathlib
 
 -- lemma 5.3 seems like it uses a claim that with Prime q, for nonzero s, the distribution A ↦ As is uniform
-variable {n m q : ℕ} [NeZero n] [NeZero m] [NeZero q]
+-- variable {n m q : ℕ} [NeZero n] [NeZero m] [NeZero q]
 universe u
 example (q : ℕ) (q_prime : Fact <| Nat.Prime q) : Field (ZMod q) := by infer_instance
 
@@ -33,7 +33,7 @@ set_option trace.aesop true
 
 section uniform_preserving
 
-variable {G : Type*} [Group G] [Fintype G] [Nonempty G] (a : G)
+-- variable {G : Type*} [Group G] [Fintype G] [Nonempty G] (a : G)
 
 
 
@@ -338,16 +338,15 @@ def A_Matrix.instUHom
     exact UHom.addHomOfRightInverse this _ (mulVec_const_neZero_rightInverse s i hsi)
 
 
-def A_Matrix.instUHom''
-  {n m α : Type*} [Fintype n] [DecidableEq n] [Fintype m]
-  [Field α]
-  (s : n → α) (i : n) (hsi : s i ≠ 0)
-  : UHom ((Matrix.vecMulBilin ℤ ℤ s |>.toAddMonoidHom) : Matrix n m α →+ m → α ) := by
-    -- exact UHom.addHomOfRightInverse _ _ (mulVec_const_neZero_rightInverse s i hsi)
-  sorry
+-- def A_Matrix.instUHom''
+--   {n m α : Type*} [Fintype n] [DecidableEq n] [Fintype m]
+--   [Field α]
+--   (s : n → α) (i : n) (hsi : s i ≠ 0)
+--   : UHom ((Matrix.vecMulBilin ℤ ℤ s |>.toAddMonoidHom) : Matrix n m α →+ m → α ) := by
+--     -- exact UHom.addHomOfRightInverse _ _ (mulVec_const_neZero_rightInverse s i hsi)
+--   sorry
 
 
-open scoped Classical
 
 open scoped NNReal ENNReal
 
@@ -363,8 +362,8 @@ open scoped NNReal ENNReal
 
 lemma PMF'.subadditivity {α ι : Type*} (p : PMF α) (s : ι → (α → Prop)) :
   (p.map (fun a ↦ ∃i, s i a)) True ≤ ∑' (i : ι), (p.map (s i)) True := by
-  simp only [PMF.map_apply, eq_iff_iff, true_iff]
   open scoped Classical in
+  simp only [PMF.map_apply, eq_iff_iff, true_iff]
   rw [ENNReal.tsum_comm]
   gcongr 1 with r
   by_cases h : ∃i, s i r
@@ -381,6 +380,7 @@ lemma PMF'.mem_uniform_card
   {α : Type*} [Fintype α] [Nonempty α]
   (Z : Finset α)
   : (PMF.map (fun x ↦ x ∈ Z) (PMF.uniformOfFintype α)) True = Z.card / (Fintype.card (α)) := by
+    open scoped Classical in
     simp only [PMF.map_apply, eq_iff_iff, true_iff, PMF.uniformOfFintype_apply]
     rw [←Finset.toFinset_coe Z]
     simp_rw [Set.mem_toFinset]
@@ -480,3 +480,29 @@ example
     return ∃v, v ∈ (φ A).range ∧ v ∈ Z
   } : PMF Prop) (True) ≤ Fintype.card α * Z.card / Fintype.card β
   := lemma_5_3_key _ ψ hφ ψ_surj Z hZ
+
+
+theorem lemma_5_3_key'
+  {n m α : Type*}
+  [Fintype n] [DecidableEq n]
+  [Fintype m] [DecidableEq m]
+  [Field α] [Fintype α]
+  (Z : Finset (m → α))
+  (hZ : 0 ∉ Z)
+  : (PMF.uniformOfFintype (Matrix n m α)).map (fun (A : Matrix n m α) ↦ ∃v, v ∈ (A.transpose.mulVecLin.toAddMonoidHom).range ∧ v ∈ Z) (True)
+    ≤ Fintype.card (n → α) * Z.card / Fintype.card ((m → α))
+  := by
+    let φ (A : (Matrix n m α)) := (Matrix.transpose A).mulVecLin.toAddMonoidHom
+    let ψ (z :(n → α)) : (Matrix n m α) →+ (m → α) := (Matrix.vecMulBilin ℤ ℤ z).toAddMonoidHom
+    have hφ (A : Matrix n m α) (y : n → α) : (φ A) y = (ψ y) A := by
+      unfold φ ψ
+      simp only [Matrix.mulVecLin_transpose, LinearMap.toAddMonoidHom_coe, LinearMap.flip_apply,
+        Matrix.vecMulBilin_apply]
+    apply lemma_5_3_key φ ψ hφ ?_ Z hZ
+    intro s sn0
+    change Function.Surjective (ψ s ·)
+    simp_rw [←hφ]
+    unfold φ
+    change Function.Surjective (fun (x : Matrix n m α) ↦ x.transpose.mulVec s)
+
+    exact A_Matrix.mulVec_const_neZero_surjective s sn0

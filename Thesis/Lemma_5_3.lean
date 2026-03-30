@@ -206,7 +206,7 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime
 
 
     unfold mHyp at m_hyp
-    apply le_trans m_hyp
+    -- apply le_trans m_hyp
 
     -- TODO: mHyp is wrong
 
@@ -219,7 +219,7 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime
 
 #check pdf.IsUniform
 
-#exit
+-- #exit
 def lemma_5_3_relationship {q : N → Q} [∀n, NeZero (q n)] {m : N → M} (A : (n : N) → (A_Matrix n (m n) (q n)))
   (s : (n : N) → ℝ≥0) (ε : (n : N) → ℝ≥0) [∀n, NeZero (ε n)]
   := ∀ᶠ (n : N) in Filter.atTop, 𝓛.smoothing_parameter ((A n).Λ_ortho') (ε n) ≤ s n

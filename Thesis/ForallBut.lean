@@ -30,6 +30,12 @@ def ForAllBut.def_encard {n m q : ℕ} {statement : A_Matrix n m q → Prop} {sc
   : ForAllBut n m q statement scale ↔ (Set.encard statementᶜ) ≤ scale * (ForAllBut.count n m q) := by
     rfl
 
+def ForAllBut.def_encard' {n m q : ℕ} {statement : A_Matrix n m q → Prop} {scale : Scale}
+  : ForAllBut n m q statement scale ↔ (Set.encard statementᶜ) * (q ^ n) ≤ scale *  (q ^ m) ^ n   := by sorry
+
+-- def ForAllBut.def_encard'' {n m q : ℕ} {statement : A_Matrix n m q → Prop} {scale : Scale}
+--   : ForAllBut n m q statement scale ↔ (Set.encard statementᶜ) * (q ^ n) ≤ scale *  (q ^ m) ^ n   := by sorry
+
 
 
 
@@ -144,3 +150,43 @@ def ForAllBut.def_measure {n m q : ℕ} [NeZero q] {statement : A_Matrix n m q �
     apply ForAllBut.measure_card
 
 end measure
+
+
+section PMF
+
+-- from Uniform_mulVec
+private lemma PMF'.mem_uniform_card_
+  {α : Type*} [Fintype α] [Nonempty α]
+  (Z : Finset α)
+  : (PMF.map (fun x ↦ x ∈ Z) (PMF.uniformOfFintype α)) True = Z.card / (Fintype.card (α)) := by
+    open scoped Classical in
+    simp only [PMF.map_apply, eq_iff_iff, true_iff, PMF.uniformOfFintype_apply]
+    rw [←Finset.toFinset_coe Z]
+    simp_rw [Set.mem_toFinset]
+    simp_rw [←Set.indicator_apply (↑Z : Set α) (fun _ ↦ (↑(Fintype.card α) : ENNReal)⁻¹)]
+    rw [←tsum_subtype]
+    simp only [SetLike.coe_sort_coe, ENNReal.tsum_const, ENat.card_eq_coe_fintype_card,
+      Fintype.card_coe, ENat.toENNReal_coe, Finset.toFinset_coe]
+    rfl
+
+def ForAllBut.def_PMF {n m q : ℕ} [NeZero q] {statement : A_Matrix n m q → Prop} {scale : Scale}
+  : ForAllBut n m q statement scale ↔
+    (do {
+      let A ← PMF.uniformOfFintype (A_Matrix n m q)
+      return (¬statement A)
+    } : PMF Prop) (True) ≤ scale * (q ^ n : ENNReal)⁻¹ := by
+    -- rw [def_encard]
+    open scoped Classical in
+    have : (fun a ↦ ¬statement a) = (fun a ↦ a ∈ Finset.univ.filter (¬statement ·)) := by
+      simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    conv_rhs => {
+      simp only [bind_pure_comp]
+      rw [PMF.monad_map_eq_map]
+      rw [this]
+      rw [PMF'.mem_uniform_card_ ]
+
+    }
+    rw [def_encard']
+
+
+    sorry

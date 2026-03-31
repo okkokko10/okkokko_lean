@@ -196,3 +196,83 @@ def ForAllBut.def_PMF {n m q : ℕ} [NeZero q] {statement : A_Matrix n m q → P
 
 
     sorry
+
+end PMF
+
+#check Classical.axiomOfChoice
+#check Classical.skolem
+
+def ForAllButSeq {m : ℕ → ℕ} {q : ℕ → ℕ}
+ (statementA : ((n : ℕ) → (A_Matrix n (m n) (q n))) → Prop) (scale : Scale)
+ := ∃(subsets : (n : ℕ) → (A_Matrix n (m n) (q n)) → Prop)(_ : ForAllBut' subsets scale),
+  ∀(A : (n : ℕ) → (A_Matrix n (m n) (q n)))(_ : ∀n, subsets n (A n)), statementA (A)
+
+
+-- todo: define vacuous
+
+def ForAllBut.nonvacuous (n m q : ℕ) (scale : Scale) : Prop :=
+  ∀{statement : A_Matrix n m q → Prop} (_ : ForAllBut statement scale), ∃x, statement x
+
+/-- when scale is high enough that it becomes "for all but 100%" -/
+def ForAllBut.vacuous (n m q : ℕ) (scale : Scale) : Prop :=
+  ∀{statement : A_Matrix n m q → Prop}, ForAllBut statement scale
+
+theorem ForAllBut.vacuous_or_nonvacuous (n m q : ℕ) (scale : Scale)
+  : ForAllBut.vacuous n m q scale ∨ ForAllBut.nonvacuous n m q scale := sorry
+
+theorem ForAllBut.vacuous_nontrivial
+  {n m q : ℕ} {statement : A_Matrix n m q → Prop} {scale : Scale}
+  (h : ForAllBut.nonvacuous n m q scale → ForAllBut statement scale)
+  : ForAllBut statement scale := by
+    cases ForAllBut.vacuous_or_nonvacuous n m q scale with
+    | inl w => exact w
+    | inr w => exact h w
+
+theorem ForAllBut'.toSeq
+  {m q : ℕ → ℕ}
+  {statements : (n : ℕ) → A_Matrix n (m n) (q n) → Prop} {scale : Scale}
+  (h : ForAllBut' statements scale)
+  : ForAllButSeq (fun As ↦ ∀i, statements i (As i)) scale
+  := ⟨statements, h, fun _ a ↦ a⟩
+
+
+
+theorem ForAllBut'.ofSeq
+  {m q : ℕ → ℕ}
+  {statements : (n : ℕ) → A_Matrix n (m n) (q n) → Prop} {scale : Scale}
+  (hh : ForAllButSeq (fun As ↦ ∀i, statements i (As i)) scale)
+  : ForAllBut' statements scale
+
+  := by
+    -- in indices where it's vacuous, replace the given set with univ
+
+    obtain ⟨subsets,sp, w⟩ := hh
+    intro n
+    refine ForAllBut.vacuous_nontrivial (fun nv ↦ ?_)
+    specialize sp n
+    let A : (n : ℕ) → A_Matrix n (m n) (q n) := sorry
+    specialize w A sorry
+    sorry
+
+theorem ForAllButSeq.mp
+  {m q : ℕ → ℕ}
+  {statements₁ : ((n : ℕ) → A_Matrix n (m n) (q n)) → Prop} {scale : Scale}
+  {statements₂ : ((n : ℕ) → A_Matrix n (m n) (q n)) → Prop}
+  (h₁ : ForAllButSeq statements₁ scale)
+  (h : ∀s, statements₁ s → statements₂ s)
+  : ForAllButSeq statements₂ scale
+  := by
+    obtain ⟨subsets,sp, w⟩ := h₁
+    use subsets, sp
+    intro As As_s
+    exact h _ (w _ As_s)
+
+
+theorem ForAllButSeq.mp'
+  {m q : ℕ → ℕ}
+  {statements₁ : (n : ℕ) → A_Matrix n (m n) (q n) → Prop} {scale : Scale}
+  {statements₂ : ((n : ℕ) → A_Matrix n (m n) (q n)) → Prop}
+  (h₁ : ForAllBut' statements₁ scale)
+  (h : ∀ (As : (n : ℕ) → A_Matrix n (m n) (q n)), (∀ (i : ℕ), statements₁ i (As i)) → statements₂ As)
+  : ForAllButSeq statements₂ scale
+  := mp (h₁.toSeq) h

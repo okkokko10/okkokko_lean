@@ -58,20 +58,31 @@ def corollary_5_4.valid_subsets_spec (q : N → Q) [∀n, NeZero (q n)] (m : N �
     · exact fun n ↦ lemma_5_3 (q_hyp n) (m_hyp n)
     · exact fun n ↦ lemma_5_1 (q_hyp n) (m_hyp n)
 
+
+
+def corollary_5_4.valid_subsets' (q : N → Q) [∀n, NeZero (q n)] (m : N → M) [∀n, NeZero (m n)]  (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
+  : ForAllBut' (scale := 2) (fun n (A :  A_Matrix n (m n) (q n)) ↦ lemma_5_3_statement A ∧ lemma_5_1_statement A) := by
+    rw [←one_add_one_eq_two]
+    refine ForAllBut'.and ?_ ?_
+    · exact fun n ↦ lemma_5_3 (q_hyp n) (m_hyp n)
+    · exact fun n ↦ lemma_5_1 (q_hyp n) (m_hyp n)
+
+
 -- added that m can't be 0
 theorem corollary_5_4 (q : ℕ → ℕ) [∀n, NeZero (q n)] (m : ℕ → ℕ) [∀n, NeZero (m n)] (q_hyp : ∀n, Nat.Prime (q n)) (m_hyp : mHyp' m q)
-  : ∃(subsets : (n : ℕ) → Set (A_Matrix n (m n) (q n)))(_ : corollary_5_4_condition subsets),
-  ∀(A : (n : ℕ) → (A_Matrix n (m n) (q n)))(_ : ∀n, A n ∈ subsets n),
-  ∀(s : ℕ → ℝ≥0)(hs : (NNReal.toReal ∘ s) =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n)) , -- ≥ω is the same as =ω, right?
-  corollary_5_4_statement q m A s s_pos
+  :
+  ForAllButSeq (scale := 2) fun A ↦
+    ∀(s : ℕ → ℝ≥0)(hs : (NNReal.toReal ∘ s) =ω (sqrt_log ∘ m)) (s_pos : ∀n, NeZero (s n)) , -- ≥ω is the same as =ω, right?
+    corollary_5_4_statement q m A s s_pos
   := by
-  refine ⟨corollary_5_4.valid_subsets q m, corollary_5_4.valid_subsets_spec _ _ q_hyp m_hyp, ?_⟩
+  -- refine ⟨corollary_5_4.valid_subsets q m, corollary_5_4.valid_subsets_spec _ _ q_hyp m_hyp, ?_⟩
+  apply ForAllButSeq.mp' (corollary_5_4.valid_subsets' _ _ q_hyp m_hyp)
+
   intro A A_spec s s_LittleO s_pos
 
-  have A_mem n := Set.mem_inter_iff _ _ _ |>.mp (A_spec n)
-  have key_5_1 n : lemma_5_1_statement (A n) := (A_mem n).right
+  have key_5_1 n : lemma_5_1_statement (A n) := (A_spec n).right
   obtain ⟨ε, negl_ε, ε_pos,key_5_3⟩ : (lemma_5_3_also_statement A s) :=
-    have ee n: lemma_5_3_statement (A n) := (A_mem n).left
+    have ee n: lemma_5_3_statement (A n) := (A_spec n).left
     lemma_5_3_also q_hyp m_hyp A ee s s_LittleO s_pos
 
   clear A_spec s_LittleO

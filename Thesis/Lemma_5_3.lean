@@ -6,6 +6,7 @@ import Thesis.SmoothingParameter
 -- for proving
 import Thesis.Lemma_2_6
 import Thesis.Uniform_mulVec
+import Thesis.ForallBut
 
 open scoped ProbabilityTheory NNReal
 open ProbabilityTheory MeasureTheory
@@ -73,9 +74,9 @@ theorem A_Matrix.uniformProb_change
 -- TODO: change (q ^ (- n : ℝ)) to (q ^ n)⁻¹ everywhere
 -- clarification: "for some v ∈ Z", is this a uniform random variable?
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
-  : ℙ (lemma_5_3_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := by
+  : ForAllBut (@lemma_5_3_statement n m q _) 1 := by
     have : Fact (Nat.Prime q) := .mk q_prime
-    rw [show (q : ENNReal) ^ (-(n : ℝ)) = (q^n : ENNReal)⁻¹ by sorry]
+    rw [ForAllBut.def_measure_one]
 
     -- change ℙ (({A | ¬ lemma_5_3_statement A}) : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
     -- suffices ∃s : Set <| A_Matrix n m q, ℙ sᶜ ≤ (q ^ (- n : ℝ)) ∧ ∀A, s A → (lemma_5_3_statement A)  by

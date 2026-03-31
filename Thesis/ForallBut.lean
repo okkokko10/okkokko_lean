@@ -22,19 +22,19 @@ theorem ForAllBut.count_eq (n m q : ℕ) [NeZero q]
   norm_cast
 
 
-def ForAllBut (n m q : ℕ) (statement : A_Matrix n m q → Prop) (scale : Scale) := (Set.encard statementᶜ) ≤ scale * (ForAllBut.count n m q)
+def ForAllBut {n m q : ℕ} (statement : A_Matrix n m q → Prop) (scale : Scale := 1) := (Set.encard statementᶜ) ≤ scale * (ForAllBut.count n m q)
 
 
 
 def ForAllBut.def_encard {n m q : ℕ} {statement : A_Matrix n m q → Prop} {scale : Scale}
-  : ForAllBut n m q statement scale ↔ (Set.encard statementᶜ) ≤ scale * (ForAllBut.count n m q) := by
+  : ForAllBut statement scale ↔ (Set.encard statementᶜ) ≤ scale * (ForAllBut.count n m q) := by
     rfl
 
 def ForAllBut.def_encard' {n m q : ℕ} {statement : A_Matrix n m q → Prop} {scale : Scale}
-  : ForAllBut n m q statement scale ↔ (Set.encard statementᶜ) * (q ^ n) ≤ scale *  (q ^ m) ^ n   := by sorry
+  : ForAllBut statement scale ↔ (Set.encard statementᶜ) * (q ^ n) ≤ scale *  (q ^ m) ^ n   := by sorry
 
 -- def ForAllBut.def_encard'' {n m q : ℕ} {statement : A_Matrix n m q → Prop} {scale : Scale}
---   : ForAllBut n m q statement scale ↔ (Set.encard statementᶜ) * (q ^ n) ≤ scale *  (q ^ m) ^ n   := by sorry
+--   : ForAllBut statement scale ↔ (Set.encard statementᶜ) * (q ^ n) ≤ scale *  (q ^ m) ^ n   := by sorry
 
 
 
@@ -44,12 +44,12 @@ def ForAllBut.def_encard' {n m q : ℕ} {statement : A_Matrix n m q → Prop} {s
 theorem ForAllBut.and {n m q : ℕ}
   {statement₁ : A_Matrix n m q → Prop} {scale₁ : Scale}
   {statement₂ : A_Matrix n m q → Prop} {scale₂ : Scale}
-  (h₁ : ForAllBut n m q statement₁ scale₁)
-  (h₂ : ForAllBut n m q statement₂ scale₂)
+  (h₁ : ForAllBut statement₁ scale₁)
+  (h₂ : ForAllBut statement₂ scale₂)
   :
-  ForAllBut n m q (fun A ↦ statement₁ A ∧ statement₂ A) (scale₁ + scale₂)
+  ForAllBut (fun A ↦ statement₁ A ∧ statement₂ A) (scale₁ + scale₂)
   :=by
-    change  ForAllBut n m q (statement₁ ∩ statement₂ : Set _) (scale₁ + scale₂)
+    change  ForAllBut (statement₁ ∩ statement₂ : Set _) (scale₁ + scale₂)
     rw [def_encard] at *
     rw [Set.compl_inter]
     have := Set.encard_union_le statement₁ᶜ statement₂ᶜ
@@ -66,10 +66,10 @@ theorem ForAllBut.and {n m q : ℕ}
 theorem ForAllBut.mp {n m q : ℕ}
   {statement₁ : A_Matrix n m q → Prop} {scale : Scale}
   {statement₂ : A_Matrix n m q → Prop}
-  (h₁ : ForAllBut n m q statement₁ scale)
+  (h₁ : ForAllBut statement₁ scale)
   (h : ∀A, statement₁ A → statement₂ A)
   :
-  ForAllBut n m q (statement₂) scale := by
+  ForAllBut (statement₂) scale := by
     rw [def_encard] at *
     have : (setOf statement₁) ⊆ (setOf statement₂) := h
     apply le_trans ?_ h₁
@@ -78,16 +78,16 @@ theorem ForAllBut.mp {n m q : ℕ}
     exact Set.encard_le_encard this
 
 
-def ForAllBut' (m q : ℕ → ℕ) (statements : (n : ℕ) → A_Matrix n (m n) (q n) → Prop) (scale : Scale) :=
-  ∀n, ForAllBut n (m n) (q n) (statements n) scale
+def ForAllBut' {m q : ℕ → ℕ} (statements : (n : ℕ) → A_Matrix n (m n) (q n) → Prop) (scale : Scale) :=
+  ∀n, ForAllBut (statements n) scale
 
 theorem ForAllBut'.and
   {m q : ℕ → ℕ}
   {statements₁ : (n : ℕ) → A_Matrix n (m n) (q n) → Prop} {scale₁ : Scale}
   {statements₂ : (n : ℕ) → A_Matrix n (m n) (q n) → Prop} {scale₂ : Scale}
-  (h₁ : ForAllBut' m q statements₁ scale₁)
-  (h₂ : ForAllBut' m q statements₂ scale₂)
-  : ForAllBut' m q (fun n A ↦ statements₁ n A ∧ statements₂ n A) (scale₁ + scale₂)
+  (h₁ : ForAllBut' statements₁ scale₁)
+  (h₂ : ForAllBut' statements₂ scale₂)
+  : ForAllBut' (fun n A ↦ statements₁ n A ∧ statements₂ n A) (scale₁ + scale₂)
   := fun n ↦ ForAllBut.and (h₁ n) (h₂ n)
 
 
@@ -95,9 +95,9 @@ theorem ForAllBut'.mp
   {m q : ℕ → ℕ}
   {statements₁ : (n : ℕ) → A_Matrix n (m n) (q n) → Prop} {scale : Scale}
   {statements₂ : (n : ℕ) → A_Matrix n (m n) (q n) → Prop}
-  (h₁ : ForAllBut' m q statements₁ scale)
+  (h₁ : ForAllBut' statements₁ scale)
   (h : ∀n A, statements₁ n A → statements₂ n A)
-  : ForAllBut' m q statements₂ scale
+  : ForAllBut' statements₂ scale
   := fun n ↦ ForAllBut.mp (h₁ n) (h n)
 
 
@@ -145,7 +145,13 @@ lemma ForAllBut.measure_card {n m q : ℕ} [NeZero q]
   simp only
 
 def ForAllBut.def_measure {n m q : ℕ} [NeZero q] {statement : A_Matrix n m q → Prop} {scale : Scale}
-  : ForAllBut n m q statement scale ↔ ℙ (statementᶜ) ≤ scale * (q ^ n : ENNReal)⁻¹ := by
+  : ForAllBut statement scale ↔ ℙ (statementᶜ) ≤ scale * (q ^ n : ENNReal)⁻¹ := by
+    symm
+    apply ForAllBut.measure_card
+
+def ForAllBut.def_measure_one {n m q : ℕ} [NeZero q] {statement : A_Matrix n m q → Prop}
+  : ForAllBut statement 1 ↔ ℙ (statementᶜ) ≤ (q ^ n : ENNReal)⁻¹ := by
+    rw [←one_mul (q ^ n : ENNReal)⁻¹]
     symm
     apply ForAllBut.measure_card
 
@@ -170,7 +176,7 @@ private lemma PMF'.mem_uniform_card_
     rfl
 
 def ForAllBut.def_PMF {n m q : ℕ} [NeZero q] {statement : A_Matrix n m q → Prop} {scale : Scale}
-  : ForAllBut n m q statement scale ↔
+  : ForAllBut statement scale ↔
     (do {
       let A ← PMF.uniformOfFintype (A_Matrix n m q)
       return (¬statement A)

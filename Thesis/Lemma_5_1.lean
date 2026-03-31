@@ -1,5 +1,6 @@
 import Thesis.A_Matrix
 import Thesis.Hypotheses
+import Thesis.ForallBut
 
 open ProbabilityTheory
 
@@ -9,4 +10,4 @@ def lemma_5_1_statement {n m q : ℕ} (A : A_Matrix n m q) : Prop :=
 
 -- the form seems complete
 -- wait, is q_prime
-theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : ℙ (lemma_5_1_statementᶜ : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ)) := sorry
+theorem lemma_5_1 {n m q : ℕ} [NeZero q]  (q_prime : Nat.Prime q) (m_hyp : mHyp m n q) : ForAllBut (@lemma_5_1_statement n m q ) 1 := sorry

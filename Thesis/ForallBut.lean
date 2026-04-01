@@ -66,8 +66,8 @@ theorem ForAllBut.and {n m q : ℕ}
 theorem ForAllBut.mp {n m q : ℕ}
   {statement₁ : A_Matrix n m q → Prop} {scale : Scale}
   {statement₂ : A_Matrix n m q → Prop}
-  (h₁ : ForAllBut statement₁ scale)
   (h : ∀A, statement₁ A → statement₂ A)
+  (h₁ : ForAllBut statement₁ scale)
   :
   ForAllBut (statement₂) scale := by
     rw [def_encard] at *
@@ -95,10 +95,10 @@ theorem ForAllBut'.mp
   {m q : ℕ → ℕ}
   {statements₁ : (n : ℕ) → A_Matrix n (m n) (q n) → Prop} {scale : Scale}
   {statements₂ : (n : ℕ) → A_Matrix n (m n) (q n) → Prop}
-  (h₁ : ForAllBut' statements₁ scale)
   (h : ∀n A, statements₁ n A → statements₂ n A)
+  (h₁ : ForAllBut' statements₁ scale)
   : ForAllBut' statements₂ scale
-  := fun n ↦ ForAllBut.mp (h₁ n) (h n)
+  := fun n ↦ ForAllBut.mp (h n) (h₁ n)
 
 
 section measure
@@ -213,6 +213,11 @@ def ForAllButSeq {m : ℕ → ℕ} {q : ℕ → ℕ}
 def ForAllBut.nonvacuous (n m q : ℕ) (scale : Scale) : Prop :=
   ∀{statement : A_Matrix n m q → Prop} (_ : ForAllBut statement scale), ∃x, statement x
 
+theorem ForAllBut.nonvacuous.not_empty {n m q : ℕ} {scale : Scale}
+  (nv : nonvacuous n m q scale)
+  : ¬ ForAllBut (∅ : Set (A_Matrix n m q)) scale
+  := fun a ↦ match nv a with | Exists.intro _ w => w
+
 /-- when scale is high enough that it becomes "for all but 100%" -/
 def ForAllBut.vacuous (n m q : ℕ) (scale : Scale) : Prop :=
   ∀{statement : A_Matrix n m q → Prop}, ForAllBut statement scale
@@ -258,8 +263,8 @@ theorem ForAllButSeq.mp
   {m q : ℕ → ℕ}
   {statements₁ : ((n : ℕ) → A_Matrix n (m n) (q n)) → Prop} {scale : Scale}
   {statements₂ : ((n : ℕ) → A_Matrix n (m n) (q n)) → Prop}
-  (h₁ : ForAllButSeq statements₁ scale)
   (h : ∀s, statements₁ s → statements₂ s)
+  (h₁ : ForAllButSeq statements₁ scale)
   : ForAllButSeq statements₂ scale
   := by
     obtain ⟨subsets,sp, w⟩ := h₁
@@ -272,7 +277,8 @@ theorem ForAllButSeq.mp'
   {m q : ℕ → ℕ}
   {statements₁ : (n : ℕ) → A_Matrix n (m n) (q n) → Prop} {scale : Scale}
   {statements₂ : ((n : ℕ) → A_Matrix n (m n) (q n)) → Prop}
-  (h₁ : ForAllBut' statements₁ scale)
   (h : ∀ (As : (n : ℕ) → A_Matrix n (m n) (q n)), (∀ (i : ℕ), statements₁ i (As i)) → statements₂ As)
+  (h₁ : ForAllBut' statements₁ scale)
   : ForAllButSeq statements₂ scale
-  := mp (h₁.toSeq) h
+  := mp h (h₁.toSeq)
+

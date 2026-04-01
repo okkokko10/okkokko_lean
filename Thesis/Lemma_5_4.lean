@@ -76,7 +76,7 @@ theorem corollary_5_4 (q : ℕ → ℕ) [∀n, NeZero (q n)] (m : ℕ → ℕ) [
     corollary_5_4_statement q m A s s_pos
   := by
   -- refine ⟨corollary_5_4.valid_subsets q m, corollary_5_4.valid_subsets_spec _ _ q_hyp m_hyp, ?_⟩
-  apply ForAllButSeq.mp' (corollary_5_4.valid_subsets' _ _ q_hyp m_hyp)
+  apply ForAllButSeq.mp' ?_ (corollary_5_4.valid_subsets' _ _ q_hyp m_hyp)
 
   intro A A_spec s s_LittleO s_pos
 

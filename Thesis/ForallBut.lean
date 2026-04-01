@@ -282,3 +282,180 @@ theorem ForAllButSeq.mp'
   : ForAllButSeq statements₂ scale
   := mp h (h₁.toSeq)
 
+-- idea: could ForAllButSeq be ae?
+
+#check MeasureTheory.OuterMeasure
+
+#check Filter.Frequently
+#check MeasureTheory.ae
+open MeasureTheory
+
+-- fp := fun (b : Prop) ↦ if b then (⊤ : ENNReal) else 0
+-- this maps ∧ to * and ∨ to +, and → to ≤
+-- also, fp ∘ Set.nonempty is (⊤ : Measure)
+
+#check BooleanAlgebra
+
+-- example (p : Prop) : Nat
+section PropTop
+-- set_option trace.Meta.synthInstance true
+-- def PropENNReal (p : Prop) [Decidable p] := if p then (⊤ : ENNReal) else 0
+-- def PropTop (p : Prop) [Decidable p] {α : Type*} [Zero α] := if p then (⊤ : ENNReal) else 0
+
+-- #check (⊤ : ENNReal) * 0
+-- #check ENNReal.top_mul
+#check ENNReal
+#check WithTop.top_mul'
+#check WithTop.instSemigroupWithZero
+#check Top
+#check (⊤ : Prop)
+#check TopHom
+#check BoundedOrderHom
+
+-- set_option trace.Meta.Tactic.simp true
+
+
+
+-- @[coe]
+noncomputable def propTop {β : Type*} [Bot β] [Top β] (p : Prop) : β := open scoped Classical in if p then ⊤ else ⊥
+
+-- variable (β) in
+-- -- @[coe]
+-- noncomputable def propTop' : BoundedOrderHom Prop β where
+--   toFun p := open scoped Classical in if p then ⊤ else ⊥
+--   monotone' a b ab := by
+--     simp_all only [le_Prop_eq]
+--     split
+--     next h => simp_all only [forall_const, ↓reduceIte, le_refl]
+--     next h => simp_all only [IsEmpty.forall_iff, bot_le]
+--   map_top' := by simp only [«Prop».top_eq_true, ↓reduceIte]
+--   map_bot' := by simp only [«Prop».bot_eq_false, ↓reduceIte]
+-- noncomputable def propTopPi (α : Type*) : BoundedOrderHom (α → Prop) (α → β) := sorry
+-- noncomputable def propTop'' := propTop' (WithTop β)
+#check OrderTop
+-- #check isBot_zero
+
+
+
+
+variable  {β : Type*} [Bot β] [Top β]
+
+@[simp]
+theorem propTop.false_bot : (propTop False : β) = ⊥ := by
+  unfold propTop
+  simp only [↓reduceIte]
+
+@[simp]
+theorem propTop.true_top : (propTop True : β) = ⊤  := by
+  unfold propTop
+  simp only [↓reduceIte]
+
+variable {β : Type*} [PartialOrder β] [BoundedOrder β] [Nontrivial β]
+
+@[simp]
+theorem propTop.le_iff (a b : Prop) : (propTop a : β) ≤ propTop b ↔ (a → b) := by
+  unfold propTop
+  apply Iff.intro -- aesop
+  · intro a_1 a_2
+    simp_all only [↓reduceIte, top_le_iff, ite_eq_left_iff, bot_ne_top, imp_false, not_not]
+  · intro a_1
+    split
+    next h => simp_all only [forall_const, ↓reduceIte, le_refl]
+    next h => simp_all only [IsEmpty.forall_iff, bot_le]
+
+
+
+@[simp]
+theorem propTop.top_iff {p : Prop} : (propTop p : β) = ⊤ ↔ p := by
+  unfold propTop
+  simp only [ite_eq_left_iff, bot_ne_top, imp_false, not_not]
+
+@[simp]
+theorem propTop.bot_iff {p : Prop} : (propTop p : β) = ⊥ ↔ (¬ p) := by
+  unfold propTop
+  simp only [ite_eq_right_iff, top_ne_bot, imp_false]
+
+section ENNReal
+@[simp]
+theorem propTop.zero_iff {p : Prop} : (propTop p : ENNReal) = 0 ↔ (¬ p) := bot_iff
+
+
+theorem propTop.and_mul (a b : Prop) : (propTop (a ∧ b) : ENNReal) = propTop a * propTop b := by
+  unfold propTop
+  simp_all only [bot_eq_zero', mul_ite, ite_mul, ne_eq, ENNReal.top_ne_zero, not_false_eq_true, ENNReal.mul_top,
+    zero_mul, mul_zero] -- aesop
+  split
+  next h => simp_all only [↓reduceIte]
+  next h =>
+    simp_all only [not_and, right_eq_ite_iff, ENNReal.zero_ne_top, imp_false]
+    intro a_1
+    simp_all only [not_true_eq_false, imp_false, not_false_eq_true]
+
+theorem propTop.or_plus (a b : Prop) : (propTop (a ∨ b) : ENNReal) = propTop a + propTop b := by
+  unfold propTop
+  simp_all only [bot_eq_zero'] -- aesop
+  split
+  next h =>
+    cases h with
+    | inl h_1 => simp_all only [↓reduceIte, top_add]
+    | inr h_2 => simp_all only [↓reduceIte, add_top]
+  next h => simp_all only [not_or, ↓reduceIte, add_zero]
+
+
+theorem propTop.monotone (a b : Prop) (h : a → b) : (propTop a : ENNReal) ≤ propTop b := by
+  unfold propTop
+  simp_all only [bot_eq_zero'] -- aesop
+  split
+  next h_1 => simp_all only [forall_const, ↓reduceIte, le_refl]
+  next h_1 => simp_all only [IsEmpty.forall_iff, zero_le]
+
+@[simp]
+theorem propTop.exists_sum {ι : Type*} (a : ι → Prop) : ∑'i, (propTop (a i)) = (propTop (∃i, a i) : ENNReal) := by
+  -- unfold propTop
+  by_cases! h : ∃ i, a i
+  · simp only [h, true_top]
+    refine ENNReal.tsum_eq_top_of_eq_top ?_
+    simp_all only [top_iff]
+  simp only [h, false_bot, bot_eq_zero', tsum_zero, exists_false]
+
+
+set_option trace.Meta.synthInstance true in
+example : (0 : ENNReal) = ⊥ := rfl
+end ENNReal
+
+
+end PropTop
+
+-- todo: think about
+-- #check Fintype
+-- #check Finite
+-- and
+-- #check Decidable
+
+
+
+-- #check (⊤ : OuterMeasure _)
+#check (⊤ : Measure _)
+#check OuterMeasure.top_apply
+-- noncomputable def ForAllBut_Measure  {n m q : ℕ} (scale : Scale := 1) : OuterMeasure ((A_Matrix n m q → Prop))
+--   := OuterMeasure.comap (ForAllBut (scale := scale)) ⊤
+
+-- noncomputable def ForAllBut.measure'  {n m q : ℕ} (scale : Scale := 1)
+--   (nv : nonvacuous n m q scale)
+--   : OuterMeasure ((A_Matrix n m q)) where
+--   measureOf s := propTop (ForAllBut s scale)
+--   empty := by
+--     rw [propTop.zero_iff]
+--     exact nv.not_empty
+--   mono {s₁ s₂} hs := by
+--     rw [propTop.le_iff]
+--     exact mp hs
+--   iUnion_nat s pdi := by
+--     simp only [propTop.exists_sum, propTop.le_iff]
+--     intro w
+--     -- NO
+--     -- it's false
+--     sorry
+
+
+#check MeasureTheory.Measure

@@ -69,6 +69,57 @@ theorem A_Matrix.uniformProb_change
 
 -- ⊢ ℙ lemma_5_3_statementᶜ ≤ (lemma_5_3_statement <$> PMF.uniformOfFintype (A_Matrix n m q)) False
 
+lemma mHyp.lemma_5_3_ratio {n m q : ℕ} [NeZero q] [NeZero m] (m_hyp : mHyp m n q)
+  : ↑q ^ n * (↑q / 2) ^ m / ↑q ^ m ≤ (↑q ^ n : ENNReal)⁻¹ := by
+
+  have q_pos : (q : ENNReal) ≠ 0 := sorry
+  have q_fin : (q : ENNReal) ≠ ⊤ := sorry
+
+  suffices ↑q ^ n *  (1/2 : ENNReal) ^ m ≤ (↑q ^ n : ENNReal)⁻¹ by
+    apply le_trans ?_ this
+    apply le_of_eq
+    rw [mul_div_assoc]
+    congr 1
+    simp_rw [ENNReal.div_eq_inv_mul]
+    simp [mul_pow]
+    rw [mul_comm, mul_assoc]
+    rw [ENNReal.mul_inv_cancel ?_ ?_]
+    · simp only [mul_one]
+    · simp only [ne_eq, pow_eq_zero_iff', q_pos, false_and, not_false_eq_true]
+    · simp only [ne_eq, ENNReal.pow_eq_top_iff, q_fin, false_and, not_false_eq_true]
+
+  simp only [one_div, ENNReal.le_inv_iff_mul_le]
+  rw [mul_comm, ←mul_assoc]
+  refine ENNReal.le_inv_iff_mul_le.mp ?_
+  rw [←ENNReal.inv_pow,inv_inv]
+  rw [←pow_add]
+  rw [←two_mul]
+
+
+  apply ENNReal.log_le_log_iff.mp
+  simp_rw [ENNReal.log_pow]
+  simp only [EReal.natCast_mul, Nat.cast_ofNat]
+  suffices 2 * ↑n * Real.log (q) ≤ ↑m * ENNReal.log 2 by
+    rw [ENNReal.log_pos_real']
+    simp only [ENNReal.toReal_natCast, ge_iff_le]
+    exact this
+    simp only [ENNReal.toReal_natCast, Nat.cast_pos]
+    exact Nat.pos_of_neZero q
+  rw [ENNReal.log_pos_real' (by simp only [ENNReal.toReal_ofNat, Nat.ofNat_pos])]
+  simp only [ENNReal.toReal_ofNat]
+  suffices (2 * n * (Real.log ↑q)) ≤ m * (Real.log 2) by
+    apply EReal.coe_le_coe
+    exact this
+
+
+  unfold mHyp at m_hyp
+  -- apply le_trans m_hyp
+
+
+
+
+
+  sorry
 
 
 -- TODO: change (q ^ (- n : ℝ)) to (q ^ n)⁻¹ everywhere
@@ -76,7 +127,6 @@ theorem A_Matrix.uniformProb_change
 theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime q) (m_hyp : mHyp m n q)
   : ForAllBut (@lemma_5_3_statement n m q _) 1 := by
     have : Fact (Nat.Prime q) := .mk q_prime
-    rw [ForAllBut.def_measure_one]
 
     -- change ℙ (({A | ¬ lemma_5_3_statement A}) : Set <| A_Matrix n m q) ≤ (q ^ (- n : ℝ))
     -- suffices ∃s : Set <| A_Matrix n m q, ℙ sᶜ ≤ (q ^ (- n : ℝ)) ∧ ∀A, s A → (lemma_5_3_statement A)  by
@@ -118,19 +168,45 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime
     let sorryProp : Prop := sorry
 
     have Z'c_def' : Z'c = (Casts.ZnToZqn '' Z)ᶜ := by
+      clear *-
       ext x
       unfold Z'c
       set czqn := Casts.ZnToZqn
+      -- have : Set.InjOn czqn Z := sorry
       rw [←Set.singleton_subset_iff]
       rw [Set.subset_kernImage_iff]
       rw [Set.subset_compl_comm]
-      have : Set.InjOn czqn Z := sorry
+      constructor
+      · intro w xZ
+        have := Set.image_mono (f := czqn) w
+        have := this xZ
+        simp_all only [Set.mem_image, Subtype.exists, Set.image_subset_iff, Set.mem_compl_iff,
+          Set.mem_preimage, Set.mem_singleton_iff, not_and_self, exists_const]
 
-      sorry
+      · intro w s sZ sx
+        have : {x} ⊆ (⇑czqn '' Z)ᶜ := Set.singleton_subset_iff.mpr w
+        have := Set.preimage_mono (f := czqn) this
+        have := this sx
+        apply this
+        exact Set.mem_image_of_mem (⇑czqn) sZ
+
     open scoped Classical in
     let Z' : Finset (Fin m → ZMod q) := (Z'cᶜ).toFinset
 
-    have hZ' : 0 ∉ Z' := by sorry
+    have Z_nozero : 0 ∉ Z := by
+
+      sorry
+
+    have hZ' : 0 ∉ Z' := by
+      unfold Z'
+      rw [Z'c_def']
+      simp only [compl_compl, Set.mem_toFinset, Set.mem_image, Subtype.exists, not_exists, not_and]
+      intro x xw xZ
+      intro w
+      sorry
+    have Z'_card: Z'.card ≤ (q/2 : ENNReal) ^ m := by sorry
+
+
 
 
     have statement_simplified' (A : A_Matrix n m q)
@@ -143,13 +219,11 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime
         Finset.mem_compl, Set.mem_toFinset]
       simp only [exists_prop]
 
-    suffices (do {
-      let A ← PMF.uniformOfFintype (A_Matrix n m q)
-      return ¬lemma_5_3_statement A
-    } : PMF Prop ) (True) ≤ (q ^ n : ENNReal)⁻¹ by
-      apply le_trans ?_ this
-      simp only [bind_pure_comp]
-      sorry
+    -- rw [ForAllBut.def_measure_one]
+
+    rw [ForAllBut.def_PMF]
+    rw [one_mul]
+
     simp_rw [statement_simplified']
     #check lemma_5_3_key'
     apply le_trans (lemma_5_3_key' Z' hZ')
@@ -159,63 +233,11 @@ theorem lemma_5_3       {n m q : ℕ} [NeZero q] [NeZero m] (q_prime : Nat.Prime
     -- simp only [ENNReal.le_inv_iff_mul_le]
     -- suffices ((q ^ n * Z'.card) * q ^ n) ≤ (q ^ m) by
     --   sorry
-    have q_pos : (q : ENNReal) ≠ 0 := sorry
-    have q_fin : (q : ENNReal) ≠ ⊤ := sorry
 
-
-
-    have Z'_card: Z'.card ≤ (q/2 : ENNReal) ^ m := by sorry
     suffices ↑q ^ n *  (q/2 : ENNReal) ^ m / (↑q ^ m) ≤ (↑q ^ n : ENNReal)⁻¹ by
       apply le_trans ?_ this
-      gcongr
-    clear * - q_pos q_fin m_hyp
-    suffices ↑q ^ n *  (1/2 : ENNReal) ^ m ≤ (↑q ^ n : ENNReal)⁻¹ by
-      apply le_trans ?_ this
-      apply le_of_eq
-      rw [mul_div_assoc]
-      congr 1
-      simp_rw [ENNReal.div_eq_inv_mul]
-      simp [mul_pow]
-      rw [mul_comm, mul_assoc]
-      rw [ENNReal.mul_inv_cancel ?_ ?_]
-      · simp only [mul_one]
-      · simp only [ne_eq, pow_eq_zero_iff', q_pos, false_and, not_false_eq_true]
-      · simp only [ne_eq, ENNReal.pow_eq_top_iff, q_fin, false_and, not_false_eq_true]
-
-    simp only [one_div, ENNReal.le_inv_iff_mul_le]
-    rw [mul_comm, ←mul_assoc]
-    refine ENNReal.le_inv_iff_mul_le.mp ?_
-    rw [←ENNReal.inv_pow,inv_inv]
-    rw [←pow_add]
-    rw [←two_mul]
-
-
-    apply ENNReal.log_le_log_iff.mp
-    simp_rw [ENNReal.log_pow]
-    simp only [EReal.natCast_mul, Nat.cast_ofNat]
-    suffices 2 * ↑n * Real.log (q) ≤ ↑m * ENNReal.log 2 by
-      rw [ENNReal.log_pos_real']
-      simp only [ENNReal.toReal_natCast, ge_iff_le]
-      exact this
-      simp only [ENNReal.toReal_natCast, Nat.cast_pos]
-      exact Nat.pos_of_neZero q
-    rw [ENNReal.log_pos_real' (by simp only [ENNReal.toReal_ofNat, Nat.ofNat_pos])]
-    simp only [ENNReal.toReal_ofNat]
-    suffices (2 * n * (Real.log ↑q)) ≤ m * (Real.log 2) by
-      apply EReal.coe_le_coe
-      exact this
-
-
-    unfold mHyp at m_hyp
-    -- apply le_trans m_hyp
-
-    -- TODO: mHyp is wrong
-
-
-
-
-
-    sorry
+      gcongr -- Z'_card
+    exact m_hyp.lemma_5_3_ratio
 
 
 #check pdf.IsUniform

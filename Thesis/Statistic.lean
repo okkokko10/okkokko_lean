@@ -16,7 +16,7 @@ section negligible
 
 def negligible {R : Type*} [Norm R] (f : ℕ → R) := ∀(c : ℕ), c > 0 → f =o[Filter.atTop] (fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ)))
 
-
+--- todo: replace with SuperpolynomialDecay
 def negligible_over (f : ℕ → ℝ≥0) (m : ℕ → ℕ) := ∀(c : ℕ), c > 0 → (((↑) : _ → ℝ) ∘ f) =o[Filter.atTop] ((fun (n : ℕ) ↦ (n : ℝ) ^ (-(c : ℝ))) ∘ m)
 
 

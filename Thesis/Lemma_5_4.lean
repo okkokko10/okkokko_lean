@@ -101,7 +101,27 @@ theorem corollary_5_4 (q : ℕ → ℕ) [∀n, NeZero (q n)] (m : ℕ → ℕ) [
     : ∀ᶠ (n : N) in Filter.atTop, statisticalDistance (synd_dist n) (uni n) ≤ 2 * ε n
     := by
       apply Filter.Eventually.mp key_5_3
-      have ε_small : ∀ᶠ (n: N) in Filter.atTop, ε n < 2⁻¹ := sorry
+
+      have ε_small (x)(x_pos : x>0)(ε : N → ℝ≥0) (εh : Filter.Tendsto ε Filter.atTop (nhds 0)) : ∀ᶠ (n: N) in Filter.atTop, ε n < x := by
+        -- #check Asymptotics.SuperpolynomialDecay
+        have w := Filter.tendsto_iff_eventually.mp εh (p := (· < x))
+        apply w
+
+        -- apply Filter.eventually_iff.mpr
+
+
+        -- rw [←NNReal.bot_eq_zero]
+        -- have := Filter.atBot_eq_pure_of_isBot (x := (0 : NNReal)) (isBot_zero)
+        -- have t1:= NNReal.bot_eq_zero ▸ this
+        -- have := Filter.Pure_
+        -- have t2:= Filter.nhds_bot (α := NNReal) -- nevermind
+
+        -- rw []
+
+        sorry
+      have ε_to0 : Filter.Tendsto ε Filter.atTop (nhds 0) := sorry
+      specialize ε_small (2⁻¹) (by simp only [gt_iff_lt, inv_pos, Nat.ofNat_pos]) ε ε_to0
+
       apply Filter.Eventually.mp ε_small
       apply Filter.Eventually.of_forall -- todo: change to imply ε n < 2⁻¹ using negl_ε
       intro n ε_s key_5_2_statement

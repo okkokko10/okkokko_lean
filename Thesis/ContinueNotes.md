@@ -23,3 +23,12 @@ https://www.cs.bu.edu/~reyzin/teaching/s11cs937/notes-leo-1.pdf
 
 
 
+2.6 seems mostly done
+
+2.8 and 5.1 proofs have not started.
+
+5.2 seems mostly done.
+
+I was in the middle of proving 5.3 last.
+
+5.4 is almost completely ready.

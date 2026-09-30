@@ -101,9 +101,11 @@ theorem corollary_5_4 (q : ℕ → ℕ) [∀n, NeZero (q n)] (m : ℕ → ℕ) [
     : ∀ᶠ (n : N) in Filter.atTop, statisticalDistance (synd_dist n) (uni n) ≤ 2 * ε n
     := by
       apply Filter.Eventually.mp key_5_3
+      have ε_small : ∀ᶠ (n: N) in Filter.atTop, ε n < 2⁻¹ := sorry
+      apply Filter.Eventually.mp ε_small
       apply Filter.Eventually.of_forall -- todo: change to imply ε n < 2⁻¹ using negl_ε
-      intro n key_5_2_statement
-      exact lemma_5_2 (A n) (key_5_1 n) (ε n) sorry (s n) key_5_2_statement
+      intro n ε_s key_5_2_statement
+      exact lemma_5_2 (A n) (key_5_1 n) (ε n) ε_s (s n) key_5_2_statement
 
   have m_top : id ≤ m := by exact mHyp'_ge_id m q q_hyp m_hyp
   apply negligible_over.toNegligible ?_ m_top

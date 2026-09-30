@@ -32,3 +32,27 @@ https://www.cs.bu.edu/~reyzin/teaching/s11cs937/notes-leo-1.pdf
 I was in the middle of proving 5.3 last.
 
 5.4 is almost completely ready.
+
+maybe introduce 2.7 as sorry to prove 2.8
+
+
+have structure ready by 15.10.
+
+
+
+meetings:
+16.10. and 6.11. 13:30-14
+
+25.11 15:30-16
+
+part of lattice based cryptog - introduce
+tool to build
+ask AI
+these lemmas cited everywhere
+in this thesis we formalize
+why this is important, motivation
+
+description in one chapter, formalization in other.
+
+check out slides in zulip.
+smoothing
